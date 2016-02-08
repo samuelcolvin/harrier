@@ -15,4 +15,5 @@ script:
   - py.test --cov=harrier
 
 after_success:
+  - coverage combine
   - codecov

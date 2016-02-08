@@ -50,6 +50,11 @@ class HarrierEventHandler(PatternMatchingEventHandler):
             raise HarrierKnownProblem('Build Process failed.')
         return self._build_process.exitcode == 0
 
+    def wait(self):
+        while True:
+            time.sleep(1)
+            self.check_build()
+
 
 def serve(config: Config):
     observer = Observer()
@@ -65,9 +70,7 @@ def serve(config: Config):
     observer.schedule(event_handler, config.root, recursive=True)
     observer.start()
     try:
-        while True:
-            time.sleep(1)
-            event_handler.check_build()
+        event_handler.wait()
     except KeyboardInterrupt:
         pass
     finally:
