@@ -5,7 +5,7 @@ from harrier import VERSION
 from .build import build
 from .config import load_config
 from .common import logger, HarrierKnownProblem
-from .watch import watch
+from .serve import serve
 
 config_help = 'Provide a specific harrier config yml file path.'
 dev_address_help = 'IP address and port to serve documentation locally (default: localhost:8000).'
@@ -45,9 +45,8 @@ def setup_logging(verbose=False):
 @click.argument('config-file', type=click.Path(exists=True), required=False)
 @click.option('-t', '--target', help=dev_address_help)
 @click.option('-a', '--dev-addr', help=dev_address_help, metavar='<IP:PORT>')
-@click.option('--reload/--no-reload', default=True, help=reload_help)
 @click.option('-v', '--verbose', is_flag=True, help=verbose_help)
-def cli(action, config_file, target, dev_addr, reload, verbose):
+def cli(action, config_file, target, dev_addr, verbose):
     """
     harrier - Jinja2 & sass/scss aware site builder builder
     """
@@ -57,9 +56,12 @@ def cli(action, config_file, target, dev_addr, reload, verbose):
         target = target or action
         config.setup(target)
         if action == 'serve':
-            watch(config)
+            serve(config)
         else:
             assert action == 'build'
             build(config)
     except HarrierKnownProblem as e:
-        click.secho('Error: {}'.format(e), fg='red', err=True)
+        msg = 'Error: {}'
+        if not verbose:
+            msg += ', use "--verbose" for more details'
+        click.secho(msg.format(e), fg='red', err=True)

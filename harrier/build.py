@@ -5,20 +5,15 @@ import sys
 from importlib import import_module
 from fnmatch import fnmatch
 
+from .tools import find_all_files
 from .common import logger
 from .config import Config
-
-
-def _get_all_files(root):
-    for d, _, files in os.walk(root):
-        for f in files:
-            yield './' + os.path.relpath(os.path.join(d, f), root)
 
 
 def build(config: Config):
     tools = [import_string(t) for t in config.tools]
     tools.reverse()
-    all_files = list(_get_all_files(config.root))
+    all_files = find_all_files(config.root, './')
     logger.debug('{} files in root directory'.format(len(all_files)))
     excluded_patterns = config.exclude_patterns
 
@@ -47,8 +42,8 @@ def build(config: Config):
     tool_str = 'tool' if len(active_tools) == 1 else 'tools'
     logger.info('Building {} files with {} {}'.format(file_count, len(active_tools), tool_str))
     for t in active_tools:
-        logger.debug('building {} files with {}...{}'.format(len(t.to_build), t.name, t.to_build))
-        t.build()
+        build_count = t.build()
+        logger.debug('built {} files with {}'.format(build_count, t.name))
 
 
 def import_string(dotted_path):

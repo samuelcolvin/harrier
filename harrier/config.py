@@ -37,6 +37,7 @@ class Config:
                     name = k
                     break
         self._target = self._target or {}
+        self._target['name'] = name
 
         default_paths = {
             'build': 'build',
@@ -85,6 +86,7 @@ class Config:
         defaults = [
             (r'/s[ac]ss/', '/css/'),
             (r'\.s[ac]ss$', '.css'),
+            (r'\(.{2,4}\w\).jinja2?$', r'\1'),
             (r'\.jinja2?$', '.html'),
         ]
         # TODO deal better with conf_dict, eg. dicts, list of dicts, check length of lists of lists
@@ -106,6 +108,32 @@ class Config:
             'harrier.tools.Jinja',
         ]
         return self.config_dict.get('tools') or defaults
+
+    @property
+    def context(self):
+        # add more things hre like commit sha
+        _ctx = {
+            'build_target': self._target['name'],
+        }
+        _ctx.update(self.config_dict.get('context') or {})
+        _ctx.update(self._target.get('context') or {})
+        return _ctx
+
+    def find_bower(self):
+        bc = 'bower_components'
+        bdir = self.config_dict.get(bc, bc)
+        dirs = [
+            os.path.join(self.root, bdir),
+            os.path.join(self._base_dir, bdir),
+            bdir,
+        ]
+        for d in dirs:
+            if os.path.exists(d):
+                logger.debug('Found bower directory {}'.format(d))
+                return d
+
+        if bc in self.config_dict:
+            raise HarrierKnownProblem('"bower_components" supplied in config but can\'t be found.')
 
 
 # in order if preference:

@@ -35,5 +35,6 @@ setup(
         'click>=6.2',
         'libsass>=0.10.1',
         'watchdog>=0.8.3',
+        'livereload>=2.4.1',
     ]
 )
