@@ -3,3 +3,7 @@
 env/
 node_modules/
 examples/
+.cache/
+.coverage
+try.py
+harrier.yml

@@ -15,15 +15,17 @@ class HarrierEventHandler(PatternMatchingEventHandler):
         '*___jb_???___',
     ]
 
+    def __init__(self, config, *args, **kwargs):
+        super(HarrierEventHandler, self).__init__(*args, **kwargs)
+        self._config = config
+
     def on_any_event(self, event):
-        print(event)
-        time.sleep(2.5)
-        print(event, 'done')
+        print(event, build)
 
 
 def watch(config: Config):
     observer = Observer()
-    event_handler = HarrierEventHandler()
+    event_handler = HarrierEventHandler(config)
     observer.schedule(event_handler, config.root, recursive=True)
     observer.start()
     try:

@@ -22,18 +22,12 @@ def verbose_option(f):
     return click.option('-v', '--verbose', is_flag=True, expose_value=False, help=verbose_help, callback=callback)(f)
 
 
-def common_options(f):
-    f = verbose_option(f)
-    f = quiet_option(f)
-    return f
-
-
 @click.group()
 @click.version_option(VERSION, '-V', '--version')
 @verbose_option
 def cli():
     """
-    harrier - jinja2, sass builder
+    harrier - Jinja2 & sass/scss aware site builder builder
     """
 
 

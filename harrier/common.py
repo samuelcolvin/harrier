@@ -11,4 +11,3 @@ logger.setLevel(logging.INFO)
 
 class HarrierKnownProblem(Exception):
     pass
-

@@ -1,0 +1,18 @@
+language: python
+
+cache: pip
+
+python:
+  - "3.4"
+  - "3.5"
+
+install:
+  - python setup.py install
+  - pip install -r requirements_test.txt
+
+script:
+  - flake8 harrier/ tests/
+  - py.test --cov=harrier
+
+after_success:
+  - codecov
