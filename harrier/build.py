@@ -53,7 +53,7 @@ def import_string(dotted_path):
     """
     try:
         module_path, class_name = dotted_path.rsplit('.', 1)
-    except ValueError:
+    except ValueError:  # pragma: no cover
         e = ImportError("{} doesn't look like a module path".format(dotted_path))
         raise e.with_traceback(sys.exc_info()[2])
 
@@ -61,6 +61,6 @@ def import_string(dotted_path):
 
     try:
         return getattr(module, class_name)
-    except AttributeError:
+    except AttributeError:  # pragma: no cover
         e = ImportError('Module "{}" does not define a "{}" attribute/class'.format(module_path, class_name))
         raise e.with_traceback(sys.exc_info()[2])

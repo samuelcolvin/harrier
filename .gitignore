@@ -10,3 +10,4 @@ try.py
 harrier.yml
 .serve/
 build/
+htmlcov/
