@@ -1,0 +1,16 @@
+[run]
+source = harrier
+
+branch = True
+concurrency = multiprocessing
+
+parallel = True
+
+[report]
+exclude_lines =
+    pragma: no cover
+
+    raise AssertionError
+    raise NotImplementedError
+    raise NotImplemented
+    def __repr__

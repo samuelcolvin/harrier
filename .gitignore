@@ -5,6 +5,7 @@ node_modules/
 examples/
 .cache/
 .coverage
+.coverage.*
 try.py
 harrier.yml
 .serve/
