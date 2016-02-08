@@ -30,10 +30,10 @@ class Tool:
         for file_path in self.to_build:
             for new_file_path, file_content in self.convert_file(file_path):
                 new_file_path = new_file_path or self.map_path(file_path)
-                output_file = os.path.join(self._config.output_dir, new_file_path)
-                output_dir = os.path.dirname(output_file)
-                os.makedirs(output_dir, exist_ok=True)
-                with open(output_file, 'wb') as f:
+                target_file = os.path.join(self._config.target_dir, new_file_path)
+                target_dir = os.path.dirname(target_file)
+                os.makedirs(target_dir, exist_ok=True)
+                with open(target_file, 'wb') as f:
                     f.write(file_content)
 
     def convert_file(self, file_path) -> dict:

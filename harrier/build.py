@@ -36,10 +36,10 @@ def build(config: Config):
                 tool.to_build.append(file_path)
                 break
 
-    if os.path.exists(config.output_dir):
+    if os.path.exists(config.target_dir):
         # TODO we can do this better, both with config and not remove everything
-        shutil.rmtree(config.output_dir)
-        logger.info('Deleting output directory {}'.format(config.output_dir))
+        shutil.rmtree(config.target_dir)
+        logger.info('Deleting target directory {}'.format(config.target_dir))
 
     tools.reverse()
     file_count = sum([len(t.to_build) for t in tools])

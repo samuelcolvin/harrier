@@ -7,3 +7,5 @@ examples/
 .coverage
 try.py
 harrier.yml
+.serve/
+build/

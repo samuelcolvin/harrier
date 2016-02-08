@@ -7,18 +7,19 @@ from .config import load_config
 from .common import logger, HarrierKnownProblem
 from .watch import watch
 
-config_help = 'Provide a specific harrier config yml file path'
-dev_address_help = 'IP address and port to serve documentation locally (default: localhost:8000)'
+config_help = 'Provide a specific harrier config yml file path.'
+dev_address_help = 'IP address and port to serve documentation locally (default: localhost:8000).'
+target_help = 'choice from targets in harrier.yml, defaults to same value as action eg. build or serve.'
 site_dir_help = 'The directory to output the result of the documentation build.'
 reload_help = 'Enable and disable the live reloading in the development server.'
-verbose_help = 'Enable verbose output'
+verbose_help = 'Enable verbose output.'
 
 
 class ClickHandler(logging.Handler):
     colours = {
         logging.DEBUG: 'blue',
         logging.INFO: 'green',
-        logging.WARN: 'orange',
+        logging.WARN: 'yellow',
     }
 
     def emit(self, record):
@@ -28,6 +29,9 @@ class ClickHandler(logging.Handler):
 
 
 def setup_logging(verbose=False):
+    for h in logger.handlers:
+        if isinstance(h, ClickHandler):
+            return
     handler = ClickHandler()
     formatter = logging.Formatter('%(message)s')
     handler.setFormatter(formatter)
@@ -39,22 +43,23 @@ def setup_logging(verbose=False):
 @click.version_option(VERSION, '-V', '--version')
 @click.argument('action', type=click.Choice(['serve', 'build']))
 @click.argument('config-file', type=click.Path(exists=True), required=False)
+@click.option('-t', '--target', help=dev_address_help)
 @click.option('-a', '--dev-addr', help=dev_address_help, metavar='<IP:PORT>')
 @click.option('--reload/--no-reload', default=True, help=reload_help)
 @click.option('-v', '--verbose', is_flag=True, help=verbose_help)
-def cli(action, config_file, dev_addr, reload, verbose):
+def cli(action, config_file, target, dev_addr, reload, verbose):
     """
     harrier - Jinja2 & sass/scss aware site builder builder
     """
     setup_logging(verbose)
     try:
         config = load_config(config_file)
+        target = target or action
+        config.setup(target)
         if action == 'serve':
-            config.setup('live')  # FIXME
             watch(config)
         else:
             assert action == 'build'
-            config.setup('build')  # FIXME
             build(config)
     except HarrierKnownProblem as e:
         click.secho('Error: {}'.format(e), fg='red', err=True)
