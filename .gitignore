@@ -1,0 +1,5 @@
+*.py[cod]
+.idea/
+env/
+node_modules/
+examples/
