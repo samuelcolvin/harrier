@@ -11,7 +11,7 @@ from .build import build
 
 
 def build_process(config, build_no):
-    time.sleep(0.1)
+    time.sleep(0.05)
     logger.info('change detected, rebuilding ({})...'.format(build_no))
     logger.debug(config)
     build(config)
