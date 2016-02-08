@@ -119,21 +119,21 @@ class Config:
         _ctx.update(self._target.get('context') or {})
         return _ctx
 
-    def find_bower(self):
+    def find_library(self):
         bc = 'bower_components'
-        bdir = self.config_dict.get(bc, bc)
+        ldir = self.config_dict.get('library') or bc
         dirs = [
-            os.path.join(self.root, bdir),
-            os.path.join(self._base_dir, bdir),
-            bdir,
+            os.path.join(self.root, ldir),
+            os.path.join(self._base_dir, ldir),
+            ldir,
         ]
         for d in dirs:
             if os.path.exists(d):
-                logger.debug('Found bower directory {}'.format(d))
+                logger.debug('Found library directory {}'.format(d))
                 return d
 
-        if bc in self.config_dict:
-            raise HarrierKnownProblem('"bower_components" supplied in config but can\'t be found.')
+        if 'library' in self.config_dict:
+            raise HarrierKnownProblem('library supplied in config but can\'t be found.')
 
 
 # in order if preference:

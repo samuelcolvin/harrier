@@ -8,11 +8,10 @@ def tmpworkdir(tmpdir):
     """
     Create a temporary working working directory.
     """
-    root_dir = tmpdir.mkdir('test_root')
     cwd = os.getcwd()
-    os.chdir(root_dir.strpath)
+    os.chdir(tmpdir.strpath)
 
-    yield root_dir
+    yield tmpdir
 
     os.chdir(cwd)
 
