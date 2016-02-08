@@ -80,7 +80,7 @@ class Config:
     def exclude_patterns(self):
         default = [
             '*/bower_components/*',
-            self.config_file
+            '*/' + self.config_file,
         ]
         return self.config_dict.get('exclude_patterns') or default
 
@@ -123,7 +123,7 @@ def load_config(config_file) -> Config:
 
     if file_path is None:
         names = ', '.join(DEFAULT_CONFIG_FILES)
-        raise HarrierKnownProblem('no config file supplied and none found with expected name: {}'.format(names))
+        raise HarrierKnownProblem('no config file supplied and none found with expected names: {}'.format(names))
 
     if any(file_path.endswith(ext) for ext in ['.yaml', '.yml']):
         logger.debug('Processing %s as a yaml file', file_path)

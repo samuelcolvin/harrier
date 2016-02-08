@@ -14,48 +14,47 @@ reload_help = 'Enable and disable the live reloading in the development server.'
 verbose_help = 'Enable verbose output'
 
 
-def verbose_option(f):
-    def callback(ctx, param, value):
-        if value:
-            logger.setLevel(logging.DEBUG)
+class ClickHandler(logging.Handler):
+    colours = {
+        logging.DEBUG: 'blue',
+        logging.INFO: 'green',
+        logging.WARN: 'orange',
+    }
 
-    return click.option('-v', '--verbose', is_flag=True, expose_value=False, help=verbose_help, callback=callback)(f)
+    def emit(self, record):
+        log_entry = self.format(record)
+        colour = self.colours.get(record.levelno, 'red')
+        click.secho(log_entry, fg=colour)
 
 
-@click.group()
+def setup_logging(verbose=False):
+    handler = ClickHandler()
+    formatter = logging.Formatter('%(message)s')
+    handler.setFormatter(formatter)
+    logger.addHandler(handler)
+    logger.setLevel(logging.DEBUG if verbose else logging.INFO)
+
+
+@click.command()
 @click.version_option(VERSION, '-V', '--version')
-@verbose_option
-def cli():
+@click.argument('action', type=click.Choice(['serve', 'build']))
+@click.argument('config-file', type=click.Path(exists=True), required=False)
+@click.option('-a', '--dev-addr', help=dev_address_help, metavar='<IP:PORT>')
+@click.option('--reload/--no-reload', default=True, help=reload_help)
+@click.option('-v', '--verbose', is_flag=True, help=verbose_help)
+def cli(action, config_file, dev_addr, reload, verbose):
     """
     harrier - Jinja2 & sass/scss aware site builder builder
     """
-
-
-@cli.command(name='live')
-@click.option('-a', '--dev-addr', help=dev_address_help, metavar='<IP:PORT>')
-@click.option('--reload/--no-reload', default=True, help=reload_help)
-@click.argument('config-file', type=click.Path(exists=True), required=False)
-def live_command(config_file, dev_addr, reload):
-    """
-    Serve files locally for development. Reload server on file changes.
-    """
+    setup_logging(verbose)
     try:
         config = load_config(config_file)
-        config.setup('live')
-        watch(config)
-    except HarrierKnownProblem as e:
-        click.secho('Error: {}'.format(e), fg='red', err=True)
-
-
-@cli.command(name='build')
-@click.argument('config-file', type=click.Path(exists=True), required=False)
-def build_command(config_file):
-    """
-    Build for deployment.
-    """
-    try:
-        config = load_config(config_file)
-        config.setup('build')
-        build(config)
+        if action == 'serve':
+            config.setup('live')  # FIXME
+            watch(config)
+        else:
+            assert action == 'build'
+            config.setup('build')  # FIXME
+            build(config)
     except HarrierKnownProblem as e:
         click.secho('Error: {}'.format(e), fg='red', err=True)

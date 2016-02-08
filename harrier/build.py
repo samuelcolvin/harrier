@@ -37,13 +37,16 @@ def build(config: Config):
                 break
 
     if os.path.exists(config.output_dir):
-        # we can do this better, both with config and not remove everything
+        # TODO we can do this better, both with config and not remove everything
         shutil.rmtree(config.output_dir)
         logger.info('Deleting output directory {}'.format(config.output_dir))
-    file_count = sum([len(t.to_build) for t in tools])
-    logger.info('Building {} files with {} tools'.format(file_count, len(tools)))
+
     tools.reverse()
-    for t in tools:
+    file_count = sum([len(t.to_build) for t in tools])
+    active_tools = [t for t in tools if t.to_build]
+    tool_str = 'tool' if len(active_tools) == 1 else 'tools'
+    logger.info('Building {} files with {} {}'.format(file_count, len(active_tools), tool_str))
+    for t in active_tools:
         logger.debug('building {} files with {}...{}'.format(len(t.to_build), t.name, t.to_build))
         t.build()
 
