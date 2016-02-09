@@ -48,7 +48,7 @@ def setup_logging(verbose=False):
 @click.option('-v', '--verbose', is_flag=True, help=verbose_help)
 def cli(action, config_file, target, dev_addr, verbose):
     """
-    harrier - Jinja2 & sass/scss aware site builder builder
+    harrier - Jinja2 & sass/scss aware site builder
     """
     setup_logging(verbose)
     try:

@@ -4,9 +4,9 @@ harrier
 [![Build Status](https://travis-ci.org/samuelcolvin/harrier.svg?branch=master)](https://travis-ci.org/samuelcolvin/harrier)
 [![codecov.io](https://codecov.io/github/samuelcolvin/harrier/coverage.svg?branch=master)](https://codecov.io/github/samuelcolvin/harrier?branch=master)
 
-**(Named after the hound, not the bird or plane.)**
+**(Named after the hound, not the plane.)**
 
-Jinja2 & sass/scss aware site builder builder
+Jinja2 & sass/scss aware site builder
 
 ## What?
 
@@ -29,3 +29,16 @@ Partly because I'm much happier with everything that doesn't have to be javascri
 ## Usage
 
     harrier --help
+
+## TODO
+
+* full support for livereloader
+* partial rebuilds
+* javascript build pipeline 
+* test coverage
+* hash name extension
+* support testing - what can we test?
+* html tidy
+* jinja minify https://github.com/mitsuhiko/jinja2-htmlcompress
+* css map files
+* `.min.` support

@@ -1,7 +1,7 @@
 from setuptools import setup
 from harrier import VERSION
 
-description = 'Jinja2 & sass/scss aware site builder builder'
+description = 'Jinja2 & sass/scss aware site builder'
 
 setup(
     name='harrier',
