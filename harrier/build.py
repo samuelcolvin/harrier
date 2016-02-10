@@ -1,6 +1,7 @@
 import os
 import shutil
 import sys
+from operator import attrgetter
 
 from importlib import import_module
 from fnmatch import fnmatch
@@ -12,7 +13,7 @@ from .config import Config
 
 def build(config: Config):
     tools = [import_string(t) for t in config.tools]
-    tools.reverse()
+    tools.sort(key=attrgetter('ownership_priority'), reverse=True)
     all_files = find_all_files(config.root, './')
     logger.debug('{} files in root directory'.format(len(all_files)))
     excluded_patterns = config.exclude_patterns
@@ -36,7 +37,7 @@ def build(config: Config):
         shutil.rmtree(config.target_dir)
         logger.info('Deleting target directory {}'.format(config.target_dir))
 
-    tools.reverse()
+    tools.sort(key=attrgetter('build_priority'), reverse=True)
     file_count = sum([len(t.to_build) for t in tools])
     active_tools = [t for t in tools if t.to_build]
     tool_str = 'tool' if len(active_tools) == 1 else 'tools'

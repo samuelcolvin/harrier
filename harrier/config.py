@@ -25,7 +25,7 @@ class Config:
             c = yaml.load(f)
         unknown = set(config.keys()) - set(c.keys())
         if unknown:
-            raise HarrierKnownProblem('Unexpected sections on config: {}'.format(unknown))
+            raise HarrierKnownProblem('Unexpected sections in config: {}'.format(unknown))
         c.update(config)
         return c
 
@@ -89,9 +89,7 @@ class Config:
 
     @property
     def jinja_directories(self):
-        rel_dirs = self._get_setting('jinja', 'directories')
-        if isinstance(rel_dirs, str):
-            rel_dirs = [rel_dirs]
+        rel_dirs = self._listify(self._get_setting('jinja', 'directories'))
         dirs = []
         for rel_dir in rel_dirs:
             full_dir = os.path.join(self.root, rel_dir)
@@ -105,6 +103,14 @@ class Config:
     @property
     def jinja_patterns(self):
         return self._get_setting('jinja', 'patterns')
+
+    @property
+    def prebuild_commands(self):
+        return self._listify(self._get_setting('prebuild', 'commands'))
+
+    @property
+    def prebuild_patterns(self):
+        return self._listify(self._get_setting('prebuild', 'patterns'))
 
     @property
     def path_mapping(self):
@@ -144,6 +150,11 @@ class Config:
 
         if 'library' in self._orig_config:
             raise HarrierKnownProblem('library supplied in config but can\'t be found.')
+
+    def _listify(self, v):
+        if isinstance(v, str):
+            return [v]
+        return list(v)
 
 
 # in order if preference:

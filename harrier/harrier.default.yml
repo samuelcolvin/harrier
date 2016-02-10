@@ -1,6 +1,7 @@
 # this does not show all defaults as some have to be computed at run time, see config.py
 root: .
 tools:
+  - harrier.tools.Prebuild
   - harrier.tools.CopyFile
   - harrier.tools.Sass
   - harrier.tools.Jinja
@@ -11,6 +12,11 @@ jinja:
     - '*.jinja2'
   directories:
     - '.'
+prebuild:
+  commands: []
+  patterns:
+    - 'lib/*.js'
+extra: {}
 exclude:
   - '*/bower_components/*'
   - '*/harrier.yml'

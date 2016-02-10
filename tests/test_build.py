@@ -34,8 +34,9 @@ def test_no_config(tmpworkdir):
 
 def test_extra_config(tmpworkdir):
     tmpworkdir.join('harrier.yml').write('foobar: 42')
-    with pytest.raises(HarrierKnownProblem):
+    with pytest.raises(HarrierKnownProblem) as excinfo:
         load_config(None)
+    assert excinfo.value.args[0] == "Unexpected sections in config: {'foobar'}"
 
 
 def test_json_seperate_root(tmpworkdir):
@@ -139,3 +140,11 @@ def test_jinja_static_library_missing(tmpworkdir):
     config.setup('build')
     with pytest.raises(HarrierKnownProblem):
         build(config)
+
+
+# def test_prebuild(tmpworkdir):
+#     tmpworkdir.mkdir('lib').join('test.js').write('var hello = 42;')
+#     tmpworkdir.join('harrier.yml').write("""\
+# root: .
+# prebuild:
+#   commands: ['cp lib/test.js foobar.js']""")

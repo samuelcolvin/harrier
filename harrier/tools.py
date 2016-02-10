@@ -1,5 +1,6 @@
 import os
 import re
+import subprocess
 from fnmatch import fnmatch
 
 import sass
@@ -7,6 +8,7 @@ from harrier.common import HarrierKnownProblem
 from jinja2 import Environment, FileSystemLoader, contextfilter
 
 from .config import Config
+from .common import logger
 
 
 def find_all_files(root, prefix=''):
@@ -20,6 +22,10 @@ def find_all_files(root, prefix=''):
 
 class Tool:
     ownership_regex = None
+    # priorities are used to sort tools before ownership check and build, highest comes first.
+    ownership_priority = 0
+    build_priority = 0
+    allow_no_file = False
 
     def __init__(self, config: Config):
         self._config = config
@@ -42,6 +48,8 @@ class Tool:
         gen_count = 0
         for file_path in self.to_build:
             for new_file_path, file_content in self.convert_file(file_path):
+                if file_content is None and self.allow_no_file:
+                    continue
                 new_file_path = new_file_path or self.map_path(file_path)
                 target_file = os.path.join(self._config.target_dir, new_file_path)
                 target_dir = os.path.dirname(target_file)
@@ -62,9 +70,31 @@ class Tool:
         return self.__class__.__name__
 
 
-class CopyFile(Tool):
+class Prebuild(Tool):
+    ownership_priority = 5  # should go early
+    build_priority = 10  # should go first
+    allow_no_file = True
+
+    def __init__(self, config):
+        super(Prebuild, self).__init__(config)
+        self._commands = config.prebuild_commands
+        self.ownership_patterns = config.prebuild_patterns
+
     def check_ownership(self, file_path):
-        return True
+        if not self._commands:
+            return False
+        return any(fnmatch(file_path, m) for m in self.ownership_patterns)
+
+    def convert_file(self, file_path):
+        for command in self._commands:
+            cp = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, check=True)
+            logger.debug('"%s" -> %s', command, cp.stdout)
+        yield None, None
+
+
+class CopyFile(Tool):
+    ownership_regex = r'.*'
+    ownership_priority = -10  # should go last
 
     def convert_file(self, file_path):
         full_path = os.path.join(self._config.root, file_path)
@@ -74,6 +104,7 @@ class CopyFile(Tool):
 
 class Sass(Tool):
     ownership_regex = r'.*\.s(a|c)ss$'
+    ownership_priority = 1  # should go early
 
     def convert_file(self, file_path):
         full_path = os.path.join(self._config.root, file_path)
@@ -83,6 +114,9 @@ class Sass(Tool):
 
 
 class Jinja(Tool):
+    ownership_priority = 5  # should go early
+    build_priority = -10  # should go last
+
     def __init__(self, config):
         super(Jinja, self).__init__(config)
         # TODO custom loader which deals with partial builds

@@ -6,6 +6,7 @@ examples/
 .cache/
 .coverage
 .coverage.*
+coverage.xml
 try.py
 harrier.yml
 .serve/
