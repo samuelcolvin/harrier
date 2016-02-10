@@ -25,6 +25,7 @@ setup(
     license='MIT',
     packages=['harrier'],
     zip_safe=True,
+    include_package_data=True,
     entry_points="""
         [console_scripts]
         harrier=harrier.cli:cli

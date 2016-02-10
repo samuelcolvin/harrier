@@ -1,20 +1,33 @@
 import os
 import json
+from copy import deepcopy
 
 import yaml
 
 from .common import HarrierKnownProblem, logger
 
+DEFAULT_CONFIG = os.path.join(os.path.dirname(__file__), 'harrier.default.yml')
+
 
 class Config:
     def __init__(self, config_dict, config_file):
-        self.root = config_dict.get('root') or '.'
+        self._orig_config = config_dict
+        self._config = self._prepare_config(config_dict)
         self.config_file = config_file
-        self.config_dict = config_dict
+        self.root = self._config['root']
         self._already_setup = False
         self._base_dir = None
         self._target = None
         self.target_dir = None
+
+    def _prepare_config(self, config):
+        with open(DEFAULT_CONFIG) as f:
+            c = yaml.load(f)
+        unknown = set(config.keys()) - set(c.keys())
+        if unknown:
+            raise HarrierKnownProblem('Unexpected sections on config: {}'.format(unknown))
+        c.update(config)
+        return c
 
     def setup(self, target_name, base_dir=None):
         if self._already_setup:
@@ -27,8 +40,7 @@ class Config:
         self._already_setup = True
 
     def _set_target(self, name):
-        # TODO this could be more forgiving, eg. default flag etc.
-        target = self.config_dict.get('target') or {}
+        target = self._config['target']
         self._target = target.get(name)
         if self._target is None:
             for k, v in target.items():
@@ -62,10 +74,24 @@ class Config:
             raise HarrierKnownProblem(msg.format(root=self.root, base_dir=self._base_dir))
         return full_root
 
+    def _get_setting(self, *args):
+
+        def find_property(d, key_list):
+            # TODO show more helpful errors eg if v is a string and v.get is called.
+            v = deepcopy(d)
+            for k in key_list:
+                v = v.get(k)
+                if v is None:
+                    return
+            return v
+
+        return find_property(self._target, args) or find_property(self._config, args)
+
     @property
     def jinja_directories(self):
-        defaults = ['.']
-        rel_dirs = self.config_dict.get('jinja_directories') or defaults
+        rel_dirs = self._get_setting('jinja', 'directories')
+        if isinstance(rel_dirs, str):
+            rel_dirs = [rel_dirs]
         dirs = []
         for rel_dir in rel_dirs:
             full_dir = os.path.join(self.root, rel_dir)
@@ -78,50 +104,34 @@ class Config:
 
     @property
     def jinja_patterns(self):
-        defaults = ['*.html', '*.jinja', '*.jinja2']
-        return self.config_dict.get('jinja_patterns') or defaults
+        return self._get_setting('jinja', 'patterns')
 
     @property
     def path_mapping(self):
-        defaults = [
-            (r'/s[ac]ss/', '/css/'),
-            (r'\.s[ac]ss$', '.css'),
-            (r'\(.{2,4}\w\).jinja2?$', r'\1'),
-            (r'\.jinja2?$', '.html'),
-        ]
         # TODO deal better with conf_dict, eg. dicts, list of dicts, check length of lists of lists
-        return self.config_dict.get('path_mapping') or defaults
+        # TODO add extra_mapping to avoid overriding these values
+        return self._config['mapping']
 
     @property
     def exclude_patterns(self):
-        defaults = [
-            '*/bower_components/*',
-            '*/' + self.config_file,
-        ]
-        return self.config_dict.get('exclude_patterns') or defaults
+        return self._config['exclude']
 
     @property
     def tools(self):
-        defaults = [
-            'harrier.tools.CopyFile',
-            'harrier.tools.Sass',
-            'harrier.tools.Jinja',
-        ]
-        return self.config_dict.get('tools') or defaults
+        return self._config['tools']
 
     @property
     def context(self):
-        # add more things hre like commit sha
+        # TODO add more things hre like commit sha
         _ctx = {
             'build_target': self._target['name'],
         }
-        _ctx.update(self.config_dict.get('context') or {})
+        _ctx.update(self._config['context'] or {})
         _ctx.update(self._target.get('context') or {})
         return _ctx
 
     def find_library(self):
-        bc = 'bower_components'
-        ldir = self.config_dict.get('library') or bc
+        ldir = self._config.get('library')
         dirs = [
             os.path.join(self.root, ldir),
             os.path.join(self._base_dir, ldir),
@@ -132,7 +142,7 @@ class Config:
                 logger.debug('Found library directory {}'.format(d))
                 return d
 
-        if 'library' in self.config_dict:
+        if 'library' in self._orig_config:
             raise HarrierKnownProblem('library supplied in config but can\'t be found.')
 
 

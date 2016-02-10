@@ -1,0 +1,31 @@
+# this does not show all defaults as some have to be computed at run time, see config.py
+root: .
+tools:
+  - harrier.tools.CopyFile
+  - harrier.tools.Sass
+  - harrier.tools.Jinja
+jinja:
+  patterns:
+    - '*.html'
+    - '*.jinja'
+    - '*.jinja2'
+  directories:
+    - '.'
+exclude:
+  - '*/bower_components/*'
+  - '*/harrier.yml'
+  - '*/harrier.json'
+  - '*/config.yml'
+  - '*/config.json'
+mapping:
+  - ['/s[ac]ss/', '/css/']
+  - ['\.s[ac]ss$', '.css']
+  - ['\(.{2,4}\w\).jinja2?$', '\1']
+  - ['\.jinja2?$', '.html']
+library: bower_components
+context: {}
+target:
+  serve:
+    bath: .serve
+  build:
+    path: build

@@ -32,9 +32,10 @@ Partly because I'm much happier with everything that doesn't have to be javascri
 
 ## TODO
 
+* javascript build pipeline 
+* ignoring files - frontmatter
 * full support for livereloader
 * partial rebuilds
-* javascript build pipeline 
 * test coverage
 * hash name extension
 * support testing - what can we test?
@@ -42,3 +43,11 @@ Partly because I'm much happier with everything that doesn't have to be javascri
 * jinja minify https://github.com/mitsuhiko/jinja2-htmlcompress
 * css map files
 * `.min.` support
+
+
+### JS pipeline
+
+A few ways of doing this:
+1. prebuild step which creates the js file(s) which can then be processed normally.
+2. subprocess tool which runs some command to create output.
+3. Separate command to build js and watch/serve.

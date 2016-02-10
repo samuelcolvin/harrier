@@ -6,10 +6,8 @@ from harrier.config import load_config
 
 
 def test_simple_build(tmpworkdir):
-    js = tmpworkdir.join('test.js')
-    js.write('var hello = 1;')
-    p = tmpworkdir.join('harrier.yml')
-    p.write("""\
+    tmpworkdir.join('test.js').write('var hello = 1;')
+    tmpworkdir.join('harrier.yml').write("""\
 root: .
 target:
   build:
@@ -23,9 +21,8 @@ target:
     assert tmpworkdir.join('build', 'test.js').read_text('utf8') == 'var hello = 1;'
 
 
-def test_build_no_config(tmpworkdir):
-    js = tmpworkdir.join('test.js')
-    js.write('var hello = 1;')
+def test_no_config(tmpworkdir):
+    tmpworkdir.join('test.js').write('var hello = 1;')
     config = load_config(None)
     config.setup('build')
     build(config)
@@ -35,10 +32,15 @@ def test_build_no_config(tmpworkdir):
     assert tmpworkdir.join('build', 'test.js').read_text('utf8') == 'var hello = 1;'
 
 
+def test_extra_config(tmpworkdir):
+    tmpworkdir.join('harrier.yml').write('foobar: 42')
+    with pytest.raises(HarrierKnownProblem):
+        load_config(None)
+
+
 def test_json_seperate_root(tmpworkdir):
     root_dir = tmpworkdir.mkdir('foobar')
-    p = tmpworkdir.join('harrier.json')
-    p.write('{"root": "foobar"}')
+    tmpworkdir.join('harrier.json').write('{"root": "foobar"}')
     root_dir.join('bar').write('hello')
     config = load_config('harrier.json')
     config.setup('build')

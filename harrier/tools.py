@@ -19,6 +19,8 @@ def find_all_files(root, prefix=''):
 
 
 class Tool:
+    ownership_regex = None
+
     def __init__(self, config: Config):
         self._config = config
         self.to_build = []
@@ -29,7 +31,7 @@ class Tool:
 
         The convert might also want to record the file to process it later.
         """
-        raise NotImplementedError()
+        return re.match(self.ownership_regex, file_path)
 
     def map_path(self, fp):
         for pattern, replace in self._config.path_mapping:
@@ -71,8 +73,7 @@ class CopyFile(Tool):
 
 
 class Sass(Tool):
-    def check_ownership(self, file_path):
-        return any(file_path.endswith(ext) for ext in ['.sass', '.scss'])
+    ownership_regex = r'.*\.s(a|c)ss$'
 
     def convert_file(self, file_path):
         full_path = os.path.join(self._config.root, file_path)
@@ -84,7 +85,7 @@ class Sass(Tool):
 class Jinja(Tool):
     def __init__(self, config):
         super(Jinja, self).__init__(config)
-        # TODO custom load which deals with reloading
+        # TODO custom loader which deals with partial builds
         self._loader = FileSystemLoader(config.jinja_directories)
         self._env = Environment(loader=self._loader)
         self._env.filters.update(
