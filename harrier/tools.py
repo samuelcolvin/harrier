@@ -67,6 +67,9 @@ class Tool:
         """
         raise NotImplementedError()
 
+    def cleanup(self):
+        pass
+
     @property
     def name(self):
         return self.__class__.__name__
@@ -97,6 +100,14 @@ class Prebuild(Tool):
             else:
                 logger.debug('"%s" -> "%s" ✓', command, cp.stdout.decode('utf8'))
         yield None, None
+
+    def cleanup(self):
+        if not self._config.prebuild_cleanup:
+            return
+
+        for fp in self._config.prebuild_generates:
+            d = os.path.join(self._config.root, fp)
+            os.remove(d)
 
     @property
     def extra_files(self):
@@ -200,6 +211,8 @@ class Jinja(Tool):
         self._extra_files = []
         template = self._env.get_template(file_path)
         content_str = template.render(**self._ctx)
+        if self._config.live and self._config.serve_livereload:
+            content_str += '\n<script src="http://localhost:{}/livereload.js"></script>'.format(self._config.serve_port)
         yield None, content_str.encode('utf8')
         for name, content in self._extra_files:
             yield name, content

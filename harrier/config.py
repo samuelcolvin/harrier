@@ -10,15 +10,13 @@ DEFAULT_CONFIG = os.path.join(os.path.dirname(__file__), 'harrier.default.yml')
 
 
 class Config:
+    _already_setup = _base_dir = _target = target_dir = live = None
+
     def __init__(self, config_dict, config_file):
         self._orig_config = config_dict
         self._config = self._prepare_config(config_dict)
         self.config_file = config_file
         self.root = self._config['root']
-        self._already_setup = False
-        self._base_dir = None
-        self._target = None
-        self.target_dir = None
 
     def _prepare_config(self, config):
         with open(DEFAULT_CONFIG) as f:
@@ -29,7 +27,7 @@ class Config:
         c.update(config)
         return c
 
-    def setup(self, target_name, base_dir=None):
+    def setup(self, target_name, live=False, base_dir=None):
         if self._already_setup:
             return
         full_root = self._set_base_dir(base_dir)
@@ -38,6 +36,7 @@ class Config:
         self.config_file = os.path.relpath(self.config_file, self.root)
         self._set_target(target_name)
         self._already_setup = True
+        self.live = live
 
     def _set_target(self, name):
         target = self._config['target']
@@ -85,7 +84,18 @@ class Config:
                     return
             return v
 
-        return find_property(self._target, args) or find_property(self._config, args)
+        target_prop = find_property(self._target, args)
+        if target_prop is not None:
+            return target_prop
+        return find_property(self._config, args)
+
+    @property
+    def serve_port(self):
+        return self._target.get('port') or 8000
+
+    @property
+    def serve_livereload(self):
+        return self._target.get('livereload', True)
 
     @property
     def jinja_directories(self):
@@ -115,6 +125,11 @@ class Config:
     @property
     def prebuild_generates(self):
         return self._listify(self._get_setting('prebuild', 'generates'))
+
+    @property
+    def prebuild_cleanup(self):
+        cleanup = self._get_setting('prebuild', 'cleanup')
+        return True if cleanup is None else bool(cleanup)
 
     @property
     def path_mapping(self):
@@ -205,6 +220,5 @@ def load_config(config_file) -> Config:
             raise HarrierKnownProblem(msg.format(file_path))
         with open(file_path) as f:
             config = loader(f)
-        # TODO: cerberus test of config shape
         config_file = os.path.realpath(file_path)
     return Config(config, config_file)

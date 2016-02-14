@@ -32,22 +32,22 @@ Partly because I'm much happier with everything that doesn't have to be javascri
 
 ## TODO
 
-* javascript build pipeline 
-* ignoring files - frontmatter
-* full support for livereloader
 * partial rebuilds
-* test coverage
+* test coverage, server test
 * hash name extension
+* watch mode as well as serve
 * support testing - what can we test?
 * html tidy
+* switch to aiohttp server with better logging
 * jinja minify https://github.com/mitsuhiko/jinja2-htmlcompress
 * css map files
-* `.min.` support
+* `.min.` and `.map` support
+* support harrier serving on one port while another tool runs on anther, this not required
 
 
 ### JS pipeline
 
 A few ways of doing this:
-1. prebuild step which creates the js file(s) which can then be processed normally.
+1. prebuild step which creates the js file(s) which can then be processed normally. (done)
 2. subprocess tool which runs some command to create output.
 3. Separate command to build js and watch/serve.

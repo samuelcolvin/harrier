@@ -54,6 +54,9 @@ def build(config: Config):
         build_count = t.build()
         logger.debug('built {} files with {}'.format(build_count, t.name))
 
+    for t in active_tools:
+        t.cleanup()
+
 
 def import_string(dotted_path):
     """

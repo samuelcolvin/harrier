@@ -64,7 +64,7 @@ def serve(config: Config):
     p.join()
     event_handler.check_build()
 
-    server_process = Process(target=_server, args=(config.target_dir,))
+    server_process = Process(target=_server, args=(config.target_dir, config.serve_port))
     server_process.start()
 
     observer.schedule(event_handler, config.root, recursive=True)
@@ -79,9 +79,9 @@ def serve(config: Config):
         server_process.terminate()
 
 
-def _server(watch_root):
+def _server(watch_root, port):
     server = Server()
     watch_root = watch_root.rstrip('/') + '/'
     server.watch(watch_root)
 
-    server.serve(root=watch_root)
+    server.serve(root=watch_root, port=port)

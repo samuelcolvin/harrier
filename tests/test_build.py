@@ -65,6 +65,16 @@ def test_jinja(tmpworkdir):
     assert gettree(tmpworkdir.join('build')) == {'index.html': '47'}
 
 
+def test_jinja_live(tmpworkdir):
+    tmpworkdir.join('index.html').write('{{ 42 + 5 }}')
+    config = load_config(None)
+    config.setup('build', True)
+    build(config)
+    assert gettree(tmpworkdir.join('build')) == {
+        'index.html': '47\n<script src="http://localhost:8000/livereload.js"></script>'
+    }
+
+
 def test_jinja_static(tmpworkdir):
     tmpworkdir.join('foo.txt').write('hello')
     tmpworkdir.join('index.html').write("{{ 'foo.txt'|S }}")
@@ -149,6 +159,25 @@ prebuild:
     config.setup('build')
     build(config)
     assert gettree(tmpworkdir.join('build')) == {'foobar.js': 'XX'}
+    assert tmpworkdir.join('foobar.js').check() is False
+
+
+def test_prebuild_no_cleanup(tmpworkdir):
+    tmpworkdir.mkdir('lib').join('test.js').write('XX')
+    tmpworkdir.join('harrier.yml').write("""\
+prebuild:
+  commands:
+    - 'cp lib/test.js foobar.js'
+  cleanup: False
+  patterns:
+    - ./lib/*.js
+  generates:
+    - foobar.js""")
+    config = load_config(None)
+    config.setup('build')
+    build(config)
+    assert gettree(tmpworkdir.join('build')) == {'foobar.js': 'XX'}
+    assert tmpworkdir.join('foobar.js').check()
 
 
 def test_prebuild_different_dir(tmpworkdir):
@@ -171,3 +200,9 @@ prebuild:
     config.setup('build')
     build(config)
     assert gettree(tmpworkdir.join('build')) == {'foo': 'C_foo', 'foobar.js': 'C_test.js'}
+    assert gettree(tmpworkdir.join('path').join('different_root')) == {
+        'foo': 'C_foo',
+        'lib': {
+            'test.js': 'C_test.js',
+        }
+    }

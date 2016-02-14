@@ -14,6 +14,7 @@ jinja:
     - '.'
 prebuild:
   commands: []
+  cleanup: True
 extra: {}
 exclude:
   - '*/bower_components/*'
@@ -30,6 +31,8 @@ library: bower_components
 context: {}
 target:
   serve:
-    bath: .serve
+    path: .serve
+    port: 8000
+    livereload: True
   build:
     path: build
