@@ -1,6 +1,7 @@
 import os
 import shutil
 import sys
+from itertools import chain
 from operator import attrgetter
 
 from importlib import import_module
@@ -13,18 +14,24 @@ from .config import Config
 
 def build(config: Config):
     tools = [import_string(t) for t in config.tools]
-    tools.sort(key=attrgetter('ownership_priority'), reverse=True)
     all_files = find_all_files(config.root, './')
     logger.debug('{} files in root directory'.format(len(all_files)))
-    excluded_patterns = config.exclude_patterns
-
-    def excluded(fn):
-        return not any(fnmatch(fn, m) for m in excluded_patterns)
-
-    all_files = list(filter(excluded, all_files))
-    logger.debug('{} files to build after initial exclusion'.format(len(all_files)))
 
     tools = [t(config) for t in tools]
+    tools.sort(key=attrgetter('ownership_priority'), reverse=True)
+
+    extra_files = list(chain(*[t.extra_files for t in tools]))
+    logger.debug('{} extra files generated'.format(len(extra_files)))
+    all_files += extra_files
+
+    def excluded(fn):
+        return not any(fnmatch(fn, m) for m in config.exclude_patterns)
+
+    before_exclude = len(all_files)
+    all_files = list(filter(excluded, all_files))
+
+    logger.debug('{} files excluded'.format(before_exclude - len(all_files)))
+    logger.debug('{} files to build'.format(len(all_files)))
 
     for file_path in sorted(all_files):
         for tool in tools:
@@ -38,8 +45,9 @@ def build(config: Config):
         logger.info('Deleting target directory {}'.format(config.target_dir))
 
     tools.sort(key=attrgetter('build_priority'), reverse=True)
-    file_count = sum([len(t.to_build) for t in tools])
     active_tools = [t for t in tools if t.to_build]
+
+    file_count = sum([len(t.to_build) for t in tools])
     tool_str = 'tool' if len(active_tools) == 1 else 'tools'
     logger.info('Building {} files with {} {}'.format(file_count, len(active_tools), tool_str))
     for t in active_tools:

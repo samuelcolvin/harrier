@@ -14,8 +14,6 @@ jinja:
     - '.'
 prebuild:
   commands: []
-  patterns:
-    - 'lib/*.js'
 extra: {}
 exclude:
   - '*/bower_components/*'

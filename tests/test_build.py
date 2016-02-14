@@ -1,8 +1,10 @@
 import pytest
+
 from harrier.build import build
 from harrier.common import HarrierKnownProblem
-
 from harrier.config import load_config
+
+from .conftest import gettree, mktree
 
 
 def test_simple_build(tmpworkdir):
@@ -15,10 +17,7 @@ target:
     config = load_config('harrier.yml')
     config.setup('build')
     build(config)
-    build_dir = tmpworkdir.join('build')
-    assert build_dir.check()
-    assert [p.basename for p in tmpworkdir.join('build').listdir()] == ['test.js']
-    assert tmpworkdir.join('build', 'test.js').read_text('utf8') == 'var hello = 1;'
+    assert gettree(tmpworkdir.join('build')) == {'test.js': 'var hello = 1;'}
 
 
 def test_no_config(tmpworkdir):
@@ -26,10 +25,7 @@ def test_no_config(tmpworkdir):
     config = load_config(None)
     config.setup('build')
     build(config)
-    build_dir = tmpworkdir.join('build')
-    assert build_dir.check()
-    assert [p.basename for p in tmpworkdir.join('build').listdir()] == ['test.js']
-    assert tmpworkdir.join('build', 'test.js').read_text('utf8') == 'var hello = 1;'
+    assert gettree(tmpworkdir.join('build')) == {'test.js': 'var hello = 1;'}
 
 
 def test_extra_config(tmpworkdir):
@@ -46,9 +42,7 @@ def test_json_seperate_root(tmpworkdir):
     config = load_config('harrier.json')
     config.setup('build')
     build(config)
-    build_dir = tmpworkdir.join('build')
-    assert build_dir.check()
-    assert [p.basename for p in tmpworkdir.join('build').listdir()] == ['bar']
+    assert gettree(tmpworkdir.join('build')) == {'bar': 'hello'}
 
 
 def test_build_css_js(tmpworkdir):
@@ -57,11 +51,10 @@ def test_build_css_js(tmpworkdir):
     config = load_config(None)
     config.setup('build')
     build(config)
-    build_dir = tmpworkdir.join('build')
-    assert build_dir.check()
-    assert sorted([p.basename for p in tmpworkdir.join('build').listdir()]) == ['styles.css', 'test.js']
-    assert tmpworkdir.join('build', 'test.js').read_text('utf8') == 'var hello = 1;'
-    assert tmpworkdir.join('build', 'styles.css').read_text('utf8') == 'a b {\n  color: blue; }\n'
+    assert gettree(tmpworkdir.join('build')) == {
+        'test.js': 'var hello = 1;',
+        'styles.css': 'a b {\n  color: blue; }\n'
+    }
 
 
 def test_jinja(tmpworkdir):
@@ -69,7 +62,7 @@ def test_jinja(tmpworkdir):
     config = load_config(None)
     config.setup('build')
     build(config)
-    assert tmpworkdir.join('build', 'index.html').read_text('utf8') == '47'
+    assert gettree(tmpworkdir.join('build')) == {'index.html': '47'}
 
 
 def test_jinja_static(tmpworkdir):
@@ -78,7 +71,7 @@ def test_jinja_static(tmpworkdir):
     config = load_config(None)
     config.setup('build')
     build(config)
-    assert tmpworkdir.join('build', 'index.html').read_text('utf8') == 'foo.txt'
+    assert gettree(tmpworkdir.join('build')) == {'index.html': 'foo.txt', 'foo.txt': 'hello'}
 
 
 def test_jinja_static_relpath(tmpworkdir):
@@ -88,7 +81,7 @@ def test_jinja_static_relpath(tmpworkdir):
     config = load_config(None)
     config.setup('build')
     build(config)
-    assert tmpworkdir.join('build', 'path', 'index.html').read_text('utf8') == 'foo.txt'
+    assert gettree(tmpworkdir.join('build')) == {'path': {'index.html': 'foo.txt', 'foo.txt': 'hello'}}
 
 
 def test_jinja_static_abs_url(tmpworkdir):
@@ -98,8 +91,7 @@ def test_jinja_static_abs_url(tmpworkdir):
     config = load_config(None)
     config.setup('build')
     build(config)
-    assert tmpworkdir.join('build', 'path', 'index.html').read_text('utf8') == '/foo.txt'
-    assert tmpworkdir.join('build', 'foo.txt').read_text('utf8') == 'hello'
+    assert gettree(tmpworkdir.join('build')) == {'path': {'index.html': '/foo.txt'}, 'foo.txt': 'hello'}
 
 
 def test_jinja_static_missing(tmpworkdir):
@@ -108,6 +100,7 @@ def test_jinja_static_missing(tmpworkdir):
     config.setup('build')
     with pytest.raises(HarrierKnownProblem):
         build(config)
+    assert gettree(tmpworkdir) == {'index.html': "{{ 'foo.txt'|S }}"}
 
 
 @pytest.mark.parametrize('library', [
@@ -121,16 +114,15 @@ def test_jinja_static_missing(tmpworkdir):
 ])
 def test_jinja_static_library(tmpworkdir, library):
     # here the library directory is inside the config root, shouldn't make any difference
-    file_dir = tmpworkdir.mkdir('bower_components').mkdir('package').mkdir('path')
-    file_dir.join('lib_file.js').write('hello')
-
-    tmpworkdir.join('index.html').write("{{ 'lib_file.js'|S('%s') }}" % library)
+    mktree(tmpworkdir, **{
+        'bower_components/package/path/lib_file.js': 'lib content',
+        'index.html': "{{ 'lib_file.js'|S('%s') }}" % library
+    })
 
     config = load_config(None)
     config.setup('build')
     build(config)
-    assert tmpworkdir.join('build', 'index.html').read_text('utf8') == 'lib_file.js'
-    assert tmpworkdir.join('build', 'lib_file.js').check
+    assert gettree(tmpworkdir.join('build')) == {'index.html': 'lib_file.js', 'lib_file.js': 'lib content'}
 
 
 def test_jinja_static_library_missing(tmpworkdir):
@@ -140,11 +132,42 @@ def test_jinja_static_library_missing(tmpworkdir):
     config.setup('build')
     with pytest.raises(HarrierKnownProblem):
         build(config)
+    assert gettree(tmpworkdir) == {'index.html': "{{ 'lib_file.js'|S('libs/lib_file.js') }}"}
 
 
-# def test_prebuild(tmpworkdir):
-#     tmpworkdir.mkdir('lib').join('test.js').write('var hello = 42;')
-#     tmpworkdir.join('harrier.yml').write("""\
-# root: .
-# prebuild:
-#   commands: ['cp lib/test.js foobar.js']""")
+def test_prebuild(tmpworkdir):
+    tmpworkdir.mkdir('lib').join('test.js').write('XX')
+    tmpworkdir.join('harrier.yml').write("""\
+prebuild:
+  commands:
+    - 'cp lib/test.js foobar.js'
+  patterns:
+    - ./lib/*.js
+  generates:
+    - foobar.js""")
+    config = load_config(None)
+    config.setup('build')
+    build(config)
+    assert gettree(tmpworkdir.join('build')) == {'foobar.js': 'XX'}
+
+
+def test_prebuild_different_dir(tmpworkdir):
+    mktree(tmpworkdir, **{
+        'path/different_root': {
+            'foo': 'C_foo',
+            'lib/test.js': 'C_test.js',
+        },
+        'harrier.yml': """\
+root: path/different_root
+prebuild:
+  commands:
+    - 'cp lib/test.js foobar.js'
+  patterns:
+    - ./lib/*
+  generates:
+    - foobar.js"""
+    })
+    config = load_config(None)
+    config.setup('build')
+    build(config)
+    assert gettree(tmpworkdir.join('build')) == {'foo': 'C_foo', 'foobar.js': 'C_test.js'}

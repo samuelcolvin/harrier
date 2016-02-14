@@ -113,6 +113,10 @@ class Config:
         return self._listify(self._get_setting('prebuild', 'patterns'))
 
     @property
+    def prebuild_generates(self):
+        return self._listify(self._get_setting('prebuild', 'generates'))
+
+    @property
     def path_mapping(self):
         # TODO deal better with conf_dict, eg. dicts, list of dicts, check length of lists of lists
         # TODO add extra_mapping to avoid overriding these values
@@ -149,12 +153,12 @@ class Config:
                 return d
 
         if 'library' in self._orig_config:
-            raise HarrierKnownProblem('library supplied in config but can\'t be found.')
+            raise HarrierKnownProblem("library supplied in config but can't be found.")
 
     def _listify(self, v):
         if isinstance(v, str):
             return [v]
-        return list(v)
+        return list(v or [])
 
 
 # in order if preference:

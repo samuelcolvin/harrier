@@ -1,6 +1,7 @@
 import os
 import re
 import subprocess
+import shlex
 from fnmatch import fnmatch
 
 import sass
@@ -26,6 +27,7 @@ class Tool:
     ownership_priority = 0
     build_priority = 0
     allow_no_file = False
+    extra_files = []
 
     def __init__(self, config: Config):
         self._config = config
@@ -71,7 +73,7 @@ class Tool:
 
 
 class Prebuild(Tool):
-    ownership_priority = 5  # should go early
+    ownership_priority = 10  # should go first
     build_priority = 10  # should go first
     allow_no_file = True
 
@@ -87,9 +89,18 @@ class Prebuild(Tool):
 
     def convert_file(self, file_path):
         for command in self._commands:
-            cp = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, check=True)
-            logger.debug('"%s" -> %s', command, cp.stdout)
+            args = shlex.split(command)
+            cp = subprocess.run(args, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, cwd=self._config.root)
+            if cp.returncode != 0:
+                logger.error('"%s" -> %s', command, cp.stdout.decode('utf8'))
+                raise HarrierKnownProblem('Command "{}" returned non-zero exit status 1'.format(command))
+            else:
+                logger.debug('"%s" -> "%s" ✓', command, cp.stdout.decode('utf8'))
         yield None, None
+
+    @property
+    def extra_files(self):
+        return self._config.prebuild_generates
 
 
 class CopyFile(Tool):
@@ -98,6 +109,8 @@ class CopyFile(Tool):
 
     def convert_file(self, file_path):
         full_path = os.path.join(self._config.root, file_path)
+        if not os.path.isfile(full_path):
+            raise HarrierKnownProblem('"{}" does not exist'.format(full_path))
         with open(full_path, 'rb') as f:
             yield None, f.read()
 
