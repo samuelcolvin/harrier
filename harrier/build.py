@@ -20,21 +20,16 @@ class Builder:
         self._config = config
         self._tool_classes = [import_string(t) for t in config.tools]
         self._tool_classes.sort(key=attrgetter('ownership_priority'), reverse=True)
+        self._exclude_patterns = self._config.exclude_patterns
 
     def build(self, full):
         tools = [t(self._config) for t in self._tool_classes]
-
-        all_files = find_all_files(self._config.root, './')
-        logger.debug('{} files in root directory'.format(len(all_files)))
+        all_files = self._file_list()
 
         extra_files = list(chain(*[t.extra_files for t in tools]))
         logger.debug('{} extra files will be generated'.format(len(extra_files)))
         all_files += extra_files
 
-        before_exclude = len(all_files)
-        all_files = list(filter(self._excluded, all_files))
-
-        logger.debug('{} files excluded'.format(before_exclude - len(all_files)))
         logger.debug('{} files to build'.format(len(all_files)))
 
         for file_path in sorted(all_files):
@@ -59,8 +54,17 @@ class Builder:
         for t in active_tools:
             t.cleanup()
 
+    def _file_list(self):
+        all_files = find_all_files(self._config.root, './')
+        logger.debug('{} files in root directory'.format(len(all_files)))
+
+        before_exclude = len(all_files)
+        all_files = list(filter(self._excluded, all_files))
+        logger.debug('{} files excluded'.format(before_exclude - len(all_files)))
+        return all_files
+
     def _excluded(self, fn):
-        return not any(fnmatch(fn, m) for m in self._config.exclude_patterns)
+        return not any(fnmatch(fn, m) for m in self._exclude_patterns)
 
     def _delete(self, full):
         if not os.path.exists(self._config.target_dir):
