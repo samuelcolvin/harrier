@@ -43,11 +43,3 @@ Partly because I'm much happier with everything that doesn't have to be javascri
 * css map files
 * `.min.` and `.map` support
 * support harrier serving on one port while another tool runs on anther, this not required
-
-
-### JS pipeline
-
-A few ways of doing this:
-1. prebuild step which creates the js file(s) which can then be processed normally. (done)
-2. subprocess tool which runs some command to create output.
-3. Separate command to build js and watch/serve.
