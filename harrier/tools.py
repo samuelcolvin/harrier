@@ -28,6 +28,8 @@ class Tool:
     build_priority = 0
     allow_no_file = False
     extra_files = []
+    # whether or not one file changing requires a complete rebuild
+    change_sensitive = True
 
     def __init__(self, config: Config):
         self._config = config
@@ -46,9 +48,9 @@ class Tool:
             fp = re.sub(pattern, replace, fp)
         return fp
 
-    def build(self):
+    def build(self, file_paths):
         gen_count = 0
-        for file_path in self.to_build:
+        for file_path in file_paths:
             for new_file_path, file_content in self.convert_file(file_path):
                 if file_content is None and self.allow_no_file:
                     continue
@@ -117,6 +119,7 @@ class Prebuild(Tool):
 class CopyFile(Tool):
     ownership_regex = r'.*'
     ownership_priority = -10  # should go last
+    change_sensitive = False
 
     def convert_file(self, file_path):
         full_path = os.path.join(self._config.root, file_path)

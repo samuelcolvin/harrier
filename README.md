@@ -10,15 +10,15 @@ Jinja2 & sass/scss aware site builder
 
 ## What?
 
-Assert generator in the same vane as webpack/gulp & browsify but tailored to sass/scss and Jinja2.
-Javascript support via integration with webpack. Harrier also supports arbitrary build steps via 
+Asset generator in the same vane as webpack/gulp & browsify but tailored to sass/scss and Jinja2.
+Javascript support via integration with webpack, also supports arbitrary build steps via 
 composable "tools".
 
 ## Why?
 
 Well partly because I couldn't find a tools to do what I wanted.
 
-Partly because I'm much happier with everything that doesn't have to be javascript not being python.
+Partly because I'm much happier with everything that doesn't have to be javascript not being javascript.
 
 ## Install
 
@@ -34,6 +34,7 @@ Partly because I'm much happier with everything that doesn't have to be javascri
 
 * partial rebuilds
 * test coverage, server test
+* deal with jinja master templates which shouldn't be copied - frontmatter?
 * hash name extension
 * watch mode as well as serve
 * support testing - what can we test?
@@ -42,4 +43,4 @@ Partly because I'm much happier with everything that doesn't have to be javascri
 * jinja minify https://github.com/mitsuhiko/jinja2-htmlcompress
 * css map files
 * `.min.` and `.map` support
-* support harrier serving on one port while another tool runs on anther, this not required
+* support harrier serving on one port while another tool runs on anther, this is perhaps not required
