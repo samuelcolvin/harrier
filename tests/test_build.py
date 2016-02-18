@@ -124,7 +124,7 @@ def test_jinja_static_missing(tmpworkdir):
 ])
 def test_jinja_static_library(tmpworkdir, library):
     # here the library directory is inside the config root, shouldn't make any difference
-    mktree(tmpworkdir, **{
+    mktree(tmpworkdir, {
         'bower_components/package/path/lib_file.js': 'lib content',
         'index.html': "{{ 'lib_file.js'|S('%s') }}" % library
     })
@@ -181,7 +181,7 @@ prebuild:
 
 
 def test_prebuild_different_dir(tmpworkdir):
-    mktree(tmpworkdir, **{
+    mktree(tmpworkdir, {
         'path/different_root': {
             'foo': 'C_foo',
             'lib/test.js': 'C_test.js',

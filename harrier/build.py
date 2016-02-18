@@ -1,79 +1,78 @@
 import os
 import shutil
-import sys
 from copy import copy
-from itertools import chain
-from operator import attrgetter
-from importlib import import_module
 from fnmatch import fnmatch
 
-from .common import logger
+from .common import logger, HarrierKnownProblem
 from .config import Config
+from .tool_chain import ToolChainFactory, ToolChain
 from .tools import find_all_files
 
 
-def build(config, full=True):
-    Builder(config).build(full)
+def build(config, partial=False) -> (int, int):
+    return Builder(config).build(partial)
 
 
 class Builder:
-    _changed = _future_hash_dict = _extra_files = None
+    _future_hash_dict = _extra_files = None
 
     def __init__(self, config: Config):
         self._config = config
-        self._tool_classes = [import_string(t) for t in config.tools]
-        self._tool_classes.sort(key=attrgetter('ownership_priority'), reverse=True)
+        self._gear_box_creator = ToolChainFactory(config)
+        self._gear_box_creator.prioritise('ownership_priority')
         self._exclude_patterns = self._config.exclude_patterns
         self._hash_dict = {}
+        self._already_built = False
+        self._previous_full_build = False
 
-    def build(self, full):
-        tools = [t(self._config, full) for t in self._tool_classes]
+    def build(self, partial=False) -> ToolChain:
+        if not partial:
+            self._previous_full_build = True
+        elif self._previous_full_build:
+            raise HarrierKnownProblem('Partial builds are not allowed following full builds with the same builder')
+
+        self._delete(partial)
+        self._already_built = True
+
+        tools = self._gear_box_creator(partial)
         all_files = self._file_list()
 
-        self._extra_files = set(chain(*[t.extra_files for t in tools]))
+        self._extra_files = tools.get_extra_files()
         logger.debug('%s extra files will be generated', len(self._extra_files))
         all_files.extend(self._extra_files)
 
         logger.debug('%s files to build', len(all_files))
 
-        self._changed = set()
         self._future_hash_dict = {}
+        files_changed = 0
 
         for file_path in sorted(all_files):
-            if not full and self._file_changed(file_path):
-                self._changed.add(file_path)
-
+            changed = self._file_changed(file_path) if partial else True
+            files_changed += changed
             for tool in tools:
-                if tool.assign_file(file_path):
+                if tool.assign_file(file_path, changed):
                     break
 
-        if not full:
-            logger.info('%s files changed or associated with changed files', len(self._changed))
+        if partial:
+            logger.info('%s files changed or associated with changed files', files_changed)
 
-        tools.sort(key=attrgetter('build_priority'), reverse=True)
-        active_tools = [t for t in tools if t.active()]
+        tools.prioritise('build_priority')
         # TODO possible extra step to remove files from _changed where the tool is not active
+        for t in tools:
+            tools.run_tool(t)
 
-        file_count = sum([len(t.to_build) for t in tools])
-        tool_str = 'tool' if len(active_tools) == 1 else 'tools'
-        logger.info('Building %s files with %s %s', file_count, len(active_tools), tool_str)
+        tool_str = 'tool' if tools.tools_run == 1 else 'tools'
+        file_str = 'file' if tools.files_built == 1 else 'files'
+        logger.info('Built %s %s with %s %s', tools.files_built, file_str, tools.tools_run, tool_str)
 
-        self._delete(full)
+        for t in tools:
+            t.cleanup()  # TODO active
 
-        for t in active_tools:
-            if full or t.change_sensitive:
-                file_paths = t.to_build
-            else:
-                file_paths = filter(lambda f: f in self._changed, t.to_build)
-            build_count = t.build(file_paths)
-            logger.debug('built %s files with %s', build_count, t.name)
-
-        for t in active_tools:
-            t.cleanup()
-
-        if not full:
+        if partial:
             # TODO delete stale files here, low priority
             self._hash_dict = copy(self._future_hash_dict)
+        logger.debug('-' * 20)
+        return tools
 
     def _file_changed(self, file_path):
         if file_path in self._extra_files:
@@ -86,7 +85,7 @@ class Builder:
         self._future_hash_dict[file_path] = file_hash
 
         # check if the file_hash exists in and matches _hash_dict
-        return self._hash_dict.get(file_path) == file_hash
+        return self._hash_dict.get(file_path) != file_hash
 
     def _file_list(self):
         all_files = find_all_files(self._config.root, './')
@@ -100,32 +99,16 @@ class Builder:
     def _excluded(self, fn):
         return not any(fnmatch(fn, m) for m in self._exclude_patterns)
 
-    def _delete(self, full):
+    def _delete(self, partial):
         if not os.path.exists(self._config.target_dir):
             return
 
-        if full:
-            logger.info('Full build, deleting target directory %s', self._config.target_dir)
+        reason = None
+        if not partial:
+            reason = 'Full'
+        elif not self._already_built:
+            reason = 'First'
+
+        if reason:
+            logger.info('%s build, deleting target directory %s', reason, self._config.target_dir)
             shutil.rmtree(self._config.target_dir)
-
-
-def import_string(dotted_path):
-    """
-    Stolen verbatim from django.
-
-    Import a dotted module path and return the attribute/class designated by the
-    last name in the path. Raise ImportError if the import failed.
-    """
-    try:
-        module_path, class_name = dotted_path.rsplit('.', 1)
-    except ValueError:  # pragma: no cover
-        e = ImportError("{} doesn't look like a module path".format(dotted_path))
-        raise e.with_traceback(sys.exc_info()[2])
-
-    module = import_module(module_path)
-
-    try:
-        return getattr(module, class_name)
-    except AttributeError:  # pragma: no cover
-        e = ImportError('Module "{}" does not define a "{}" attribute/class'.format(module_path, class_name))
-        raise e.with_traceback(sys.exc_info()[2])

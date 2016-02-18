@@ -194,7 +194,7 @@ def find_config_file(path='.'):
                 return fn
 
 
-def load_config(config_file) -> Config:
+def load_config(config_file=None) -> Config:
     if config_file:
         if os.path.isfile(config_file):
             file_path = config_file

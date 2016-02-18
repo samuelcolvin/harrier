@@ -62,7 +62,7 @@ def gettree(lp:  LocalPath):
         raise Exception('not directory or file: {}'.format(lp))
 
 
-def mktree(lp: LocalPath, **d):
+def mktree(lp: LocalPath, d):
     for name, content in d.items():
         _lp = deepcopy(lp)
 
@@ -73,7 +73,6 @@ def mktree(lp: LocalPath, **d):
 
         if isinstance(content, dict):
             _lp.mkdir()
-            mktree(_lp, **content)
+            mktree(_lp, content)
         else:
-            print(_lp)
             _lp.write(content)

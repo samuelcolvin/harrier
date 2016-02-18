@@ -21,6 +21,11 @@ def find_all_files(root, prefix=''):
     return list(gen())
 
 
+def clean_path(p):
+    p = re.sub('/\./(\./)+', '/', p)
+    return re.sub('//+', '/', p)
+
+
 class Tool:
     ownership_regex = None
     # priorities are used to sort tools before ownership check and build, highest comes first.
@@ -31,14 +36,14 @@ class Tool:
     # whether or not one file changing requires a complete rebuild
     change_sensitive = True
 
-    def __init__(self, config: Config, full_build: bool):
+    def __init__(self, config: Config, partial_build: bool):
         self._config = config
-        self._full = full_build
+        self._partial = partial_build
         self.to_build = []
 
-    def assign_file(self, file_path: str) -> bool:
+    def assign_file(self, file_path: str, changed: bool) -> bool:
         owned = self._check_ownership(file_path)
-        if owned:
+        if owned and (not self._partial or self.change_sensitive or changed):
             self.to_build.append(file_path)
         return owned
 
@@ -55,9 +60,9 @@ class Tool:
             fp = re.sub(pattern, replace, fp)
         return fp
 
-    def build(self, file_paths):
+    def build(self):
         gen_count = 0
-        for file_path in file_paths:
+        for file_path in self.to_build:
             for new_file_path, file_content in self.convert_file(file_path):
                 if file_content is None and self.allow_no_file:
                     continue
@@ -70,11 +75,10 @@ class Tool:
                     f.write(file_content)
         return gen_count
 
+    @property
     def active(self):
-        if self._full:
-            return bool(self.to_build)
-        else:
-            return any(f in self._changed for f in self.to_build)
+        # TODO
+        return bool(self.to_build)
 
     def convert_file(self, file_path) -> dict:
         """
@@ -137,7 +141,7 @@ class CopyFile(Tool):
     def convert_file(self, file_path):
         full_path = os.path.join(self._config.root, file_path)
         if not os.path.isfile(full_path):
-            raise HarrierKnownProblem('"{}" does not exist'.format(full_path))
+            raise HarrierKnownProblem('"{}" does not exist'.format(clean_path(full_path)))
         with open(full_path, 'rb') as f:
             yield None, f.read()
 
@@ -183,7 +187,7 @@ class Jinja(Tool):
             file_dir = os.path.dirname(context.name)
             file_path = os.path.join(file_dir, file_url)
 
-        file_path = file_path.replace('/./', '/').replace('//', '/')
+        file_path = clean_path(file_path)
 
         if library:
             return self._library_file(file_path, file_url, library)
