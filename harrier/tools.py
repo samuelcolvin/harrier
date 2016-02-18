@@ -31,11 +31,18 @@ class Tool:
     # whether or not one file changing requires a complete rebuild
     change_sensitive = True
 
-    def __init__(self, config: Config):
+    def __init__(self, config: Config, full_build: bool):
         self._config = config
+        self._full = full_build
         self.to_build = []
 
-    def check_ownership(self, file_path) -> bool:
+    def assign_file(self, file_path: str) -> bool:
+        owned = self._check_ownership(file_path)
+        if owned:
+            self.to_build.append(file_path)
+        return owned
+
+    def _check_ownership(self, file_path):
         """
         Return true if this converter takes care of the given file_name, else false.
 
@@ -63,6 +70,12 @@ class Tool:
                     f.write(file_content)
         return gen_count
 
+    def active(self):
+        if self._full:
+            return bool(self.to_build)
+        else:
+            return any(f in self._changed for f in self.to_build)
+
     def convert_file(self, file_path) -> dict:
         """
         generate files this converter is responsible for in the target directory.
@@ -77,17 +90,17 @@ class Tool:
         return self.__class__.__name__
 
 
-class Prebuild(Tool):
+class Execute(Tool):
     ownership_priority = 10  # should go first
     build_priority = 10  # should go first
     allow_no_file = True
 
-    def __init__(self, config):
-        super(Prebuild, self).__init__(config)
-        self._commands = config.prebuild_commands
-        self.ownership_patterns = config.prebuild_patterns
+    def __init__(self, *args, **kwargs):
+        super(Execute, self).__init__(*args, **kwargs)
+        self._commands = self._config.prebuild_commands
+        self.ownership_patterns = self._config.prebuild_patterns
 
-    def check_ownership(self, file_path):
+    def _check_ownership(self, file_path):
         if not self._commands:
             return False
         return any(fnmatch(file_path, m) for m in self.ownership_patterns)
@@ -144,10 +157,10 @@ class Jinja(Tool):
     ownership_priority = 5  # should go early
     build_priority = -10  # should go last
 
-    def __init__(self, config):
-        super(Jinja, self).__init__(config)
+    def __init__(self, *args, **kwargs):
+        super(Jinja, self).__init__(*args, **kwargs)
         # TODO custom loader which deals with partial builds
-        self._loader = FileSystemLoader(config.jinja_directories)
+        self._loader = FileSystemLoader(self._config.jinja_directories)
         self._env = Environment(loader=self._loader)
         self._env.filters.update(
             static=self.static_file_filter,
@@ -204,7 +217,7 @@ class Jinja(Tool):
             if bf.endswith(file_path) or (bf.startswith(file_path) and bf.endswith(file_url)):
                 return os.path.join(self._library, bf)
 
-    def check_ownership(self, file_path):
+    def _check_ownership(self, file_path):
         return file_path in self._template_files
 
     def _filter_template(self, file_path):

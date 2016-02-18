@@ -1,7 +1,7 @@
 # this does not show all defaults as some have to be computed at run time, see config.py
 root: .
 tools:
-  - harrier.tools.Prebuild
+  - harrier.tools.Execute
   - harrier.tools.CopyFile
   - harrier.tools.Sass
   - harrier.tools.Jinja
