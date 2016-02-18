@@ -40,10 +40,12 @@ class Tool:
         self._config = config
         self._partial = partial_build
         self.to_build = []
+        self.active = False
 
     def assign_file(self, file_path: str, changed: bool) -> bool:
         owned = self._check_ownership(file_path)
         if owned and (not self._partial or self.change_sensitive or changed):
+            self.active |= changed
             self.to_build.append(file_path)
         return owned
 
@@ -75,11 +77,6 @@ class Tool:
                     f.write(file_content)
         return gen_count
 
-    @property
-    def active(self):
-        # TODO
-        return bool(self.to_build)
-
     def convert_file(self, file_path) -> dict:
         """
         generate files this converter is responsible for in the target directory.
@@ -92,6 +89,9 @@ class Tool:
     @property
     def name(self):
         return self.__class__.__name__
+
+    def __str__(self):
+        return '<{} tool>'.format(self.name)
 
 
 class Execute(Tool):

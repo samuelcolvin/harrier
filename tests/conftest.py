@@ -76,3 +76,10 @@ def mktree(lp: LocalPath, d):
             mktree(_lp, content)
         else:
             _lp.write(content)
+
+
+def mtime(lp: LocalPath, path):
+    _lp = deepcopy(lp)
+    for part in path.split('/'):
+        _lp = _lp.join(part)
+    return _lp.mtime()
