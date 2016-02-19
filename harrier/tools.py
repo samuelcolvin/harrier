@@ -26,12 +26,16 @@ def clean_path(p):
     return re.sub('//+', '/', p)
 
 
+def hash_file(path):
+    with open(path, 'rb') as f:
+        return hash(f.read())
+
+
 class Tool:
     ownership_regex = None
     # priorities are used to sort tools before ownership check and build, highest comes first.
     ownership_priority = 0
     build_priority = 0
-    allow_no_file = False
     extra_files = []
     # whether or not one file changing requires a complete rebuild
     change_sensitive = True
@@ -63,19 +67,26 @@ class Tool:
         return fp
 
     def build(self):
-        gen_count = 0
+        files_built = 0
+        source_map = {}
         for file_path in self.to_build:
+            source_files = set()
             for new_file_path, file_content in self.convert_file(file_path):
-                if file_content is None and self.allow_no_file:
-                    continue
                 new_file_path = new_file_path or self.map_path(file_path)
+                source_files.add(new_file_path)
+
                 target_file = os.path.join(self._config.target_dir, new_file_path)
+
+                if os.path.exists(target_file) and hash(file_content) == hash_file(target_file):
+                    continue
+
                 target_dir = os.path.dirname(target_file)
                 os.makedirs(target_dir, exist_ok=True)
                 with open(target_file, 'wb') as f:
-                    gen_count += 1
                     f.write(file_content)
-        return gen_count
+                files_built += 1
+            source_map[file_path] = source_files
+        return files_built, source_map
 
     def convert_file(self, file_path) -> dict:
         """
@@ -97,7 +108,6 @@ class Tool:
 class Execute(Tool):
     ownership_priority = 10  # should go first
     build_priority = 10  # should go first
-    allow_no_file = True
 
     def __init__(self, *args, **kwargs):
         super(Execute, self).__init__(*args, **kwargs)
@@ -118,10 +128,12 @@ class Execute(Tool):
                 raise HarrierKnownProblem('Command "{}" returned non-zero exit status 1'.format(command))
             else:
                 logger.debug('"%s" -> "%s" ✓', command, cp.stdout.decode('utf8'))
-        yield None, None
+        return
+        # noinspection PyUnreachableCode
+        yield  # we want an empty generator
 
     def cleanup(self):
-        if not self._config.prebuild_cleanup:
+        if not self.active or not self._config.prebuild_cleanup:
             return
 
         for fp in self._config.prebuild_generates:

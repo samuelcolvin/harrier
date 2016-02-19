@@ -108,12 +108,68 @@ def test_change_sensitive_jinja_change(tmpworkdir):
     assert builder.build(partial=True).status == {'tools': 4, 'tools_run': 2, 'files_built': 3}
     assert gettree(tmpworkdir.join('build')) == {'foo.txt': 'c_foo', 'bar.html': 'c_bar', 'spam.html': '47'}
     foo_t = mtime(tmpworkdir, 'build/foo.txt')
+    bar_t = mtime(tmpworkdir, 'build/bar.html')
     spam_t = mtime(tmpworkdir, 'build/spam.html')
 
     tmpworkdir.join('src').join('bar.html').write('c_bar2')
 
     sleep(0.002)  # required for mtime change
-    assert builder.build(partial=True).status == {'tools': 4, 'tools_run': 1, 'files_built': 2}
+    tool_chain = builder.build(partial=True)
+    assert tool_chain.status == {'tools': 4, 'tools_run': 1, 'files_built': 1}
+
+    # only one files has been built (bar.html), but we check thant spam.html was also created
+    assert set(tool_chain.get_tool('Jinja').to_build) == {'./bar.html', './spam.html'}
+
     assert gettree(tmpworkdir.join('build')) == {'foo.txt': 'c_foo', 'bar.html': 'c_bar2', 'spam.html': '47'}
     assert foo_t == mtime(tmpworkdir, 'build/foo.txt')
-    assert spam_t != mtime(tmpworkdir, 'build/spam.html')
+    assert bar_t != mtime(tmpworkdir, 'build/bar.html')
+    assert spam_t == mtime(tmpworkdir, 'build/spam.html')
+
+
+def test_add_file(simple_setup):
+    config = load_config()
+    config.setup('build')
+    builder = Builder(config)
+    assert builder.build(partial=True).status == {'tools': 4, 'tools_run': 1, 'files_built': 2}
+    assert gettree(simple_setup.join('build')) == {'bar.txt': 'c_bar', 'foo.txt': 'c_foo'}
+
+    simple_setup.join('src').join('waffle.txt').write('c_waffle')
+
+    assert builder.build(partial=True).status == {'tools': 4, 'tools_run': 1, 'files_built': 1}
+    assert gettree(simple_setup.join('build')) == {'bar.txt': 'c_bar', 'foo.txt': 'c_foo', 'waffle.txt': 'c_waffle'}
+
+
+def test_delete_file(simple_setup):
+    config = load_config()
+    config.setup('build')
+    builder = Builder(config)
+    assert builder.build(partial=True).status == {'tools': 4, 'tools_run': 1, 'files_built': 2}
+    assert gettree(simple_setup.join('build')) == {'bar.txt': 'c_bar', 'foo.txt': 'c_foo'}
+
+    simple_setup.join('src').join('foo.txt').remove()
+
+    assert builder.build(partial=True).status == {'tools': 4, 'tools_run': 0, 'files_built': 0}
+    assert gettree(simple_setup.join('build')) == {'bar.txt': 'c_bar'}
+
+
+def test_delete_jinja(tmpworkdir):
+    mktree(tmpworkdir, {
+        'src': {
+            'foo.txt': 'c_foo',
+            'bar.html': 'c_bar',
+            'spam.html': '{{ 42 + 5 }}',
+        },
+        'harrier.yml': '\nroot: src'
+    })
+    config = load_config()
+    config.setup('build')
+    builder = Builder(config)
+    assert builder.build(partial=True).status == {'tools': 4, 'tools_run': 2, 'files_built': 3}
+    assert gettree(tmpworkdir.join('build')) == {'foo.txt': 'c_foo', 'bar.html': 'c_bar', 'spam.html': '47'}
+
+    tmpworkdir.join('src').join('bar.html').remove()
+
+    tool_chain = builder.build(partial=True)
+    assert tool_chain.status == {'tools': 4, 'tools_run': 0, 'files_built': 0}
+
+    assert gettree(tmpworkdir.join('build')) == {'foo.txt': 'c_foo', 'spam.html': '47'}

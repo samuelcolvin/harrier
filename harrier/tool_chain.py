@@ -12,7 +12,7 @@ class _ToolList(list):
 
 
 class ToolChain(_ToolList):
-    files_built, tools_run = 0, 0
+    files_built, tools_run, source_map = 0, 0, {}
 
     def __init__(self, tool_classes, config, partial):
         super(ToolChain, self).__init__(t(config, partial) for t in tool_classes)
@@ -23,14 +23,21 @@ class ToolChain(_ToolList):
     def sort_on(self, attr, reverse=False):
         super(ToolChain, self).sort(key=attrgetter(attr), reverse=reverse)
 
-    def run_tool(self, t):
-        if not t.active:
-            return False
-        files_built = t.build()
-        logger.debug('built %s files with %s', files_built, t.name)
-        self.files_built += files_built
-        self.tools_run += 1
-        return True
+    def assign_file(self, file_path, changed):
+        for t in self:
+            if t.assign_file(file_path, changed):
+                break
+
+    def build(self):
+        self.prioritise('build_priority')
+        for t in self:
+            if not t.active:
+                continue
+            files_built, source_map = t.build()
+            logger.debug('built %s files with %s', files_built, t.name)
+            self.files_built += files_built
+            self.source_map.update(source_map)
+            self.tools_run += 1
 
     @property
     def status(self):
@@ -40,6 +47,9 @@ class ToolChain(_ToolList):
             'files_built': self.files_built
         }
 
+    def get_tool(self, tool_name):
+        return next((t for t in self if t.name.lower() == tool_name.lower()), None)
+
     def __str__(self):
         return '{tools} tools of which {tools_run} run, {files_built} files built'.format(**self.status)
 
@@ -48,6 +58,7 @@ class ToolChainFactory(_ToolList):
     def __init__(self, config):
         self._config = config
         super(ToolChainFactory, self).__init__(import_string(t) for t in config.tools)
+        self.prioritise('ownership_priority')
 
     def __call__(self, partial) -> ToolChain:
         return ToolChain(self, self._config, partial)
