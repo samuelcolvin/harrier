@@ -53,11 +53,6 @@ class Builder:
         if partial:
             logger.info('%s files changed or associated with changed files', files_changed)
 
-            # TODO deleting stale files is fairly aggressive and could cause problems, maybe needs switch
-            # also might not work with execute tool
-            stale_files = self._delete_stale()
-            logger.debug('Deleted %d stale files', stale_files)
-
         tools.build()
 
         tool_str = 'tool' if tools.tools_run == 1 else 'tools'
@@ -66,6 +61,13 @@ class Builder:
 
         for t in tools:
             t.cleanup()
+
+        if partial:
+            # TODO deleting stale files is fairly aggressive and could cause problems, maybe needs switch
+            # could check for force activation of the tool associated with this file, but would need to
+            # modify check_ownership on Jinja
+            stale_files = self._delete_stale()
+            logger.debug('Deleted %d stale files', stale_files)
 
         if partial:
             self._previous_hash_dict = copy(self._hash_dict)
@@ -104,7 +106,7 @@ class Builder:
         """
         c = 0
         for deleted_file in (set(self._previous_hash_dict.keys()) - set(self._hash_dict.keys())):
-            for target_deleted_file in self._previous_source_map[deleted_file]:  # TODO should this be get(.., [])?
+            for target_deleted_file in self._previous_source_map.get(deleted_file, []):
                 os.remove(os.path.join(self._config.target_dir, target_deleted_file))
             c += 1
         return c

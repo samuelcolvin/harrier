@@ -32,10 +32,10 @@ Partly because I'm much happier with everything that doesn't have to be javascri
 
 ## TODO
 
-* partial rebuilds
-* test coverage, server test
 * deal with jinja master templates which shouldn't be copied - frontmatter?
+* proper usage trial
 * hash name extension
+* test coverage, server test
 * watch mode as well as serve
 * support testing - what can we test?
 * html tidy

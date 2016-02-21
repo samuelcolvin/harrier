@@ -2,6 +2,8 @@ import os
 import re
 import subprocess
 import shlex
+
+import yaml
 from fnmatch import fnmatch
 
 import sass
@@ -29,6 +31,16 @@ def clean_path(p):
 def hash_file(path):
     with open(path, 'rb') as f:
         return hash(f.read())
+
+FRONT_MATTER_REGEX = re.compile(r'^---[ \t]*(.*)\n---[ \t]*\n', re.S)
+
+
+def parse_front_matter(s):
+    m = re.match(FRONT_MATTER_REGEX, s)
+    if not m:
+        return None, s
+    data = yaml.load(m.groups()[0])
+    return data or {}, s[m.end():]
 
 
 class Tool:
@@ -111,8 +123,8 @@ class Execute(Tool):
 
     def __init__(self, *args, **kwargs):
         super(Execute, self).__init__(*args, **kwargs)
-        self._commands = self._config.prebuild_commands
-        self.ownership_patterns = self._config.prebuild_patterns
+        self._commands = self._config.execute_commands
+        self.ownership_patterns = self._config.execute_patterns
 
     def _check_ownership(self, file_path):
         if not self._commands:
@@ -133,16 +145,16 @@ class Execute(Tool):
         yield  # we want an empty generator
 
     def cleanup(self):
-        if not self.active or not self._config.prebuild_cleanup:
+        if not self.active or not self._config.execute_cleanup:
             return
 
-        for fp in self._config.prebuild_generates:
+        for fp in self._config.execute_generates:
             d = os.path.join(self._config.root, fp)
             os.remove(d)
 
     @property
     def extra_files(self):
-        return self._config.prebuild_generates
+        return self._config.execute_generates
 
 
 class CopyFile(Tool):
@@ -169,27 +181,51 @@ class Sass(Tool):
         yield None, content_str.encode('utf8')
 
 
+class FrontMatterFileSystemLoader(FileSystemLoader):
+    content_cache = {}
+
+    def get_source(self, environment, template):
+        return self.content_cache['./' + template.lstrip('./')]
+
+    def parse_source(self, environment, template):
+        contents, filename, uptodate = super(FrontMatterFileSystemLoader, self).get_source(environment, template)
+        data, contents = parse_front_matter(contents)
+        self.content_cache[template] = (contents, filename, uptodate)
+        return data or {}
+
+
 class Jinja(Tool):
     ownership_priority = 5  # should go early
     build_priority = -10  # should go last
+    _template_files = None
 
     def __init__(self, *args, **kwargs):
         super(Jinja, self).__init__(*args, **kwargs)
-        # TODO custom loader which deals with partial builds
-        self._loader = FileSystemLoader(self._config.jinja_directories)
+        # TODO store the loader or env on the tool factory for faster partial builds
+        # (this would need to cope with new files)
+        self._loader = FrontMatterFileSystemLoader(self._config.jinja_directories)
         self._env = Environment(loader=self._loader)
-        self._env.filters.update(
-            static=self.static_file_filter,
-            S=self.static_file_filter,
-            s=self.static_file_filter,
-        )
 
-        template_names = self._env.list_templates(filter_func=self._filter_template)
-        self._template_files = set(['./' + tf for tf in template_names])
+        self._env.filters['S'] = self.static_file_filter
+
+        self._exclude_files = set()  # TODO switch from config for default
+        self._file_ctx = {}
+        self._initialise_templates()
+
         self._ctx = self._config.context
         self._library = self._config.find_library()
         self._library_files = find_all_files(self._library) if self._library else []
         self._extra_files = []
+
+    def _initialise_templates(self):
+        template_names = self._env.list_templates(filter_func=self._filter_template)
+        self._template_files = set(['./' + tf for tf in template_names])
+        for t in self._template_files:
+            data = self._loader.parse_source(self._env, t)
+            excldue = data.pop('exclude', False)
+            if excldue:
+                self._exclude_files.add(t)
+            self._file_ctx[t] = data
 
     @contextfilter
     def static_file_filter(self, context, file_url, library=None):
@@ -240,6 +276,8 @@ class Jinja(Tool):
         return any(fnmatch(file_path, m) for m in self._config.jinja_patterns)
 
     def convert_file(self, file_path):
+        if file_path in self._extra_files:
+            return
         self._extra_files = []
         template = self._env.get_template(file_path)
         content_str = template.render(**self._ctx)

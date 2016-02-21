@@ -12,7 +12,7 @@ jinja:
     - '*.jinja2'
   directories:
     - '.'
-prebuild:
+execute:
   commands: []
   cleanup: True
 extra: {}

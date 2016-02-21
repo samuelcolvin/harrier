@@ -115,20 +115,20 @@ class Config:
         return self._get_setting('jinja', 'patterns')
 
     @property
-    def prebuild_commands(self):
-        return self._listify(self._get_setting('prebuild', 'commands'))
+    def execute_commands(self):
+        return self._listify(self._get_setting('execute', 'commands'))
 
     @property
-    def prebuild_patterns(self):
-        return self._listify(self._get_setting('prebuild', 'patterns'))
+    def execute_patterns(self):
+        return self._listify(self._get_setting('execute', 'patterns'))
 
     @property
-    def prebuild_generates(self):
-        return self._listify(self._get_setting('prebuild', 'generates'))
+    def execute_generates(self):
+        return self._listify(self._get_setting('execute', 'generates'))
 
     @property
-    def prebuild_cleanup(self):
-        cleanup = self._get_setting('prebuild', 'cleanup')
+    def execute_cleanup(self):
+        cleanup = self._get_setting('execute', 'cleanup')
         return True if cleanup is None else bool(cleanup)
 
     @property
