@@ -38,8 +38,12 @@ def parse_front_matter(s):
     m = re.match(FRONT_MATTER_REGEX, s)
     if not m:
         return None, s
-    data = yaml.load(m.groups()[0])
-    return data or {}, s[m.end():]
+    data = yaml.load(m.groups()[0]) or {}
+    return data, s[m.end():]
+
+
+def underscore_prefix(file_path):
+    return file_path.lstrip('./').startswith('_')
 
 
 class Tool:
@@ -175,6 +179,9 @@ class Sass(Tool):
 
     def convert_file(self, file_path):
         full_path = os.path.join(self._config.root, file_path)
+        if underscore_prefix(file_path):
+            # sass files starting with underscores are partials and should not be deployed themselves
+            return
         content_str = sass.compile(filename=full_path)
         # TODO cope with maps etc.
         yield None, content_str.encode('utf8')
@@ -276,10 +283,12 @@ class Jinja(Tool):
         self._extra_files = []
         template = self._env.get_template(file_path)
         file_ctx = self._file_ctxs[file_path]
-        if not file_ctx.get('exclude', False):
-            ctx = deepcopy(self._ctx)
-            ctx.update(file_ctx)
-            content_str = template.render(ctx)
+        ctx = deepcopy(self._ctx)
+        ctx.update(file_ctx)
+        content_str = template.render(ctx)
+        if not underscore_prefix(file_path):
+            # to be consistent with sass and allow base templates to not be deployed we ignore files starting
+            # with underscores
             if self._config.live and self._config.serve_livereload:
                 content_str += self.live_reload_slug.format(self._config.serve_port)
             yield None, content_str.encode('utf8')

@@ -116,6 +116,31 @@ body
     }
 
 
+def test_extends_exclude_build(tmpworkdir):
+    mktree(tmpworkdir, {
+        'bower_components/package/path/lib_file.js': 'lib content',
+        'src': {
+            '_foo.html': """\
+{{ 'lib_file.js'|S('lib_file.js') }}
+start
+{% block hello %}{% endblock %}""",
+            'bar.html': """\
+{% extends '_foo.html' %}
+{% block hello %}
+body
+{% endblock %}""",
+        },
+        'harrier.yml': '\nroot: src'
+    })
+    config = load_config(None)
+    config.setup('build')
+    build(config)
+    assert gettree(tmpworkdir.join('build')) == {
+        'bar.html': 'lib_file.js\nstart\n\nbody\n',
+        'lib_file.js': 'lib content'
+    }
+
+
 def test_simple_frontmatter(tmpworkdir):
     mktree(tmpworkdir, {
         'src': {
@@ -133,20 +158,3 @@ I would like some {{ test_var }}.""",
     assert gettree(tmpworkdir.join('build')) == {
         'foo.html': 'I would like some carrot cake.',
     }
-
-
-def test_jinja_exclude(tmpworkdir):
-    mktree(tmpworkdir, {
-        'src': {
-            'foo.html': """\
----
-exclude: true
----
-This should be excluded.""",
-        },
-        'harrier.yml': '\nroot: src'
-    })
-    config = load_config(None)
-    config.setup('build')
-    build(config)
-    assert gettree(tmpworkdir.join('build')) == {}

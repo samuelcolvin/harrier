@@ -33,7 +33,6 @@ Partly because I'm much happier with everything that doesn't have to be javascri
 ## TODO
 
 * proper usage trial
-* frontmatter exclude support in other tools eg. sass
 * hash name extension
 * test coverage, server test
 * watch mode as well as serve

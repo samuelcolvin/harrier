@@ -118,3 +118,21 @@ execute:
             'test.js': 'C_test.js',
         }
     }
+
+
+def test_sass_exclude(tmpworkdir):
+    mktree(tmpworkdir, {
+        'src': {
+            '_foo.scss': '$primary-colour: #016997;',
+            'bar.scss': """\
+@import 'foo';
+body {
+  color: $primary-colour;
+}"""
+        },
+        'harrier.yml': '\nroot: src'
+    })
+    config = load_config(None)
+    config.setup('build')
+    build(config)
+    assert gettree(tmpworkdir.join('build')) == {'bar.css': 'body {\n  color: #016997; }\n'}
