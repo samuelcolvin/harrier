@@ -2,16 +2,15 @@ import os
 import re
 import subprocess
 import shlex
-
-import yaml
+from copy import deepcopy
 from fnmatch import fnmatch
 
+import yaml
 import sass
-from harrier.common import HarrierKnownProblem
 from jinja2 import Environment, FileSystemLoader, contextfilter
 
 from .config import Config
-from .common import logger
+from .common import logger, HarrierKnownProblem
 
 
 def find_all_files(root, prefix=''):
@@ -198,6 +197,7 @@ class Jinja(Tool):
     ownership_priority = 5  # should go early
     build_priority = -10  # should go last
     _template_files = None
+    live_reload_slug = '\n<script src="http://localhost:{}/livereload.js"></script>\n'
 
     def __init__(self, *args, **kwargs):
         super(Jinja, self).__init__(*args, **kwargs)
@@ -208,8 +208,7 @@ class Jinja(Tool):
 
         self._env.filters['S'] = self.static_file_filter
 
-        self._exclude_files = set()  # TODO switch from config for default
-        self._file_ctx = {}
+        self._file_ctxs = {}
         self._initialise_templates()
 
         self._ctx = self._config.context
@@ -221,11 +220,7 @@ class Jinja(Tool):
         template_names = self._env.list_templates(filter_func=self._filter_template)
         self._template_files = set(['./' + tf for tf in template_names])
         for t in self._template_files:
-            data = self._loader.parse_source(self._env, t)
-            excldue = data.pop('exclude', False)
-            if excldue:
-                self._exclude_files.add(t)
-            self._file_ctx[t] = data
+            self._file_ctxs[t] = self._loader.parse_source(self._env, t)
 
     @contextfilter
     def static_file_filter(self, context, file_url, library=None):
@@ -280,9 +275,13 @@ class Jinja(Tool):
             return
         self._extra_files = []
         template = self._env.get_template(file_path)
-        content_str = template.render(**self._ctx)
-        if self._config.live and self._config.serve_livereload:
-            content_str += '\n<script src="http://localhost:{}/livereload.js"></script>'.format(self._config.serve_port)
-        yield None, content_str.encode('utf8')
+        file_ctx = self._file_ctxs[file_path]
+        if not file_ctx.get('exclude', False):
+            ctx = deepcopy(self._ctx)
+            ctx.update(file_ctx)
+            content_str = template.render(ctx)
+            if self._config.live and self._config.serve_livereload:
+                content_str += self.live_reload_slug.format(self._config.serve_port)
+            yield None, content_str.encode('utf8')
         for name, content in self._extra_files:
             yield name, content

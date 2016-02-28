@@ -53,6 +53,7 @@ class Builder:
         if partial:
             logger.info('%s files changed or associated with changed files', files_changed)
 
+        os.makedirs(self._config.target_dir, exist_ok=True)
         tools.build()
 
         tool_str = 'tool' if tools.tools_run == 1 else 'tools'

@@ -21,7 +21,7 @@ def test_jinja_live(tmpworkdir):
     config.setup('build', True)
     build(config)
     assert gettree(tmpworkdir.join('build')) == {
-        'index.html': '47\n<script src="http://localhost:8000/livereload.js"></script>'
+        'index.html': '47\n<script src="http://localhost:8000/livereload.js"></script>\n',
     }
 
 
@@ -60,7 +60,7 @@ def test_jinja_static_missing(tmpworkdir):
     config.setup('build')
     with pytest.raises(HarrierKnownProblem):
         build(config)
-    assert gettree(tmpworkdir) == {'index.html': "{{ 'foo.txt'|S }}"}
+    assert gettree(tmpworkdir) == {'index.html': "{{ 'foo.txt'|S }}", 'build': {}}
 
 
 @pytest.mark.parametrize('library', [
@@ -92,14 +92,14 @@ def test_jinja_static_library_missing(tmpworkdir):
     config.setup('build')
     with pytest.raises(HarrierKnownProblem):
         build(config)
-    assert gettree(tmpworkdir) == {'index.html': "{{ 'lib_file.js'|S('libs/lib_file.js') }}"}
+    assert gettree(tmpworkdir) == {'index.html': "{{ 'lib_file.js'|S('libs/lib_file.js') }}", 'build': {}}
 
 
 def test_extends_build(tmpworkdir):
     mktree(tmpworkdir, {
         'src': {
             'foo.html': 'start\n{% block hello %}{% endblock %}',
-            'bar.html': """\n
+            'bar.html': """
 {% extends 'foo.html' %}
 {% block hello %}
 body
@@ -112,5 +112,41 @@ body
     build(config)
     assert gettree(tmpworkdir.join('build')) == {
         'foo.html': 'start\n',
-        'bar.html': '\n\nstart\n\nbody\n',
+        'bar.html': '\nstart\n\nbody\n',
     }
+
+
+def test_simple_frontmatter(tmpworkdir):
+    mktree(tmpworkdir, {
+        'src': {
+            'foo.html': """\
+---
+test_var: "carrot cake"
+---
+I would like some {{ test_var }}.""",
+        },
+        'harrier.yml': '\nroot: src'
+    })
+    config = load_config(None)
+    config.setup('build')
+    build(config)
+    assert gettree(tmpworkdir.join('build')) == {
+        'foo.html': 'I would like some carrot cake.',
+    }
+
+
+def test_jinja_exclude(tmpworkdir):
+    mktree(tmpworkdir, {
+        'src': {
+            'foo.html': """\
+---
+exclude: true
+---
+This should be excluded.""",
+        },
+        'harrier.yml': '\nroot: src'
+    })
+    config = load_config(None)
+    config.setup('build')
+    build(config)
+    assert gettree(tmpworkdir.join('build')) == {}

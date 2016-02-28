@@ -32,8 +32,8 @@ Partly because I'm much happier with everything that doesn't have to be javascri
 
 ## TODO
 
-* deal with jinja master templates which shouldn't be copied - frontmatter?
 * proper usage trial
+* frontmatter exclude support in other tools eg. sass
 * hash name extension
 * test coverage, server test
 * watch mode as well as serve
