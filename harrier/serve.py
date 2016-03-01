@@ -1,5 +1,5 @@
 import time
-from datetime import datetime, timedelta
+from datetime import datetime
 from fnmatch import fnmatch
 from multiprocessing import Process
 
@@ -38,7 +38,7 @@ class HarrierEventHandler(PatternMatchingEventHandler):
             if fnmatch(event._src_path, JB_BACKUP_FILE) or fnmatch(event._dest_path, JB_BACKUP_FILE):
                 return
         since_build = (datetime.now() - self._build_time).total_seconds()
-        if since_build <= 0.8:
+        if since_build <= 1:
             logger.debug('%s | %0.3f seconds since last build, skipping build', event, since_build)
             return
         logger.debug('%s | %0.3f seconds since last build, building', event, since_build)
