@@ -1,16 +1,10 @@
 from unittest.mock import patch
-from harrier.serve import build_process, HarrierEventHandler, serve
-
-
-def test_serve_build(simpleharrier):
-    build_process(simpleharrier.config, 0)
-    assert simpleharrier.tmpdir.join('build', 'test.js').read_text('utf8') == 'var hello = 1;'
+from harrier.serve import HarrierEventHandler, serve
 
 
 def test_serve_watch_handler(simpleharrier):
     event_handler = HarrierEventHandler(simpleharrier.config)
-    p = event_handler.async_build()
-    p.join()
+    event_handler.build()
     assert simpleharrier.tmpdir.join('build', 'test.js').read_text('utf8') == 'var hello = 1;'
 
 

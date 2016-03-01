@@ -18,7 +18,7 @@ class ToolChain(_ToolList):
         super(ToolChain, self).__init__(t(config, partial) for t in tool_classes)
 
     def get_extra_files(self) -> set:
-        return set(chain(*[t.extra_files for t in self]))
+        return set(chain(*[t.extra_files for t in self if t.active]))
 
     def sort_on(self, attr, reverse=False):
         super(ToolChain, self).sort(key=attrgetter(attr), reverse=reverse)

@@ -1,54 +1,70 @@
 import time
+from datetime import datetime, timedelta
+from fnmatch import fnmatch
 from multiprocessing import Process
 
 from watchdog.observers import Observer
-from watchdog.events import PatternMatchingEventHandler
+from watchdog.events import PatternMatchingEventHandler, FileMovedEvent
 from livereload import Server
 
 from .config import Config
 from .common import logger, HarrierKnownProblem
-from .build import build
+from .build import Builder
 
-
-def build_process(config, build_no):
-    time.sleep(0.05)
-    logger.info('change detected, rebuilding ({})...'.format(build_no))
-    logger.debug(config)
-    build(config)
-    logger.info('build {} finished'.format(build_no))
+# specific to jetbrains I think, very annoying if not ignored
+JB_BACKUP_FILE = '*___jb_???___'
 
 
 class HarrierEventHandler(PatternMatchingEventHandler):
     patterns = ['*.*']
     ignore_directories = True
+
     ignore_patterns = [
         '*/.git/*',
         '*/.idea/*',
-        '*___jb_???___',
+        JB_BACKUP_FILE,
     ]
 
     def __init__(self, config, *args, **kwargs):
         super(HarrierEventHandler, self).__init__(*args, **kwargs)
         self._config = config
-        self._build_process = None
         self.build_no = 0
+        self._builder = Builder(config)
+        self._passing = True
+        self._build_time = datetime.now()
 
     def on_any_event(self, event):
-        self.async_build()
+        if isinstance(event, FileMovedEvent):
+            if fnmatch(event._src_path, JB_BACKUP_FILE) or fnmatch(event._dest_path, JB_BACKUP_FILE):
+                return
+        since_build = (datetime.now() - self._build_time).total_seconds()
+        if since_build <= 0.8:
+            logger.debug('%s | %0.3f seconds since last build, skipping build', event, since_build)
+            return
+        logger.debug('%s | %0.3f seconds since last build, building', event, since_build)
+        self.build()
 
-    def async_build(self):
-        if self.check_build():
+    def build(self):
+        self._passing = None
+        try:
             self.build_no += 1
-            self._build_process = Process(target=build_process, args=(self._config, self.build_no))
-            self._build_process.start()
-        return self._build_process
+            time.sleep(0.05)
+            logger.info('change detected, rebuilding ({})...'.format(self.build_no))
+            self._builder.build(partial=True)
+            logger.info('build {} finished'.format(self.build_no))
+        except Exception:
+            self._passing = False
+            raise
+        else:
+            self._passing = True
+        finally:
+            self._build_time = datetime.now()
 
     def check_build(self):
-        if not self._build_process:
-            return True
-        if self._build_process.exitcode not in {None, 0}:
-            raise HarrierKnownProblem('Build Process failed.')
-        return self._build_process.exitcode == 0
+        while not isinstance(self._passing, bool):
+            time.sleep(0.1)
+        if not self._passing:
+            raise HarrierKnownProblem('build failed')
 
     def wait(self):
         while True:
@@ -60,8 +76,7 @@ def serve(config: Config):
     observer = Observer()
     event_handler = HarrierEventHandler(config)
     logger.info('Watch mode starting...')
-    p = event_handler.async_build()
-    p.join()
+    event_handler.build()
     event_handler.check_build()
 
     server_process = Process(target=_server, args=(config.target_dir, config.serve_port))

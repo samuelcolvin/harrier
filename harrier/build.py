@@ -9,12 +9,12 @@ from .tool_chain import ToolChainFactory, ToolChain
 from .tools import find_all_files, hash_file
 
 
-def build(config, partial=False) -> (int, int):
-    return Builder(config).build(partial)
+def build(config: Config):
+    return Builder(config).build()
 
 
 class Builder:
-    _hash_dict = _extra_files = _previous_source_map = None
+    _hash_dict = _previous_source_map = None
     _already_built = False
     _previous_hash_dict = {}
     _previous_full_build = False
@@ -36,19 +36,24 @@ class Builder:
         tools = self._gear_box_creator(partial)
         all_files = self._file_list()
 
-        self._extra_files = tools.get_extra_files()
-        logger.debug('%s extra files will be generated', len(self._extra_files))
-        all_files.extend(self._extra_files)
-
-        logger.debug('%s files to build', len(all_files))
+        logger.debug('%s files to build: %s', len(all_files), ', '.join(all_files))
 
         self._hash_dict = {}
         files_changed = 0
 
-        for file_path in sorted(all_files):
+        for file_path in all_files:
             changed = self._file_changed(file_path) if partial else True
             files_changed += changed
             tools.assign_file(file_path, changed)
+            logger.debug('%20s: %s', file_path, 'changed' if changed else 'unchanged')
+
+        extra_files = tools.get_extra_files()
+        logger.debug('%s extra files will be generated', len(extra_files))
+
+        for file_path in extra_files:
+            files_changed += 1
+            tools.assign_file(file_path, True)
+            logger.debug('%20s: extra file', file_path)
 
         if partial:
             logger.info('%s files changed or associated with changed files', files_changed)
@@ -77,9 +82,6 @@ class Builder:
         return tools
 
     def _file_changed(self, file_path):
-        if file_path in self._extra_files:
-            return True
-
         file_hash = hash_file(os.path.join(self._config.root, file_path))
 
         # add hash so it can be used on next build

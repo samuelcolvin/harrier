@@ -1,4 +1,5 @@
 import click
+import re
 import logging
 
 from harrier import VERSION
@@ -25,15 +26,22 @@ class ClickHandler(logging.Handler):
     def emit(self, record):
         log_entry = self.format(record)
         colour = self.colours.get(record.levelno, 'red')
-        click.secho(log_entry, fg=colour)
+        m = re.match('^(\[.*?\])', log_entry)
+        if m:
+            time = click.style(m.groups()[0], fg='magenta')
+            msg = click.style(log_entry[m.end():], fg=colour)
+            click.echo(time + msg)
+        else:
+            click.secho(log_entry, fg=colour)
 
 
-def setup_logging(verbose=False):
+def setup_logging(verbose=False, times=False):
     for h in logger.handlers:
         if isinstance(h, ClickHandler):
             return
     handler = ClickHandler()
-    formatter = logging.Formatter('%(message)s')
+    fmt = '[%(asctime)s] %(message)s' if times else '%(message)s'
+    formatter = logging.Formatter(fmt, datefmt='%H:%M:%S')
     handler.setFormatter(formatter)
     logger.addHandler(handler)
     logger.setLevel(logging.DEBUG if verbose else logging.INFO)
@@ -50,7 +58,7 @@ def cli(action, config_file, target, dev_addr, verbose):
     """
     harrier - Jinja2 & sass/scss aware site builder
     """
-    setup_logging(verbose)
+    setup_logging(verbose, times=action == 'serve')
     try:
         config = load_config(config_file)
         target = target or action
