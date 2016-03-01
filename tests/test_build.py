@@ -102,7 +102,7 @@ def test_execute_different_dir(tmpworkdir):
 root: path/different_root
 execute:
   commands:
-    - 'cp lib/test.js foobar.js'
+    - 'cp {ROOT}/lib/test.js {ROOT}/foobar.js'
   patterns:
     - ./lib/*
   generates:

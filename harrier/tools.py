@@ -134,10 +134,21 @@ class Execute(Tool):
             return False
         return any(fnmatch(file_path, m) for m in self.ownership_patterns)
 
+    def build(self):
+        super(Execute, self).build()
+        return len(self.extra_files), {}
+
     def convert_file(self, file_path):
-        for command in self._commands:
+        for raw_command in self._commands:
+            # TODO do we need any other transforms?
+            command = raw_command.format(ROOT=self._config.root)
             args = shlex.split(command)
-            cp = subprocess.run(args, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, cwd=self._config.root)
+            # TODO env variables eg. NODE_ENV
+            try:
+                cp = subprocess.run(args, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+            except FileNotFoundError as e:  # TODO any other exceptions?
+                logger.error('%s: %s', e.__class__.__name__, e)
+                raise HarrierKnownProblem('problem executing "{}"'.format(command)) from e
             if cp.returncode != 0:
                 logger.error('"%s" -> %s', command, cp.stdout.decode('utf8'))
                 raise HarrierKnownProblem('Command "{}" returned non-zero exit status 1'.format(command))

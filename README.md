@@ -33,6 +33,7 @@ Partly because I'm much happier with everything that doesn't have to be javascri
 ## TODO
 
 * proper usage trial
+* subprocess support, eg. to user `webpack --watch` in serve mode
 * hash name extension
 * test coverage, server test
 * watch mode as well as serve
@@ -42,4 +43,4 @@ Partly because I'm much happier with everything that doesn't have to be javascri
 * jinja minify https://github.com/mitsuhiko/jinja2-htmlcompress
 * css map files
 * `.min.` and `.map` support
-* support harrier serving on one port while another tool runs on anther, this is perhaps not required
+* support harrier serving on one port while another tool runs on anther, this is perhaps not required could work with webpack-dev-server

@@ -3,6 +3,7 @@ import json
 from copy import deepcopy
 
 import yaml
+from yaml.scanner import MarkedYAMLError
 
 from .common import HarrierKnownProblem, logger
 
@@ -219,6 +220,10 @@ def load_config(config_file=None) -> Config:
             msg = 'Unexpected extension for config file: "{}", should be json or yml/yaml'
             raise HarrierKnownProblem(msg.format(file_path))
         with open(file_path) as f:
-            config = loader(f)
+            try:
+                config = loader(f)
+            except (MarkedYAMLError, ValueError) as e:
+                logger.error('%s: %s', e.__class__.__name__, e)
+                raise HarrierKnownProblem('error loading "{}"'.format(file_path)) from e
         config_file = os.path.realpath(file_path)
     return Config(config, config_file)
