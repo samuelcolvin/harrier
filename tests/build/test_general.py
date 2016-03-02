@@ -4,7 +4,7 @@ from harrier.build import build
 from harrier.common import HarrierProblem
 from harrier.config import load_config
 
-from .conftest import gettree, mktree
+from ..conftest import gettree, mktree
 
 
 def test_simple_build(tmpworkdir):

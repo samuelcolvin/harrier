@@ -10,5 +10,5 @@ coverage.xml
 try.py
 harrier.yml
 .serve/
-build/
-htmlcov/
+/build/
+/htmlcov/

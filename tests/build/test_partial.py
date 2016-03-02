@@ -5,7 +5,7 @@ import pytest
 from harrier.build import Builder
 from harrier.config import load_config
 
-from .conftest import gettree, mktree, mtime
+from ..conftest import gettree, mktree, mtime
 
 
 @pytest.fixture
