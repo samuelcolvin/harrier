@@ -46,12 +46,12 @@ class HarrierEventHandler(PatternMatchingEventHandler):
 
     def build(self):
         self._passing = None
+        start = datetime.now()
         try:
             self.build_no += 1
             time.sleep(0.05)
             logger.info('change detected, rebuilding ({})...'.format(self.build_no))
             self._builder.build(partial=True)
-            logger.info('build {} finished'.format(self.build_no))
         except Exception:
             self._passing = False
             raise
@@ -59,6 +59,7 @@ class HarrierEventHandler(PatternMatchingEventHandler):
             self._passing = True
         finally:
             self._build_time = datetime.now()
+            logger.info('build %d finished in %0.2fs', self.build_no, (self._build_time - start).total_seconds())
 
     def check_build(self):
         while not isinstance(self._passing, bool):

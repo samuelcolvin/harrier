@@ -32,8 +32,9 @@ Partly because I'm much happier with everything that doesn't have to be javascri
 
 ## TODO
 
-* proper usage trial
+* sass variables eg. precision, style
 * subprocess support, eg. to user `webpack --watch` in serve mode
+* sass import callbacks for bower: https://github.com/dahlia/libsass-python/blob/python/sass.py#L423-L464, see eyeglass, wiredep
 * hash name extension
 * test coverage, server test
 * watch mode as well as serve

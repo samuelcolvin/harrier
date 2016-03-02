@@ -18,7 +18,7 @@ verbose_help = 'Enable verbose output.'
 
 class ClickHandler(logging.Handler):
     colours = {
-        logging.DEBUG: 'blue',
+        logging.DEBUG: 'white',
         logging.INFO: 'green',
         logging.WARN: 'yellow',
     }
@@ -72,4 +72,4 @@ def cli(action, config_file, target, dev_addr, verbose):
         msg = 'Error: {}'
         if not verbose:
             msg += ', use "--verbose" for more details'
-        click.secho(msg.format(e), fg='cyan', err=True)
+        click.secho(msg.format(e), fg='red', err=True)

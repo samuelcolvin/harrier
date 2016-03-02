@@ -170,6 +170,8 @@ class Config:
 
         if 'library' in self._orig_config:
             raise HarrierKnownProblem("library supplied in config but can't be found.")
+        else:
+            logger.debug('unable to find library directory, ignoring as library was not supplied in config')
 
     def _listify(self, v):
         if isinstance(v, str):

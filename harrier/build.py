@@ -45,7 +45,8 @@ class Builder:
             changed = self._file_changed(file_path) if partial else True
             files_changed += changed
             tools.assign_file(file_path, changed)
-            logger.debug('%20s: %s', file_path, 'changed' if changed else 'unchanged')
+            if partial:
+                logger.debug('%20s: %s', file_path, 'changed' if changed else 'unchanged')
 
         extra_files = tools.get_extra_files()
         logger.debug('%s extra files will be generated', len(extra_files))
