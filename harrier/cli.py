@@ -5,7 +5,7 @@ import logging
 from harrier import VERSION
 from .build import build
 from .config import load_config
-from .common import logger, HarrierKnownProblem
+from .common import logger, HarrierProblem
 from .serve import serve
 
 config_help = 'Provide a specific harrier config yml file path.'
@@ -68,7 +68,7 @@ def cli(action, config_file, target, dev_addr, verbose):
         else:
             assert action == 'build'
             build(config)
-    except HarrierKnownProblem as e:
+    except HarrierProblem as e:
         msg = 'Error: {}'
         if not verbose:
             msg += ', use "--verbose" for more details'

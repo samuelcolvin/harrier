@@ -10,7 +10,7 @@ import sass
 from jinja2 import Environment, FileSystemLoader, contextfilter
 
 from .config import Config
-from .common import logger, HarrierKnownProblem
+from .common import logger, HarrierProblem
 
 
 def find_all_files(root, prefix=''):
@@ -148,10 +148,10 @@ class Execute(Tool):
                 cp = subprocess.run(args, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
             except FileNotFoundError as e:  # TODO any other exceptions?
                 logger.error('%s: %s', e.__class__.__name__, e)
-                raise HarrierKnownProblem('problem executing "{}"'.format(command)) from e
+                raise HarrierProblem('problem executing "{}"'.format(command)) from e
             if cp.returncode != 0:
                 logger.error('"%s" -> %s', command, cp.stdout.decode('utf8'))
-                raise HarrierKnownProblem('Command "{}" returned non-zero exit status 1'.format(command))
+                raise HarrierProblem('Command "{}" returned non-zero exit status 1'.format(command))
             else:
                 logger.debug('"%s" -> "%s" ✓', command, cp.stdout.decode('utf8'))
         return
@@ -179,7 +179,7 @@ class CopyFile(Tool):
     def convert_file(self, file_path):
         full_path = os.path.join(self._config.root, file_path)
         if not os.path.isfile(full_path):
-            raise HarrierKnownProblem('"{}" does not exist'.format(clean_path(full_path)))
+            raise HarrierProblem('"{}" does not exist'.format(clean_path(full_path)))
         with open(full_path, 'rb') as f:
             yield None, f.read()
 
@@ -263,12 +263,12 @@ class Jinja(Tool):
         mapped_target_path = self.map_path(target_path)
         if os.path.exists(mapped_target_path):
             return self.map_path(file_url)
-        raise HarrierKnownProblem('unable to find {} in build directory'.format(file_path))
+        raise HarrierProblem('unable to find {} in build directory'.format(file_path))
 
     def _library_file(self, file_path, file_url, library):
         lib_path = self._find_lib_file(library, file_url)
         if lib_path is None:
-            raise HarrierKnownProblem('unable to find {} in library directory, url: {}'.format(library, file_url))
+            raise HarrierProblem('unable to find {} in library directory, url: {}'.format(library, file_url))
 
         with open(lib_path, 'rb') as f:
             self._extra_files.append((file_path, f.read()))

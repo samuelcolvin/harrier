@@ -8,7 +8,7 @@ from watchdog.events import PatternMatchingEventHandler, FileMovedEvent
 from livereload import Server
 
 from .config import Config
-from .common import logger, HarrierKnownProblem
+from .common import logger, HarrierProblem
 from .build import Builder
 
 # specific to jetbrains I think, very annoying if not ignored
@@ -65,7 +65,7 @@ class HarrierEventHandler(PatternMatchingEventHandler):
         while not isinstance(self._passing, bool):
             time.sleep(0.1)
         if not self._passing:
-            raise HarrierKnownProblem('build failed')
+            raise HarrierProblem('build failed')
 
     def wait(self):
         while True:

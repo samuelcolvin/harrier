@@ -1,7 +1,7 @@
 import pytest
 
 from harrier.build import build
-from harrier.common import HarrierKnownProblem
+from harrier.common import HarrierProblem
 from harrier.config import load_config
 
 from .conftest import gettree, mktree
@@ -30,7 +30,7 @@ def test_no_config(tmpworkdir):
 
 def test_extra_config(tmpworkdir):
     tmpworkdir.join('harrier.yml').write('foobar: 42')
-    with pytest.raises(HarrierKnownProblem) as excinfo:
+    with pytest.raises(HarrierProblem) as excinfo:
         load_config(None)
     assert excinfo.value.args[0] == "Unexpected sections in config: {'foobar'}"
 

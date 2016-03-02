@@ -5,7 +5,7 @@ from copy import deepcopy
 import yaml
 from yaml.scanner import MarkedYAMLError
 
-from .common import HarrierKnownProblem, logger
+from .common import HarrierProblem, logger
 
 DEFAULT_CONFIG = os.path.join(os.path.dirname(__file__), 'harrier.default.yml')
 
@@ -24,7 +24,7 @@ class Config:
             c = yaml.load(f)
         unknown = set(config.keys()) - set(c.keys())
         if unknown:
-            raise HarrierKnownProblem('Unexpected sections in config: {}'.format(unknown))
+            raise HarrierProblem('Unexpected sections in config: {}'.format(unknown))
         c.update(config)
         return c
 
@@ -59,7 +59,7 @@ class Config:
         target_dir = self._target.get('path') or default_paths.get(name, default_paths['serve'])
         self.target_dir = os.path.join(self._base_dir, target_dir)
         if not os.path.exists(os.path.dirname(self.target_dir)):
-            raise HarrierKnownProblem('parent of target directory {} does not exist'.format(self.target_dir))
+            raise HarrierProblem('parent of target directory {} does not exist'.format(self.target_dir))
         logger.debug('Output directory set to %s ✓', self.target_dir)
 
     def _set_base_dir(self, base_dir):
@@ -71,7 +71,7 @@ class Config:
                 msg = 'config root "{root}" does not exist relative to config file directory "{base_dir}"'
             else:
                 msg = 'config root "{root}" does not exist relative to directory "{base_dir}"'
-            raise HarrierKnownProblem(msg.format(root=self.root, base_dir=self._base_dir))
+            raise HarrierProblem(msg.format(root=self.root, base_dir=self._base_dir))
         return full_root
 
     def _get_setting(self, *args):
@@ -105,9 +105,9 @@ class Config:
         for rel_dir in rel_dirs:
             full_dir = os.path.join(self.root, rel_dir)
             if not os.path.exists(full_dir):
-                raise HarrierKnownProblem('"{}" does not exist'.format(full_dir))
+                raise HarrierProblem('"{}" does not exist'.format(full_dir))
             elif not os.path.isdir(full_dir):
-                raise HarrierKnownProblem('"{}" is not a directory'.format(full_dir))
+                raise HarrierProblem('"{}" is not a directory'.format(full_dir))
             dirs.append(full_dir)
         return dirs
 
@@ -169,7 +169,7 @@ class Config:
                 return d
 
         if 'library' in self._orig_config:
-            raise HarrierKnownProblem("library supplied in config but can't be found.")
+            raise HarrierProblem("library supplied in config but can't be found.")
         else:
             logger.debug('unable to find library directory, ignoring as library was not supplied in config')
 
@@ -220,12 +220,12 @@ def load_config(config_file=None) -> Config:
             loader = json.load
         else:
             msg = 'Unexpected extension for config file: "{}", should be json or yml/yaml'
-            raise HarrierKnownProblem(msg.format(file_path))
+            raise HarrierProblem(msg.format(file_path))
         with open(file_path) as f:
             try:
                 config = loader(f)
             except (MarkedYAMLError, ValueError) as e:
                 logger.error('%s: %s', e.__class__.__name__, e)
-                raise HarrierKnownProblem('error loading "{}"'.format(file_path)) from e
+                raise HarrierProblem('error loading "{}"'.format(file_path)) from e
         config_file = os.path.realpath(file_path)
     return Config(config, config_file)

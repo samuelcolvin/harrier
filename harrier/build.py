@@ -3,7 +3,7 @@ import shutil
 from copy import copy
 from fnmatch import fnmatch
 
-from .common import logger, HarrierKnownProblem
+from .common import logger, HarrierProblem
 from .config import Config
 from .tool_chain import ToolChainFactory, ToolChain
 from .tools import find_all_files, hash_file
@@ -28,7 +28,7 @@ class Builder:
         if not partial:
             self._previous_full_build = True
         elif self._previous_full_build:
-            raise HarrierKnownProblem('Partial builds are not allowed following full builds with the same builder')
+            raise HarrierProblem('Partial builds are not allowed following full builds with the same builder')
 
         self._delete(partial)
         self._already_built = True

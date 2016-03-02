@@ -1,7 +1,7 @@
 import pytest
 
 from harrier.build import build
-from harrier.common import HarrierKnownProblem
+from harrier.common import HarrierProblem
 from harrier.config import load_config
 
 from .conftest import gettree, mktree
@@ -58,7 +58,7 @@ def test_jinja_static_missing(tmpworkdir):
     tmpworkdir.join('index.html').write("{{ 'foo.txt'|S }}")
     config = load_config(None)
     config.setup('build')
-    with pytest.raises(HarrierKnownProblem):
+    with pytest.raises(HarrierProblem):
         build(config)
     assert gettree(tmpworkdir) == {'index.html': "{{ 'foo.txt'|S }}", 'build': {}}
 
@@ -90,7 +90,7 @@ def test_jinja_static_library_missing(tmpworkdir):
 
     config = load_config(None)
     config.setup('build')
-    with pytest.raises(HarrierKnownProblem):
+    with pytest.raises(HarrierProblem):
         build(config)
     assert gettree(tmpworkdir) == {'index.html': "{{ 'lib_file.js'|S('libs/lib_file.js') }}", 'build': {}}
 
