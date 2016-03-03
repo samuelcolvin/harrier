@@ -193,7 +193,11 @@ class Sass(Tool):
         if underscore_prefix(file_path):
             # sass files starting with underscores are partials and should not be deployed themselves
             return
-        content_str = sass.compile(filename=full_path)
+        try:
+            content_str = sass.compile(filename=full_path)
+        except sass.CompileError as e:
+            logger.error(e.args[0].decode('utf8'))
+            raise HarrierProblem('Error compiling SASS') from e
         # TODO cope with maps etc.
         yield None, content_str.encode('utf8')
 

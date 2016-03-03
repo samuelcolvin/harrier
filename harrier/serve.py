@@ -1,6 +1,9 @@
 import json
+import logging
+import re
 from pathlib import Path
 
+import click
 import aiohttp
 from aiohttp.web_exceptions import HTTPNotModified
 from aiohttp import web
@@ -8,10 +11,38 @@ from aiohttp.web_urldispatcher import StaticRoute
 from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
 
-from .common import logger
-# TODO: changed logger
+logger = logging.getLogger('dev_server')
 
 WS = 'websockets'
+
+
+class DevLogHandler(logging.Handler):
+    colours = {
+        logging.DEBUG: 'white',
+        logging.INFO: 'blue',
+        logging.WARN: 'yellow',
+    }
+
+    def __init__(self, *args):
+        super(DevLogHandler, self).__init__(*args)
+        self._width = click.get_terminal_size()[0]
+
+    def emit(self, record):
+        log_entry = self.format(record)
+        m = re.match('^(\[.*?\] )', log_entry)
+        time = click.style(m.groups()[0], fg='magenta')
+        msg = log_entry[m.end():]
+        if record.levelno == logging.INFO and msg.startswith(' >'):
+            msg = '{} {}'.format(click.style(' >', fg='blue'), msg[3:])
+        else:
+            msg = click.style(msg, fg=self.colours.get(record.levelno, 'red'))
+        click.echo(time + msg)
+
+handler = DevLogHandler()
+formatter = logging.Formatter('[%(asctime)s] %(message)s', datefmt='%H:%M:%S')
+handler.setFormatter(formatter)
+logger.addHandler(handler)
+logger.setLevel(logging.INFO)
 
 
 def serve(serve_root, port):
@@ -30,10 +61,10 @@ def serve(serve_root, port):
     observer.schedule(event_handler, serve_root, recursive=True)
     observer.start()
 
-    logger.info('Started dev server, use Ctrl+C to quit')
+    logger.info('Started dev server at http://localhost:%s, use Ctrl+C to quit', port)
 
     try:
-        web.run_app(app, port=port, print=logger.debug)
+        web.run_app(app, port=port, print=lambda msg: None)
     except KeyboardInterrupt:
         pass
     finally:
@@ -49,7 +80,8 @@ class DevServerEventEventHandler(FileSystemEventHandler):
 
     def on_any_event(self, event):
         path = Path(event.src_path).relative_to(self._serve_root)
-        logger.info('prompting reload of %s on %d clients', path, len(self._app[WS]))
+        clients = len(self._app[WS])
+        logger.info('prompting reload of %s on %d client%s', path, clients, '' if clients == 1 else 's')
         for i, ws in enumerate(self._app[WS]):
             data = {
                 'command': 'reload',
@@ -131,5 +163,5 @@ class HarrierStaticRoute(StaticRoute):
         else:
             status, length = response.status, response.content_length
         finally:
-            logger.info('%s %s %s %s', request.method, request.path, status, length)
+            logger.info(' > %s %s %s %s', request.method, request.path, status, length)
         return response
