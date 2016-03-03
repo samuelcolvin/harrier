@@ -162,6 +162,10 @@ class Config:
         _ctx.update(self._target.get('context') or {})
         return _ctx
 
+    @property
+    def subprocesses(self):
+        return self._config['subprocesses']
+
     def find_library(self):
         ldir = self._config['library']
         dirs = [

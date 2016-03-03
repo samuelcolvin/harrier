@@ -163,5 +163,12 @@ class HarrierStaticRoute(StaticRoute):
         else:
             status, length = response.status, response.content_length
         finally:
-            logger.info(' > %s %s %s %s', request.method, request.path, status, length)
+            logger.info(' > %s %s %s %s', request.method, request.path, status, self.fmt_size(length))
         return response
+
+    @staticmethod
+    def fmt_size(num):
+        if num < 1024:
+            return '{:0.0f}B'.format(num)
+        else:
+            return "{:0.0f}KB".format(num / 1024)

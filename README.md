@@ -32,15 +32,15 @@ Partly because I'm much happier with everything that doesn't have to be javascri
 
 * sass variables eg. precision, style
 * use https://docs.python.org/3/library/pathlib.html
-* subprocess support, eg. to user `webpack --watch` in serve mode
 * sass import callbacks for bower: https://github.com/dahlia/libsass-python/blob/python/sass.py#L423-L464, see eyeglass, wiredep
 * hash name extension
+* subprocess options, eg. names, optional start, quiet
 * test coverage, server test
-* watch mode as well as serve
 * support testing - what can we test?
 * html tidy
-* switch to aiohttp server with better logging
 * jinja minify https://github.com/mitsuhiko/jinja2-htmlcompress
+* catch jinja errors and display nicely with relevant traceback
+* watch mode as well as serve
 * css map files
 * `.min.` and `.map` support
-* support harrier serving on one port while another tool runs on anther, this is perhaps not required could work with webpack-dev-server
+* subprocess build support, eg. to user `webpack --watch` in serve mode, can this be done sensibly?

@@ -2,6 +2,8 @@ import time
 from datetime import datetime
 from fnmatch import fnmatch
 from multiprocessing import Process
+import subprocess
+import shlex
 
 from watchdog.observers import Observer
 from watchdog.events import PatternMatchingEventHandler, FileMovedEvent
@@ -73,6 +75,17 @@ class HarrierEventHandler(PatternMatchingEventHandler):
             self.check_build()
 
 
+class Subprocess:
+    def __init__(self, command):
+        logger.info('starting subprocess "%s"', command)
+        args = shlex.split(command)
+        self.p = subprocess.Popen(args)
+
+    def terminate(self):
+        if self.p.returncode is not None:
+            self.p.terminate()
+
+
 def watch(config: Config):
     observer = Observer()
     event_handler = HarrierEventHandler(config)
@@ -83,6 +96,8 @@ def watch(config: Config):
     server_process = Process(target=serve, args=(config.target_dir, config.serve_port))
     server_process.start()
 
+    subprocesses = [Subprocess(c) for c in config.subprocesses]
+
     observer.schedule(event_handler, config.root, recursive=True)
     observer.start()
     try:
@@ -90,6 +105,9 @@ def watch(config: Config):
     except KeyboardInterrupt:
         pass
     finally:
+        logger.warning('killing dev server')
+        [p.terminate() for p in subprocesses]
         observer.stop()
         observer.join()
         server_process.terminate()
+        time.sleep(0.5)
