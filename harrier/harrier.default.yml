@@ -16,6 +16,7 @@ jinja:
 execute:
   commands: []
   cleanup: True
+  patterns: []
 subprocesses: []
 extra: {}
 exclude:

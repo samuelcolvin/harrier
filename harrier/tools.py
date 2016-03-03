@@ -4,6 +4,7 @@ import subprocess
 import shlex
 from copy import deepcopy
 from fnmatch import fnmatch
+from itertools import chain
 
 import yaml
 import sass
@@ -132,6 +133,7 @@ class Execute(Tool):
         super(Execute, self).__init__(*args, **kwargs)
         self._commands = self._config.execute_commands
         self.ownership_patterns = self._config.execute_patterns
+        self._extra_files = None
 
     def _check_ownership(self, file_path):
         if not self._commands or file_path.lstrip('./') in self.extra_files:
@@ -144,6 +146,11 @@ class Execute(Tool):
 
     def convert_file(self, file_path):
         for raw_command in self._commands:
+            if isinstance(raw_command, dict):
+                generates = raw_command.get('generates', [])
+                raw_command = raw_command['command']
+            else:
+                generates = []
             # TODO do we need any other transforms?
             command = raw_command.format(ROOT=self._config.root)
             args = shlex.split(command)
@@ -153,12 +160,18 @@ class Execute(Tool):
             except FileNotFoundError as e:  # TODO any other exceptions?
                 logger.error('%s: %s', e.__class__.__name__, e)
                 raise HarrierProblem('problem executing "{}"'.format(command)) from e
-            # TODO check file exists
+
             if cp.returncode != 0:
                 logger.error('"%s" -> %s', command, cp.stdout.decode('utf8'))
-                raise HarrierProblem('Command "{}" returned non-zero exit status 1'.format(command))
-            else:
-                logger.debug('"%s" -> "%s" ✓', command, cp.stdout.decode('utf8'))
+                raise HarrierProblem('command "{}" returned non-zero exit status 1'.format(command))
+
+            for path in generates:
+                full_path = os.path.join(self._config.root, path)
+                if not os.path.exists(full_path):
+                    logger.error('"%s" -> %s', command, cp.stdout.decode('utf8'))
+                    raise HarrierProblem('command "{}" failed to generate {}'.format(raw_command, path))
+
+            logger.debug('"%s" -> "%s" ✓', command, cp.stdout.decode('utf8'))
         return
         # noinspection PyUnreachableCode
         yield  # we want an empty generator
@@ -167,13 +180,16 @@ class Execute(Tool):
         if not self.active or not self._config.execute_cleanup:
             return
 
-        for fp in self._config.execute_generates:
+        for fp in self.extra_files:
             d = os.path.join(self._config.root, fp)
             os.remove(d)
 
     @property
     def extra_files(self):
-        return self._config.execute_generates
+        if self._extra_files is None:
+            generates = [c.get('generates', []) for c in self._commands if isinstance(c, dict)]
+            self._extra_files = list(chain(*generates))
+        return self._extra_files
 
 
 class CopyFile(Tool):

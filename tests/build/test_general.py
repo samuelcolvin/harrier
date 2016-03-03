@@ -62,11 +62,11 @@ def test_execute(tmpworkdir):
     tmpworkdir.join('harrier.yml').write("""\
 execute:
   commands:
-    - 'cp lib/test.js foobar.js'
+    -
+      command: 'cp lib/test.js foobar.js'
+      generates: ['foobar.js']
   patterns:
-    - ./lib/*.js
-  generates:
-    - foobar.js""")
+    - ./lib/*.js""")
     config = load_config(None)
     config.setup('build')
     build(config)
@@ -79,12 +79,12 @@ def test_execute_no_cleanup(tmpworkdir):
     tmpworkdir.join('harrier.yml').write("""\
 execute:
   commands:
-    - 'cp lib/test.js foobar.js'
+    -
+      command: 'cp lib/test.js foobar.js'
+      generates: ['foobar.js']
   cleanup: False
   patterns:
-    - ./lib/*.js
-  generates:
-    - foobar.js""")
+    - ./lib/*.js""")
     config = load_config(None)
     config.setup('build')
     build(config)
@@ -102,11 +102,11 @@ def test_execute_different_dir(tmpworkdir):
 root: path/different_root
 execute:
   commands:
-    - 'cp {ROOT}/lib/test.js {ROOT}/foobar.js'
+    -
+      command: 'cp {ROOT}/lib/test.js {ROOT}/foobar.js'
+      generates: ['foobar.js']
   patterns:
-    - ./lib/*
-  generates:
-    - foobar.js"""
+    - ./lib/*"""
     })
     config = load_config(None)
     config.setup('build')

@@ -130,10 +130,6 @@ class Config:
         return self._listify(self._get_setting('execute', 'patterns'))
 
     @property
-    def execute_generates(self):
-        return self._listify(self._get_setting('execute', 'generates'))
-
-    @property
     def execute_cleanup(self):
         cleanup = self._get_setting('execute', 'cleanup')
         return True if cleanup is None else bool(cleanup)
