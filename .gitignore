@@ -12,3 +12,4 @@ harrier.yml
 .serve/
 /build/
 /htmlcov/
+/harrier/livereload.js

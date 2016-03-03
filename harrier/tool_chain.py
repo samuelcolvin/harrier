@@ -12,7 +12,7 @@ class _ToolList(list):
 
 
 class ToolChain(_ToolList):
-    files_built, tools_run, source_map = 0, 0, {}
+    files_built, tools_run, source_map = 0, 0, None
 
     def __init__(self, tool_classes, config, partial):
         super(ToolChain, self).__init__(t(config, partial) for t in tool_classes)
@@ -30,6 +30,7 @@ class ToolChain(_ToolList):
 
     def build(self):
         self.prioritise('build_priority')
+        self.source_map = {}
         for t in self:
             if not t.active:
                 continue

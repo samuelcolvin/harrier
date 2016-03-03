@@ -6,7 +6,7 @@ from harrier import VERSION
 from .build import build
 from .config import load_config
 from .common import logger, HarrierProblem
-from .serve import serve
+from .watch import watch
 
 config_help = 'Provide a specific harrier config yml file path.'
 dev_address_help = 'IP address and port to serve documentation locally (default: localhost:8000).'
@@ -58,13 +58,15 @@ def cli(action, config_file, target, dev_addr, verbose):
     """
     harrier - Jinja2 & sass/scss aware site builder
     """
-    setup_logging(verbose, times=action == 'serve')
+    is_live = action == 'serve'  # TODO add watch
+    is_served = action == 'serve'
+    setup_logging(verbose, times=is_live)
     try:
         config = load_config(config_file)
         target = target or action
-        config.setup(target)
+        config.setup(target, served_direct=is_served)
         if action == 'serve':
-            serve(config)
+            watch(config)
         else:
             assert action == 'build'
             build(config)

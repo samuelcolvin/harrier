@@ -1,103 +1,135 @@
-import time
-from datetime import datetime
-from fnmatch import fnmatch
-from multiprocessing import Process
+import json
+from pathlib import Path
 
+import aiohttp
+from aiohttp.web_exceptions import HTTPNotModified
+from aiohttp import web
+from aiohttp.web_urldispatcher import StaticRoute
 from watchdog.observers import Observer
-from watchdog.events import PatternMatchingEventHandler, FileMovedEvent
-from livereload import Server
+from watchdog.events import FileSystemEventHandler
 
-from .config import Config
-from .common import logger, HarrierProblem
-from .build import Builder
+from .common import logger
+# TODO: changed logger
 
-# specific to jetbrains I think, very annoying if not ignored
-JB_BACKUP_FILE = '*___jb_???___'
+WS = 'websockets'
 
 
-class HarrierEventHandler(PatternMatchingEventHandler):
-    patterns = ['*.*']
-    ignore_directories = True
+def serve(serve_root, port):
+    app = web.Application()
+    app[WS] = []
+    serve_root = serve_root.rstrip('/') + '/'
 
-    ignore_patterns = [
-        '*/.git/*',
-        '*/.idea/*',
-        JB_BACKUP_FILE,
-    ]
+    app.router.add_route('GET', '/livereload.js', lr_script_handler)
+    app.router.add_route('GET', '/livereload', websocket_handler)
 
-    def __init__(self, config, *args, **kwargs):
-        super(HarrierEventHandler, self).__init__(*args, **kwargs)
-        self._config = config
-        self.build_no = 0
-        self._builder = Builder(config)
-        self._passing = True
-        self._build_time = datetime.now()
+    app.router.register_route(HarrierStaticRoute('static-router', '/', serve_root))
 
-    def on_any_event(self, event):
-        if isinstance(event, FileMovedEvent):
-            if fnmatch(event._src_path, JB_BACKUP_FILE) or fnmatch(event._dest_path, JB_BACKUP_FILE):
-                return
-        since_build = (datetime.now() - self._build_time).total_seconds()
-        if since_build <= 1:
-            logger.debug('%s | %0.3f seconds since last build, skipping build', event, since_build)
-            return
-        logger.debug('%s | %0.3f seconds since last build, building', event, since_build)
-        self.build()
-
-    def build(self):
-        self._passing = None
-        start = datetime.now()
-        try:
-            self.build_no += 1
-            time.sleep(0.05)
-            logger.info('change detected, rebuilding ({})...'.format(self.build_no))
-            self._builder.build(partial=True)
-        except Exception:
-            self._passing = False
-            raise
-        else:
-            self._passing = True
-        finally:
-            self._build_time = datetime.now()
-            logger.info('build %d finished in %0.2fs', self.build_no, (self._build_time - start).total_seconds())
-
-    def check_build(self):
-        while not isinstance(self._passing, bool):
-            time.sleep(0.1)
-        if not self._passing:
-            raise HarrierProblem('build failed')
-
-    def wait(self):
-        while True:
-            time.sleep(1)
-            self.check_build()
-
-
-def serve(config: Config):
+    # TODO in theory file watching could be replaced by accessing tool_chain.source_map
     observer = Observer()
-    event_handler = HarrierEventHandler(config)
-    logger.info('Watch mode starting...')
-    event_handler.build()
-    event_handler.check_build()
-
-    server_process = Process(target=_server, args=(config.target_dir, config.serve_port))
-    server_process.start()
-
-    observer.schedule(event_handler, config.root, recursive=True)
+    event_handler = DevServerEventEventHandler(app, serve_root)
+    observer.schedule(event_handler, serve_root, recursive=True)
     observer.start()
+
+    logger.info('Started dev server, use Ctrl+C to quit')
+
     try:
-        event_handler.wait()
+        web.run_app(app, port=port, print=logger.debug)
     except KeyboardInterrupt:
         pass
     finally:
         observer.stop()
         observer.join()
-        server_process.terminate()
 
 
-def _server(watch_root, port):
-    server = Server()
-    watch_root = watch_root.rstrip('/') + '/'
-    server.watch(watch_root)
+class DevServerEventEventHandler(FileSystemEventHandler):
+    def __init__(self, app, serve_root):
+        super(DevServerEventEventHandler, self).__init__()
+        self._serve_root = serve_root
+        self._app = app
 
-    server.serve(root=watch_root, port=port)
+    def on_any_event(self, event):
+        path = Path(event.src_path).relative_to(self._serve_root)
+        logger.info('prompting reload of %s on %d clients', path, len(self._app[WS]))
+        for i, ws in enumerate(self._app[WS]):
+            data = {
+                'command': 'reload',
+                'path': str(path),
+                'liveCSS': True,
+                'liveImg': True,
+            }
+            ws.send_str(json.dumps(data))
+
+
+async def lr_script_handler(request):
+    script_key = 'livereload_script'
+    lr_script = request.app.get(script_key)
+    if lr_script is None:
+        lr_path = Path(__file__).absolute().parent.joinpath('livereload.js')
+        with lr_path.open('rb') as f:
+            lr_script = f.read()
+            request.app[script_key] = lr_script
+    return web.Response(body=lr_script, content_type='application/javascript')
+
+
+async def websocket_handler(request):
+
+    ws = web.WebSocketResponse()
+    request.app[WS].append(ws)
+    await ws.prepare(request)
+    ws_type_lookup = {k.value: v for v, k in aiohttp.MsgType.__members__.items()}
+
+    async for msg in ws:
+        if msg.tp == aiohttp.MsgType.text:
+            data = json.loads(msg.data)
+            command = data['command']
+            if command == 'hello':
+                if 'http://livereload.com/protocols/official-7' not in data['protocols']:
+                    logger.error('live reload protocol 7 not supported by client %s', data)
+                    ws.close()
+                else:
+                    handshake = {
+                        'command': 'hello',
+                        'protocols': [
+                            'http://livereload.com/protocols/official-7',
+                        ],
+                        'serverName': 'livereload-aiohttp',
+                    }
+                    ws.send_str(json.dumps(handshake))
+            elif command == 'info':
+                logger.info('browser connected at %s', data['url'])
+                logger.debug('browser plugins: %s', data['plugins'])
+            else:
+                logger.error('Unknown ws message %s', data)
+        elif msg.tp == aiohttp.MsgType.error:
+            logger.error('ws connection closed with exception %s' % ws.exception())
+        else:
+            logger.error('unknown websocket message type %s, data: %s', ws_type_lookup[msg.tp], msg.data)
+
+    # TODO gracefully close websocket connections on app shutdown
+    logger.debug('browser disconnected')
+    request.app[WS].remove(ws)
+
+    return ws
+
+
+class HarrierStaticRoute(StaticRoute):
+    async def handle(self, request):
+        filename = request.match_info['filename']
+        try:
+            filepath = self._directory.joinpath(filename).resolve()
+        except (ValueError, FileNotFoundError):
+            pass
+        else:
+            if filepath.is_dir():
+                request.match_info['filename'] = str(filepath.joinpath('index.html').relative_to(self._directory))
+        status, length = 'unknown', 0
+        try:
+            response = await super(HarrierStaticRoute, self).handle(request)
+        except HTTPNotModified:
+            status, length = 304, 0
+            raise
+        else:
+            status, length = response.status, response.content_length
+        finally:
+            logger.info('%s %s %s %s', request.method, request.path, status, length)
+        return response

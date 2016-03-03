@@ -1,5 +1,5 @@
 from unittest.mock import patch
-from harrier.serve import HarrierEventHandler, serve
+from harrier.watch import HarrierEventHandler, watch
 
 
 def test_serve_watch_handler(simpleharrier):
@@ -11,6 +11,6 @@ def test_serve_watch_handler(simpleharrier):
 def test_serve_start(simpleharrier):
 
     with patch.object(HarrierEventHandler, 'wait') as mock_method:
-        serve(simpleharrier.config)
+        watch(simpleharrier.config)
 
     assert mock_method.called

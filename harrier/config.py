@@ -11,7 +11,7 @@ DEFAULT_CONFIG = os.path.join(os.path.dirname(__file__), 'harrier.default.yml')
 
 
 class Config:
-    _already_setup = _base_dir = _target = target_dir = live = None
+    _already_setup = _base_dir = _target = target_dir = served_direct = None
 
     def __init__(self, config_dict, config_file):
         self._orig_config = config_dict
@@ -28,7 +28,7 @@ class Config:
         c.update(config)
         return c
 
-    def setup(self, target_name, live=False, base_dir=None):
+    def setup(self, target_name, served_direct=False, base_dir=None):
         if self._already_setup:
             return
         full_root = self._set_base_dir(base_dir)
@@ -37,7 +37,7 @@ class Config:
         self.config_file = os.path.relpath(self.config_file, self.root)
         self._set_target(target_name)
         self._already_setup = True
-        self.live = live
+        self.served_direct = served_direct
 
     def _set_target(self, name):
         target = self._config['target']

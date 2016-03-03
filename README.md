@@ -22,9 +22,7 @@ Partly because I'm much happier with everything that doesn't have to be javascri
 
 ## Install
 
-(once it's released)
-
-    pip install harrier
+    pip install -e git+git@github.com:samuelcolvin/harrier.git#egg=harrier
 
 ## Usage
 
@@ -33,6 +31,7 @@ Partly because I'm much happier with everything that doesn't have to be javascri
 ## TODO
 
 * sass variables eg. precision, style
+* use https://docs.python.org/3/library/pathlib.html
 * subprocess support, eg. to user `webpack --watch` in serve mode
 * sass import callbacks for bower: https://github.com/dahlia/libsass-python/blob/python/sass.py#L423-L464, see eyeglass, wiredep
 * hash name extension

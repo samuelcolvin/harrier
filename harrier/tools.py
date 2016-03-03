@@ -300,7 +300,7 @@ class Jinja(Tool):
         if not underscore_prefix(file_path):
             # to be consistent with sass and allow base templates to not be deployed we ignore files starting
             # with underscores
-            if self._config.live and self._config.serve_livereload:
+            if self._config.served_direct and self._config.serve_livereload:
                 content_str += self.live_reload_slug.format(self._config.serve_port)
             yield None, content_str.encode('utf8')
         for name, content in self._extra_files:

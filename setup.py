@@ -3,6 +3,30 @@ from harrier import VERSION
 
 description = 'Jinja2 & sass/scss aware site builder'
 
+
+def check_livereload_js():
+    import hashlib
+    from pathlib import Path
+    live_reload_221_hash = 'a451e4d39b8d7ef62d380d07742b782f'
+    live_reload_221_url = 'https://raw.githubusercontent.com/livereload/livereload-js/v2.2.1/dist/livereload.js'
+
+    path = Path(__file__).absolute().parent.joinpath('harrier/livereload.js')
+    if path.is_file():
+        with path.open('rb') as fr:
+            file_hash = hashlib.md5(fr.read()).hexdigest()
+        if file_hash == live_reload_221_hash:
+            return
+
+    import urllib.request
+
+    print('downloading livereload:\nurl:  {}\npath: {}'.format(live_reload_221_url, path))
+    with urllib.request.urlopen(live_reload_221_url) as r:
+        with path.open('wb') as fw:
+            fw.write(r.read())
+
+check_livereload_js()
+
+
 setup(
     name='harrier',
     version=str(VERSION),
@@ -36,6 +60,6 @@ setup(
         'click>=6.2',
         'libsass>=0.10.1',
         'watchdog>=0.8.3',
-        'livereload>=2.4.1',
+        'aiohttp>=0.21.2',
     ]
 )
