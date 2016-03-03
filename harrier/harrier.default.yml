@@ -12,6 +12,7 @@ jinja:
     - '*.jinja2'
   directories:
     - '.'
+  extra_patterns: []
 execute:
   commands: []
   cleanup: True

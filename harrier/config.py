@@ -25,7 +25,13 @@ class Config:
         unknown = set(config.keys()) - set(c.keys())
         if unknown:
             raise HarrierProblem('Unexpected sections in config: {}'.format(unknown))
-        c.update(config)
+        for k, v in c.items():
+            if k in config:
+                if isinstance(v, dict):
+                    # this could be recursive, but does it need to be?
+                    v.update(config.get(k, {}))
+                else:
+                    c[k] = config[k]
         return c
 
     def setup(self, target_name, served_direct=False, base_dir=None):
@@ -113,7 +119,7 @@ class Config:
 
     @property
     def jinja_patterns(self):
-        return self._get_setting('jinja', 'patterns')
+        return self._get_setting('jinja', 'patterns') + self._get_setting('jinja', 'extra_patterns')
 
     @property
     def execute_commands(self):
@@ -152,12 +158,12 @@ class Config:
         _ctx = {
             'build_target': self._target['name'],
         }
-        _ctx.update(self._config['context'] or {})
+        _ctx.update(self._config['context'])
         _ctx.update(self._target.get('context') or {})
         return _ctx
 
     def find_library(self):
-        ldir = self._config.get('library')
+        ldir = self._config['library']
         dirs = [
             os.path.join(self.root, ldir),
             os.path.join(self._base_dir, ldir),

@@ -54,6 +54,7 @@ class Tool:
     extra_files = []
     # whether or not one file changing requires a complete rebuild
     change_sensitive = True
+    single_call = False
 
     def __init__(self, config: Config, partial_build: bool):
         self._config = config
@@ -101,6 +102,8 @@ class Tool:
                     f.write(file_content)
                 files_built += 1
             source_map[file_path] = source_files
+            if self.single_call:
+                break
         return files_built, source_map
 
     def convert_file(self, file_path) -> dict:
@@ -123,6 +126,7 @@ class Tool:
 class Execute(Tool):
     ownership_priority = 10  # should go first
     build_priority = 10  # should go first
+    single_call = True  # should be configurable in case command should be run for every file
 
     def __init__(self, *args, **kwargs):
         super(Execute, self).__init__(*args, **kwargs)
@@ -130,7 +134,7 @@ class Execute(Tool):
         self.ownership_patterns = self._config.execute_patterns
 
     def _check_ownership(self, file_path):
-        if not self._commands:
+        if not self._commands or file_path.lstrip('./') in self.extra_files:
             return False
         return any(fnmatch(file_path, m) for m in self.ownership_patterns)
 
@@ -149,6 +153,7 @@ class Execute(Tool):
             except FileNotFoundError as e:  # TODO any other exceptions?
                 logger.error('%s: %s', e.__class__.__name__, e)
                 raise HarrierProblem('problem executing "{}"'.format(command)) from e
+            # TODO check file exists
             if cp.returncode != 0:
                 logger.error('"%s" -> %s', command, cp.stdout.decode('utf8'))
                 raise HarrierProblem('Command "{}" returned non-zero exit status 1'.format(command))
