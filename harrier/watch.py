@@ -98,7 +98,7 @@ def watch(config: Config):
 
     subprocesses = [Subprocess(c) for c in config.subprocesses]
 
-    observer.schedule(event_handler, config.root, recursive=True)
+    observer.schedule(event_handler, str(config.root), recursive=True)
     observer.start()
     try:
         event_handler.wait()

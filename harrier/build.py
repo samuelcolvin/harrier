@@ -1,7 +1,7 @@
-import os
 import shutil
 from copy import copy
 from fnmatch import fnmatch
+from pathlib import Path
 
 from .common import logger, HarrierProblem
 from .config import Config
@@ -36,7 +36,7 @@ class Builder:
         tools = self._tool_chain_factory(partial)
         all_files = self._file_list()
 
-        logger.debug('%s files to build: %s', len(all_files), ', '.join(all_files))
+        logger.debug('%s files to build: %s', len(all_files), ', '.join(map(str, all_files)))
 
         self._hash_dict = {}
         files_changed = 0
@@ -59,7 +59,7 @@ class Builder:
         if partial:
             logger.info('%s files changed or associated with changed files', files_changed)
 
-        os.makedirs(self._config.target_dir, exist_ok=True)
+        self._config.target_dir.mkdir(parents=True, exist_ok=True)
         tools.build()
 
         tool_str = 'tool' if tools.tools_run == 1 else 'tools'
@@ -83,7 +83,7 @@ class Builder:
         return tools
 
     def _file_changed(self, file_path):
-        file_hash = hash_file(os.path.join(self._config.root, file_path))
+        file_hash = hash_file(Path(self._config.root) / file_path)
 
         # add hash so it can be used on next build
         self._hash_dict[file_path] = file_hash
@@ -92,31 +92,31 @@ class Builder:
         return self._previous_hash_dict.get(file_path) != file_hash
 
     def _file_list(self):
-        all_files = find_all_files(self._config.root, './')
+        all_files = find_all_files(self._config.root)
         logger.debug('%s files in root directory', len(all_files))
 
         before_exclude = len(all_files)
-        all_files = list(filter(self._excluded, all_files))
+        all_files = list(filter(self._not_excluded, all_files))
         logger.debug('%s files excluded', before_exclude - len(all_files))
         return all_files
 
-    def _excluded(self, fn):
-        return not any(fnmatch(fn, m) for m in self._exclude_patterns)
+    def _not_excluded(self, fn):
+        return not any(fnmatch(str(fn), m) for m in self._exclude_patterns)
 
     def _delete_stale(self):
         """
-        Find deleted files root buy comparing hash_dict and previous hash_dict, then delete the associated target
+        Find deleted files root by comparing hash_dict and previous hash_dict, then delete the associated target
         files.
         """
         c = 0
         for deleted_file in (set(self._previous_hash_dict.keys()) - set(self._hash_dict.keys())):
             for target_deleted_file in self._previous_source_map.get(deleted_file, []):
-                os.remove(os.path.join(self._config.target_dir, target_deleted_file))
+                self._config.target_dir.joinpath(target_deleted_file).unlink()
             c += 1
         return c
 
     def _delete(self, partial):
-        if not os.path.exists(self._config.target_dir):
+        if not self._config.target_dir.exists():
             return
 
         reason = None
@@ -127,4 +127,4 @@ class Builder:
 
         if reason:
             logger.info('%s build, deleting target directory %s', reason, self._config.target_dir)
-            shutil.rmtree(self._config.target_dir)
+            shutil.rmtree(str(self._config.target_dir))

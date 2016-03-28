@@ -118,7 +118,7 @@ def test_change_sensitive_jinja_change(tmpworkdir):
     assert tool_chain.status == {'tools': 4, 'tools_run': 1, 'files_built': 1}
 
     # only one files has been built (bar.html), but we check thant spam.html was also created
-    assert set(tool_chain.get_tool('Jinja').to_build) == {'./bar.html', './spam.html'}
+    assert set(map(str, tool_chain.get_tool('Jinja').to_build)) == {'bar.html', 'spam.html'}
 
     assert gettree(tmpworkdir.join('build')) == {'foo.txt': 'c_foo', 'bar.html': 'c_bar2', 'spam.html': '47'}
     assert foo_t == mtime(tmpworkdir, 'build/foo.txt')

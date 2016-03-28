@@ -29,12 +29,12 @@ assets:
   file: assets.json
   url_root: /
 subprocesses: []
-exclude:
-  - '*/bower_components/*'
-  - '*/harrier.yml'
-  - '*/harrier.json'
-  - '*/config.yml'
-  - '*/config.json'
+exclude:  # an extra pattern prepended by "*/@ is added for each one line, eg. "*/harrier.yml"
+  - 'bower_components/*'
+  - 'harrier.yml'
+  - 'harrier.json'
+  - 'config.yml'
+  - 'config.json'
 mapping:
   - ['/s[ac]ss/', '/css/']
   - ['\.s[ac]ss$', '.css']

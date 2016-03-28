@@ -1,5 +1,5 @@
-import os
 import json
+from pathlib import Path
 from copy import deepcopy
 
 import yaml
@@ -7,20 +7,20 @@ from yaml.scanner import MarkedYAMLError
 
 from .common import HarrierProblem, logger
 
-DEFAULT_CONFIG = os.path.join(os.path.dirname(__file__), 'harrier.default.yml')
+DEFAULT_CONFIG = Path(__file__).parent.joinpath('harrier.default.yml')
 
 
 class Config:
     _already_setup = _base_dir = _target = target_dir = served_direct = None
 
-    def __init__(self, config_dict, config_file):
+    def __init__(self, config_dict: dict, config_file: Path):
         self._orig_config = config_dict
         self._config = self._prepare_config(config_dict)
         self.config_file = config_file
-        self.root = self._config['root']
+        self.root = Path(self._config['root'])
 
     def _prepare_config(self, config):
-        with open(DEFAULT_CONFIG) as f:
+        with DEFAULT_CONFIG.open() as f:
             c = yaml.load(f)
         unknown = set(config.keys()) - set(c.keys())
         if unknown:
@@ -44,7 +44,7 @@ class Config:
         full_root = self._set_base_dir(base_dir)
         logger.debug('Full root directory %s exists ✓', full_root)
         self.root = full_root
-        self.config_file = os.path.relpath(self.config_file, self.root)
+        self.config_file = self.config_file.relative_to(self._base_dir)
         self._set_target(target_name)
         self._already_setup = True
         self.served_direct = served_direct
@@ -67,22 +67,24 @@ class Config:
         }
 
         target_dir = self._target.get('path') or default_paths.get(name, default_paths['serve'])
-        self.target_dir = os.path.join(self._base_dir, target_dir)
-        if not os.path.exists(os.path.dirname(self.target_dir)):
+        self.target_dir = self._base_dir.joinpath(target_dir)
+        if not self.target_dir.parent.exists():
             raise HarrierProblem('parent of target directory {} does not exist'.format(self.target_dir))
         logger.debug('Output directory set to %s ✓', self.target_dir)
 
     def _set_base_dir(self, base_dir):
-        self._base_dir = base_dir or os.path.dirname(self.config_file)
+        self._base_dir = Path(base_dir or self.config_file.parent)
         logger.debug('Setting config root directory relative to {}'.format(self._base_dir))
-        full_root = os.path.join(self._base_dir, self.root)
-        if not os.path.exists(full_root):
+        try:
+            full_root = self._base_dir.joinpath(self.root).resolve()
+        except FileNotFoundError:
             if base_dir is None:
                 msg = 'config root "{root}" does not exist relative to config file directory "{base_dir}"'
             else:
                 msg = 'config root "{root}" does not exist relative to directory "{base_dir}"'
             raise HarrierProblem(msg.format(root=self.root, base_dir=self._base_dir))
-        return full_root
+        else:
+            return full_root
 
     def _get_setting(self, *args):
 
@@ -113,12 +115,12 @@ class Config:
         rel_dirs = self._listify(self._get_setting('jinja', 'directories'))
         dirs = []
         for rel_dir in rel_dirs:
-            full_dir = os.path.join(self.root, rel_dir)
-            if not os.path.exists(full_dir):
+            full_dir = self.root.joinpath(rel_dir)
+            if not full_dir.exists():
                 raise HarrierProblem('"{}" does not exist'.format(full_dir))
-            elif not os.path.isdir(full_dir):
+            elif not full_dir.is_dir():
                 raise HarrierProblem('"{}" is not a directory'.format(full_dir))
-            dirs.append(full_dir)
+            dirs.append(str(full_dir))
         return dirs
 
     @property
@@ -154,7 +156,8 @@ class Config:
 
     @property
     def exclude_patterns(self):
-        return self._config['exclude']
+        exclude = set(self._config['exclude'])
+        return exclude | set('*/' + e for e in exclude)
 
     @property
     def tools(self):
@@ -180,12 +183,12 @@ class Config:
     def find_library(self):
         ldir = self._config['library']
         dirs = [
-            os.path.join(self.root, ldir),
-            os.path.join(self._base_dir, ldir),
-            ldir,
+            self.root.joinpath(ldir),
+            self._base_dir.joinpath(ldir),
+            Path(ldir),
         ]
         for d in dirs:
-            if os.path.exists(d):
+            if d.exists():
                 logger.debug('Found library directory {}'.format(d))
                 return d
 
@@ -209,12 +212,12 @@ DEFAULT_CONFIG_FILES = [
 ]
 
 
-def find_config_file(path='.'):
-    logger.debug('looking for config file with default name in "%s"', os.path.realpath(path))
+def find_config_file(path=Path('.')):
+    logger.debug('looking for config file with default name in "%s"', path.relative_to('.'))
     for default_file in DEFAULT_CONFIG_FILES:
-        for fn in os.listdir(path):
-            if fn == default_file:
-                logger.info('Found default config file {}'.format(fn))
+        for fn in path.iterdir():
+            if fn.name == default_file:
+                logger.info('Found default config file {}'.format(fn.name))
                 return fn
 
 
@@ -240,7 +243,8 @@ def yaml_or_json(file_path):
 
 def load_config(config_file=None) -> Config:
     if config_file:
-        if os.path.isfile(config_file):
+        config_file = Path(config_file)
+        if config_file.is_file():
             file_path = config_file
         else:
             file_path = find_config_file(config_file)
@@ -251,14 +255,14 @@ def load_config(config_file=None) -> Config:
         msg = 'no config file supplied and none found with expected names: {}. Using default settings.'
         logger.warning(msg.format(', '.join(DEFAULT_CONFIG_FILES)))
         config = {}
-        config_file = './None'
+        config_file = Path('./None')
     else:
-        loader, _ = yaml_or_json(file_path)
-        with open(file_path) as f:
+        loader, _ = yaml_or_json(str(file_path))
+        with file_path.open() as f:
             try:
                 config = loader(f)
             except (MarkedYAMLError, ValueError) as e:
                 logger.error('%s: %s', e.__class__.__name__, e)
                 raise HarrierProblem('error loading "{}"'.format(file_path)) from e
-        config_file = os.path.realpath(file_path)
+        config_file = file_path.relative_to('.')
     return Config(config, config_file)

@@ -30,7 +30,6 @@ Partly because I'm much happier with everything that doesn't have to be javascri
 
 ## TODO
 
-* `assets.json/yml` file generation
 * build/deploy subdirectory
 * sass variables eg. precision, style
 * use https://docs.python.org/3/library/pathlib.html

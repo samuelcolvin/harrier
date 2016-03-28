@@ -1,8 +1,11 @@
+from pathlib import Path
+
 import pytest
 
 from harrier.build import build
 from harrier.common import HarrierProblem
 from harrier.config import load_config
+from harrier.tools import find_all_files
 
 from ..conftest import gettree, mktree
 
@@ -136,3 +139,14 @@ body {
     config.setup('build')
     build(config)
     assert gettree(tmpworkdir.join('build')) == {'bar.css': 'body {\n  color: #016997; }\n'}
+
+
+def test_walk(tmpworkdir):
+    mktree(tmpworkdir, {
+        'path/different_root': {
+            'foo': 'C_foo',
+            'lib/test.js': 'C_test.js',
+        },
+        'harrier.yml': 'yaml'
+    })
+    print(find_all_files(Path('.')))
