@@ -216,7 +216,9 @@ class Sass(Tool):
         try:
             content_str = sass.compile(filename=str(full_path))
         except sass.CompileError as e:
-            logger.error(e.args[0].decode('utf8'))
+            error = e.args[0]
+            error = error.decode('utf8') if isinstance(error, bytes) else error
+            logger.error(error)
             raise HarrierProblem('Error compiling SASS') from e
         # TODO cope with maps etc.
         yield None, content_str.encode('utf8')
