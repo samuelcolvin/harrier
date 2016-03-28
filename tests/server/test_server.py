@@ -64,3 +64,23 @@ async def test_websocket_hello(client):
                 'protocols': ['http://livereload.com/protocols/official-7']
             }
             break
+
+
+async def test_websocket_info(client, capsys):
+    async with client.session.ws_connect(client.get_url('livereload')) as ws:
+        data = {
+            'command': 'info',
+            'url': 'foobar',
+            'plugins': 'bang',
+        }
+        ws.send_str(json.dumps(data))
+        print(dir(ws))
+    stdout, _ = capsys.readouterr()
+    assert 'browser connected at foobar' in stdout
+
+
+async def test_websocket_bad_json(client, capsys):
+    async with client.session.ws_connect(client.get_url('livereload')) as ws:
+        ws.send_str('foo')
+    stdout, _ = capsys.readouterr()
+    assert 'JSON decode error' in stdout

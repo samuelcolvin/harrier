@@ -1,7 +1,7 @@
-import json
 import logging
 import asyncio
 import re
+import json
 from pathlib import Path
 
 import click
@@ -121,28 +121,32 @@ async def websocket_handler(request):
 
     async for msg in ws:
         if msg.tp == aiohttp.MsgType.text:
-            data = json.loads(msg.data)
-            command = data['command']
-            if command == 'hello':
-                if 'http://livereload.com/protocols/official-7' not in data['protocols']:
-                    logger.error('live reload protocol 7 not supported by client %s', data)
-                    ws.close()
-                else:
-                    handshake = {
-                        'command': 'hello',
-                        'protocols': [
-                            'http://livereload.com/protocols/official-7',
-                        ],
-                        'serverName': 'livereload-aiohttp',
-                    }
-                    ws.send_str(json.dumps(handshake))
-            elif command == 'info':
-                logger.info('browser connected at %s', data['url'])
-                logger.debug('browser plugins: %s', data['plugins'])
+            try:
+                data = json.loads(msg.data)
+            except json.JSONDecodeError as e:
+                logger.error('JSON decode error: %s', str(e))
             else:
-                logger.error('Unknown ws message %s', data)
+                command = data['command']
+                if command == 'hello':
+                    if 'http://livereload.com/protocols/official-7' not in data['protocols']:
+                        logger.error('live reload protocol 7 not supported by client %s', data)
+                        ws.close()
+                    else:
+                        handshake = {
+                            'command': 'hello',
+                            'protocols': [
+                                'http://livereload.com/protocols/official-7',
+                            ],
+                            'serverName': 'livereload-aiohttp',
+                        }
+                        ws.send_str(json.dumps(handshake))
+                elif command == 'info':
+                    logger.info('browser connected at %s', data['url'])
+                    logger.debug('browser plugins: %s', data['plugins'])
+                else:
+                    logger.error('Unknown ws message %s', data)
         elif msg.tp == aiohttp.MsgType.error:
-            logger.error('ws connection closed with exception %s' % ws.exception())
+            logger.error('ws connection closed with exception %s',  ws.exception())
         else:
             logger.error('unknown websocket message type %s, data: %s', ws_type_lookup[msg.tp], msg.data)
 

@@ -30,7 +30,6 @@ Partly because I'm much happier with everything that doesn't have to be javascri
 
 ## TODO
 
-* build/deploy subdirectory
 * sass variables eg. precision, style
 * sass import callbacks for bower: https://github.com/dahlia/libsass-python/blob/python/sass.py#L423-L464, see eyeglass, wiredep
 * subprocess options, eg. names, optional start, quiet
