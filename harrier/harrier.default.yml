@@ -1,6 +1,7 @@
 # this does not show all defaults as some have to be computed at run time, see config.py
 root: .
 # default tools are execute, jinja, sass and copy, tools are any dict with tool_path and active: True
+subdirectory: ''
 execute:
   tool_path: harrier.tools.Execute
   active: Yes

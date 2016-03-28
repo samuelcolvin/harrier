@@ -6,7 +6,7 @@ from pathlib import Path
 from .common import logger, HarrierProblem
 from .config import Config
 from .tool_chain import ToolChainFactory, ToolChain
-from .tools import find_all_files, hash_file
+from .tools import walk, hash_file
 
 
 def build(config: Config):
@@ -92,7 +92,7 @@ class Builder:
         return self._previous_hash_dict.get(file_path) != file_hash
 
     def _file_list(self):
-        all_files = find_all_files(self._config.root)
+        all_files = walk(self._config.root)
         logger.debug('%s files in root directory', len(all_files))
 
         before_exclude = len(all_files)

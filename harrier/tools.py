@@ -1,6 +1,6 @@
 import re
-import subprocess
 import shlex
+import subprocess
 from copy import deepcopy
 from fnmatch import fnmatch
 from itertools import chain
@@ -14,7 +14,7 @@ from .config import Config, yaml_or_json
 from .common import logger, HarrierProblem
 
 
-def find_all_files(root: Path):
+def walk(root: Path):
     def gen(p):
         for _p in p.iterdir():
             if _p.is_dir():
@@ -22,11 +22,6 @@ def find_all_files(root: Path):
             else:
                 yield _p.relative_to(root)
     return list(gen(root))
-
-
-def clean_path(p):
-    p = re.sub('/\./(\./)+', '/', p)
-    return re.sub('//+', '/', p)
 
 
 def hash_file(path: Path):
@@ -168,7 +163,7 @@ class Execute(Tool):
                 raise HarrierProblem('command "{}" returned non-zero exit status 1'.format(command))
 
             for path in generates:
-                full_path = self._config.root.joinpath(path)
+                full_path = self._config.root / path
                 if not full_path.exists():
                     logger.error('"%s" -> %s', command, cp.stdout.decode('utf8'))
                     raise HarrierProblem('command "{}" failed to generate {}'.format(raw_command, path))
@@ -214,7 +209,7 @@ class Sass(Tool):
     ownership_priority = 1  # should go early
 
     def convert_file(self, file_path: Path):
-        full_path = self._config.root.joinpath(file_path)
+        full_path = self._config.root / file_path
         if underscore_prefix(file_path):
             # sass files starting with underscores are partials and should not be deployed themselves
             return
@@ -260,7 +255,7 @@ class Jinja(Tool):
 
         self._ctx = self._config.context
         self._library = self._config.find_library()
-        self._library_files = find_all_files(self._library) if self._library else []
+        self._library_files = walk(self._library) if self._library else []
         self._extra_files = []
 
     def _initialise_templates(self):
@@ -275,7 +270,7 @@ class Jinja(Tool):
             file_path = file_url.lstrip('/')
         else:
             file_dir = Path(context.name).parent
-            file_path = file_dir.joinpath(file_url)
+            file_path = file_dir / file_url
 
         if library:
             return self._library_file(file_path, file_url, library)
@@ -304,7 +299,7 @@ class Jinja(Tool):
     def _find_lib_file(self, file_path, file_url):
         file_path = re.sub('^libs?/', '', file_path)
         if file_path in self._library_files:
-            return self._library.joinpath(file_path)
+            return self._library / file_path
         for lf in self._library_files:
             lfs = str(lf)
             if lfs.endswith(file_path) or (lfs.startswith(file_path) and lfs.endswith(file_url)):
@@ -364,7 +359,7 @@ class AssetDefinition(Tool):
         commit = self._get_commit()
         file_map = {}
         root = PurePosixPath(self._config.asset_url_root)
-        for f in find_all_files(self._config.target_dir):
+        for f in walk(self._config.target_dir):
             # TODO remove file hashes from key once they're implemented
             file_map[str(f)] = str(root / f)
         # TODO, find version from previous deploy

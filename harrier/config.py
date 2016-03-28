@@ -7,7 +7,7 @@ from yaml.scanner import MarkedYAMLError
 
 from .common import HarrierProblem, logger
 
-DEFAULT_CONFIG = Path(__file__).parent.joinpath('harrier.default.yml')
+DEFAULT_CONFIG = Path(__file__).parent / 'harrier.default.yml'
 
 
 class Config:
@@ -41,9 +41,8 @@ class Config:
     def setup(self, target_name, served_direct=False, base_dir=None):
         if self._already_setup:
             return
-        full_root = self._set_base_dir(base_dir)
-        logger.debug('Full root directory %s exists ✓', full_root)
-        self.root = full_root
+        self.root = self._find_root_dir(base_dir)
+        logger.debug('Full root directory %s exists ✓', self.root)
         self.config_file = self.config_file.relative_to(self._base_dir)
         self._set_target(target_name)
         self._already_setup = True
@@ -67,16 +66,17 @@ class Config:
         }
 
         target_dir = self._target.get('path') or default_paths.get(name, default_paths['serve'])
-        self.target_dir = self._base_dir.joinpath(target_dir)
-        if not self.target_dir.parent.exists():
-            raise HarrierProblem('parent of target directory {} does not exist'.format(self.target_dir))
+        target_dir = self._base_dir / target_dir
+        if not target_dir.parent.exists():
+            raise HarrierProblem('parent of target directory {} does not exist'.format(target_dir))
+        self.target_dir = target_dir / self.subdirectory
         logger.debug('Output directory set to %s ✓', self.target_dir)
 
-    def _set_base_dir(self, base_dir):
+    def _find_root_dir(self, base_dir):
         self._base_dir = Path(base_dir or self.config_file.parent)
         logger.debug('Setting config root directory relative to {}'.format(self._base_dir))
         try:
-            full_root = self._base_dir.joinpath(self.root).resolve()
+            root_dir = self._base_dir.joinpath(self.root).resolve()
         except FileNotFoundError:
             if base_dir is None:
                 msg = 'config root "{root}" does not exist relative to config file directory "{base_dir}"'
@@ -84,7 +84,7 @@ class Config:
                 msg = 'config root "{root}" does not exist relative to directory "{base_dir}"'
             raise HarrierProblem(msg.format(root=self.root, base_dir=self._base_dir))
         else:
-            return full_root
+            return root_dir
 
     def _get_setting(self, *args):
 
@@ -103,6 +103,13 @@ class Config:
         return find_property(self._config, args)
 
     @property
+    def subdirectory(self):
+        sd = self._get_setting('subdirectory')
+        if sd.startswith('/'):
+            raise HarrierProblem('subdirectory should be relative and not start with "/"')
+        return Path(sd)
+
+    @property
     def serve_port(self):
         return self._target.get('port') or 8000
 
@@ -115,7 +122,7 @@ class Config:
         rel_dirs = self._listify(self._get_setting('jinja', 'directories'))
         dirs = []
         for rel_dir in rel_dirs:
-            full_dir = self.root.joinpath(rel_dir)
+            full_dir = self.root / rel_dir
             if not full_dir.exists():
                 raise HarrierProblem('"{}" does not exist'.format(full_dir))
             elif not full_dir.is_dir():
@@ -183,8 +190,8 @@ class Config:
     def find_library(self):
         ldir = self._config['library']
         dirs = [
-            self.root.joinpath(ldir),
-            self._base_dir.joinpath(ldir),
+            self.root / ldir,
+            self._base_dir / ldir,
             Path(ldir),
         ]
         for d in dirs:

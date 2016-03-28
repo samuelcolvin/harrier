@@ -1,9 +1,9 @@
 import time
+import shlex
+import subprocess
 from datetime import datetime
 from fnmatch import fnmatch
 from multiprocessing import Process
-import subprocess
-import shlex
 
 from watchdog.observers import Observer
 from watchdog.events import PatternMatchingEventHandler, FileMovedEvent
@@ -93,7 +93,7 @@ def watch(config: Config):
     event_handler.build()
     event_handler.check_build()
 
-    server_process = Process(target=serve, args=(config.target_dir, config.serve_port))
+    server_process = Process(target=serve, args=(config.target_dir, config.subdirectory, config.serve_port))
     server_process.start()
 
     subprocesses = [Subprocess(c) for c in config.subprocesses]
@@ -109,5 +109,8 @@ def watch(config: Config):
         [p.terminate() for p in subprocesses]
         observer.stop()
         observer.join()
-        server_process.terminate()
-        time.sleep(0.5)
+        if server_process.exitcode not in {None, 0}:
+            raise RuntimeError('Server process already terminated with exit code {}'.format(server_process.exitcode))
+        else:
+            server_process.terminate()
+            time.sleep(0.1)

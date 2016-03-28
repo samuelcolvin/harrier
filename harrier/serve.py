@@ -1,5 +1,6 @@
 import json
 import logging
+import asyncio
 import re
 from pathlib import Path
 
@@ -45,20 +46,28 @@ logger.addHandler(handler)
 logger.setLevel(logging.INFO)
 
 
-def serve(serve_root, port):
-    app = web.Application()
+def create_app(serve_root, subdirectory='/', loop=None):
+    loop = loop or asyncio.new_event_loop()
+    app = web.Application(loop=loop)
     app[WS] = []
-    serve_root = serve_root.rstrip('/') + '/'
 
     app.router.add_route('GET', '/livereload.js', lr_script_handler)
     app.router.add_route('GET', '/livereload', websocket_handler)
 
-    app.router.register_route(HarrierStaticRoute('static-router', '/', serve_root))
+    serve_root = str(serve_root) + '/'
+    prefix = str(subdirectory).strip('/')
+    prefix = '/{}/'.format(prefix) if prefix else '/'
+    app.router.register_route(HarrierStaticRoute('static-router', prefix, serve_root))
+    return app
+
+
+def serve(serve_root, subdirectory, port):
+    app = create_app(serve_root, subdirectory)
 
     # TODO in theory file watching could be replaced by accessing tool_chain.source_map
     observer = Observer()
     event_handler = DevServerEventEventHandler(app, serve_root)
-    observer.schedule(event_handler, serve_root, recursive=True)
+    observer.schedule(event_handler, str(serve_root), recursive=True)
     observer.start()
 
     logger.info('Started dev server at http://localhost:%s, use Ctrl+C to quit', port)
