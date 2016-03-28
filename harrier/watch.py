@@ -28,7 +28,7 @@ class HarrierEventHandler(PatternMatchingEventHandler):
     ]
 
     def __init__(self, config, *args, **kwargs):
-        super(HarrierEventHandler, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self._config = config
         self.build_no = 0
         self._builder = Builder(config)

@@ -1,11 +1,15 @@
 # this does not show all defaults as some have to be computed at run time, see config.py
 root: .
-tools:
-  - harrier.tools.Execute
-  - harrier.tools.CopyFile
-  - harrier.tools.Sass
-  - harrier.tools.Jinja
+# default tools are execute, jinja, sass and copy, tools are any dict with tool_path and active: True
+execute:
+  tool_path: harrier.tools.Execute
+  active: Yes
+  commands: []
+  cleanup: Yes
+  patterns: []
 jinja:
+  active: Yes
+  tool_path: harrier.tools.Jinja
   patterns:
     - '*.html'
     - '*.jinja'
@@ -13,12 +17,15 @@ jinja:
   directories:
     - '.'
   extra_patterns: []
-execute:
-  commands: []
-  cleanup: True
-  patterns: []
+sass:
+  active: Yes
+  tool_path: harrier.tools.Sass
+copy:
+  active: Yes
+  tool_path: harrier.tools.Copy
+assets:
+  active: Yes
 subprocesses: []
-extra: {}
 exclude:
   - '*/bower_components/*'
   - '*/harrier.yml'
@@ -36,6 +43,6 @@ target:
   serve:
     path: .serve
     port: 8000
-    livereload: True
+    livereload: Yes
   build:
     path: build

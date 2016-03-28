@@ -25,14 +25,18 @@ class Config:
         unknown = set(config.keys()) - set(c.keys())
         if unknown:
             raise HarrierProblem('Unexpected sections in config: {}'.format(unknown))
-        for k, v in c.items():
-            if k in config:
-                if isinstance(v, dict):
-                    # this could be recursive, but does it need to be?
-                    v.update(config.get(k, {}))
-                else:
-                    c[k] = config[k]
-        return c
+        return self._merge_dicts(config, c)
+
+    @classmethod
+    def _merge_dicts(cls, d_update:  dict, d_base:  dict):
+        d_new = deepcopy(d_base)
+        for k, v in d_update.items():
+            base_v = d_base.get(k)
+            if isinstance(v, dict) and isinstance(base_v, dict):
+                d_new[k] = cls._merge_dicts(v, base_v)
+            else:
+                d_new[k] = v
+        return d_new
 
     def setup(self, target_name, served_direct=False, base_dir=None):
         if self._already_setup:
@@ -146,7 +150,11 @@ class Config:
 
     @property
     def tools(self):
-        return self._config['tools']
+        tools = []
+        for k, v in self._config.items():
+            if isinstance(v, dict) and 'tool_path' in v and v.get('active', False) is True:
+                tools.append(v.get('tool_path'))
+        return tools
 
     @property
     def context(self):

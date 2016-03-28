@@ -30,13 +30,16 @@ Partly because I'm much happier with everything that doesn't have to be javascri
 
 ## TODO
 
+* build/deploy subdirectory?
 * sass variables eg. precision, style
 * use https://docs.python.org/3/library/pathlib.html
 * sass import callbacks for bower: https://github.com/dahlia/libsass-python/blob/python/sass.py#L423-L464, see eyeglass, wiredep
-* hash name extension
 * subprocess options, eg. names, optional start, quiet
 * test coverage, server test
-* support testing - what can we test?
+* `assets.json/yml` file generation
+* deploy command including "flip-flop" deploys
+* complementary package for getting the url of files by looking up assets file
+* hash name extension
 * html tidy
 * jinja minify https://github.com/mitsuhiko/jinja2-htmlcompress
 * catch jinja errors and display nicely with relevant traceback

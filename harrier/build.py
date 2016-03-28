@@ -21,7 +21,7 @@ class Builder:
 
     def __init__(self, config: Config):
         self._config = config
-        self._gear_box_creator = ToolChainFactory(config)
+        self._tool_chain_factory = ToolChainFactory(config)
         self._exclude_patterns = self._config.exclude_patterns
 
     def build(self, partial=False) -> ToolChain:
@@ -33,7 +33,7 @@ class Builder:
         self._delete(partial)
         self._already_built = True
 
-        tools = self._gear_box_creator(partial)
+        tools = self._tool_chain_factory(partial)
         all_files = self._file_list()
 
         logger.debug('%s files to build: %s', len(all_files), ', '.join(all_files))

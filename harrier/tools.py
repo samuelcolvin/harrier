@@ -130,7 +130,7 @@ class Execute(Tool):
     single_call = True  # should be configurable in case command should be run for every file
 
     def __init__(self, *args, **kwargs):
-        super(Execute, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self._commands = self._config.execute_commands
         self.ownership_patterns = self._config.execute_patterns
         self._extra_files = None
@@ -141,7 +141,7 @@ class Execute(Tool):
         return any(fnmatch(file_path, m) for m in self.ownership_patterns)
 
     def build(self):
-        super(Execute, self).build()
+        super().build()
         return len(self.extra_files), {}
 
     def convert_file(self, file_path):
@@ -192,7 +192,7 @@ class Execute(Tool):
         return self._extra_files
 
 
-class CopyFile(Tool):
+class Copy(Tool):
     ownership_regex = r'.*'
     ownership_priority = -10  # should go last
     change_sensitive = False
@@ -230,7 +230,7 @@ class FrontMatterFileSystemLoader(FileSystemLoader):
         return self.content_cache['./' + template.lstrip('./')]
 
     def parse_source(self, environment, template):
-        contents, filename, uptodate = super(FrontMatterFileSystemLoader, self).get_source(environment, template)
+        contents, filename, uptodate = super().get_source(environment, template)
         data, contents = parse_front_matter(contents)
         self.content_cache[template] = (contents, filename, uptodate)
         return data or {}
@@ -243,7 +243,7 @@ class Jinja(Tool):
     live_reload_slug = '\n<script src="http://localhost:{}/livereload.js"></script>\n'
 
     def __init__(self, *args, **kwargs):
-        super(Jinja, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         # TODO store the loader or env on the tool factory for faster partial builds
         # (this would need to cope with new files)
         self._loader = FrontMatterFileSystemLoader(self._config.jinja_directories)

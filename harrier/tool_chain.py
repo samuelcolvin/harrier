@@ -8,20 +8,20 @@ from .common import logger
 
 class _ToolList(list):
     def prioritise(self, attr):
-        super(_ToolList, self).sort(key=attrgetter(attr), reverse=True)
+        super().sort(key=attrgetter(attr), reverse=True)
 
 
 class ToolChain(_ToolList):
     files_built, tools_run, source_map = 0, 0, None
 
     def __init__(self, tool_classes, config, partial):
-        super(ToolChain, self).__init__(t(config, partial) for t in tool_classes)
+        super().__init__(t(config, partial) for t in tool_classes)
 
     def get_extra_files(self) -> set:
         return set(chain(*[t.extra_files for t in self if t.active]))
 
     def sort_on(self, attr, reverse=False):
-        super(ToolChain, self).sort(key=attrgetter(attr), reverse=reverse)
+        super().sort(key=attrgetter(attr), reverse=reverse)
 
     def assign_file(self, file_path, changed):
         for t in self:
@@ -58,7 +58,7 @@ class ToolChain(_ToolList):
 class ToolChainFactory(_ToolList):
     def __init__(self, config):
         self._config = config
-        super(ToolChainFactory, self).__init__(import_string(t) for t in config.tools)
+        super().__init__(import_string(t) for t in config.tools)
         self.prioritise('ownership_priority')
 
     def __call__(self, partial) -> ToolChain:

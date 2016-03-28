@@ -24,7 +24,7 @@ class DevLogHandler(logging.Handler):
     }
 
     def __init__(self, *args):
-        super(DevLogHandler, self).__init__(*args)
+        super().__init__(*args)
         self._width = click.get_terminal_size()[0]
 
     def emit(self, record):
@@ -74,7 +74,7 @@ def serve(serve_root, port):
 
 class DevServerEventEventHandler(FileSystemEventHandler):
     def __init__(self, app, serve_root):
-        super(DevServerEventEventHandler, self).__init__()
+        super().__init__()
         self._serve_root = serve_root
         self._app = app
 
@@ -156,7 +156,7 @@ class HarrierStaticRoute(StaticRoute):
                 request.match_info['filename'] = str(filepath.joinpath('index.html').relative_to(self._directory))
         status, length = 'unknown', 0
         try:
-            response = await super(HarrierStaticRoute, self).handle(request)
+            response = await super().handle(request)
         except HTTPNotModified:
             status, length = 304, 0
             raise
