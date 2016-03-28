@@ -74,31 +74,34 @@ def server(tmpworkdir, loop, port):
 
 class Client:
     def __init__(self, loop, url):
-        self._session = aiohttp.ClientSession(loop=loop)
+        self.session = aiohttp.ClientSession(loop=loop)
         if not url.endswith('/'):
             url += '/'
         self.url = url
 
     def close(self):
-        self._session.close()
+        self.session.close()
 
     def get(self, path, **kwargs):
         while path.startswith('/'):
             path = path[1:]
-        url = self.url + path
-        return self._session.get(url, **kwargs)
+        url = self.get_url(path)
+        return self.session.get(url, **kwargs)
 
     def post(self, path, **kwargs):
         while path.startswith('/'):
             path = path[1:]
-        url = self.url + path
-        return self._session.post(url, **kwargs)
+        url = self.get_url(path)
+        return self.session.post(url, **kwargs)
 
     def ws_connect(self, path, **kwargs):
         while path.startswith('/'):
             path = path[1:]
-        url = self.url + path
-        return self._session.ws_connect(url, **kwargs)
+        url = self.get_url(path)
+        return self.session.ws_connect(url, **kwargs)
+
+    def get_url(self, path):
+        return self.url + path
 
 
 @pytest.yield_fixture

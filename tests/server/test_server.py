@@ -1,3 +1,7 @@
+import json
+
+import aiohttp
+
 from tests.conftest import mktree
 from .conftest import Client
 
@@ -10,6 +14,16 @@ async def test_simple_file(tmpworkdir, client):
     assert r.status == 200
     content = await r.read()
     assert content == b'X'
+
+
+async def test_index(tmpworkdir, client):
+    mktree(tmpworkdir, {
+        'index.html': 'abc',
+    })
+    r = await client.get('/')
+    assert r.status == 200
+    content = await r.read()
+    assert content == b'abc'
 
 
 async def test_prefix_file(tmpworkdir, loop, server):
@@ -25,3 +39,28 @@ async def test_prefix_file(tmpworkdir, loop, server):
     assert content == b'X'
 
     client.close()
+
+
+async def test_livereload(client):
+    r = await client.get('/livereload.js')
+    assert r.status == 200
+    content = await r.read()
+    assert b'PROTOCOL_7' in content
+
+
+async def test_websocket_hello(client):
+    async with client.session.ws_connect(client.get_url('livereload')) as ws:
+        data = {
+            'command': 'hello',
+            'protocols': ['http://livereload.com/protocols/official-7']
+        }
+        ws.send_str(json.dumps(data))
+        async for msg in ws:
+            assert msg.tp == aiohttp.MsgType.text
+            data = json.loads(msg.data)
+            assert data == {
+                'serverName': 'livereload-aiohttp',
+                'command': 'hello',
+                'protocols': ['http://livereload.com/protocols/official-7']
+            }
+            break

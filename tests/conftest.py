@@ -26,13 +26,7 @@ def tmpworkdir(tmpdir):
 def simpleharrier(tmpworkdir):
     js = tmpworkdir.join('test.js')
     js.write('var hello = 1;')
-    p = tmpworkdir.join('harrier.yml')
-    p.write("""\
-root: .
-target:
-  build:
-    path: build""")
-    _config = load_config('harrier.yml')
+    _config = load_config()
     _config.setup('build')
 
     class Tmp:

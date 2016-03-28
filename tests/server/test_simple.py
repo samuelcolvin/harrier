@@ -1,4 +1,6 @@
 from unittest.mock import patch
+
+from harrier.serve import serve
 from harrier.watch import HarrierEventHandler, watch
 
 
@@ -14,3 +16,10 @@ def test_serve_start(simpleharrier):
         watch(simpleharrier.config)
 
     assert mock_method.called
+
+
+def test_serve_run(port):
+    with patch('harrier.serve.web.run_app') as mock_run_app:
+        serve('.', '', port)
+
+    assert mock_run_app.called
