@@ -30,13 +30,13 @@ Partly because I'm much happier with everything that doesn't have to be javascri
 
 ## TODO
 
-* build/deploy subdirectory?
+* `assets.json/yml` file generation
+* build/deploy subdirectory
 * sass variables eg. precision, style
 * use https://docs.python.org/3/library/pathlib.html
 * sass import callbacks for bower: https://github.com/dahlia/libsass-python/blob/python/sass.py#L423-L464, see eyeglass, wiredep
 * subprocess options, eg. names, optional start, quiet
 * test coverage, server test
-* `assets.json/yml` file generation
 * deploy command including "flip-flop" deploys
 * complementary package for getting the url of files by looking up assets file
 * hash name extension

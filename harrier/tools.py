@@ -1,3 +1,5 @@
+from pathlib import PurePosixPath
+
 import os
 import re
 import subprocess
@@ -10,7 +12,7 @@ import yaml
 import sass
 from jinja2 import Environment, FileSystemLoader, contextfilter
 
-from .config import Config
+from .config import Config, yaml_or_json
 from .common import logger, HarrierProblem
 
 
@@ -238,7 +240,7 @@ class FrontMatterFileSystemLoader(FileSystemLoader):
 
 class Jinja(Tool):
     ownership_priority = 5  # should go early
-    build_priority = -10  # should go last
+    build_priority = -8  # should go late
     _template_files = None
     live_reload_slug = '\n<script src="http://localhost:{}/livereload.js"></script>\n'
 
@@ -330,3 +332,44 @@ class Jinja(Tool):
             yield None, content_str.encode('utf8')
         for name, content in self._extra_files:
             yield name, content
+
+
+class AssetDefinition(Tool):
+    ownership_priority = 0
+    build_priority = -10  # should go last
+
+    def __init__(self, config: Config, partial_build: bool):
+        super().__init__(config, partial_build)
+        self.to_build = [config.asset_file]
+        self.active = True
+
+    def _get_commit(self):
+        args = ['git', 'rev-parse', 'HEAD']
+        unknown = 'unknown'
+        try:
+            cp = subprocess.run(args, stdout=subprocess.PIPE)
+        except FileNotFoundError:
+            return unknown
+        if cp.returncode != 0:
+            return unknown
+        return cp.stdout.strip('\n')
+
+    def _check_ownership(self, file_path):
+        return False
+
+    def convert_file(self, file_path):
+        # TODO if this could ever be called more than once for the same target_dir we should cache the result
+        _, dumper = yaml_or_json(file_path)
+        commit = self._get_commit()
+        file_map = {}
+        root = self._config.asset_url_root
+        for f in find_all_files(self._config.target_dir):
+            # TODO remove file hashes from key once they're implemented
+            file_map[f] = str(PurePosixPath(root, f))
+        # TODO, find version from previous deploy
+        obj = {
+            'commit': commit,
+            'files': file_map,
+        }
+        content = dumper(obj)
+        yield file_path, content.encode('utf8')

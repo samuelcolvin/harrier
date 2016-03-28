@@ -139,6 +139,14 @@ class Config:
         return True if cleanup is None else bool(cleanup)
 
     @property
+    def asset_file(self):
+        return self._get_setting('assets', 'file')
+
+    @property
+    def asset_url_root(self):
+        return self._get_setting('assets', 'url_root')
+
+    @property
     def path_mapping(self):
         # TODO deal better with conf_dict, eg. dicts, list of dicts, check length of lists of lists
         # TODO add extra_mapping to avoid overriding these values
@@ -153,12 +161,11 @@ class Config:
         tools = []
         for k, v in self._config.items():
             if isinstance(v, dict) and 'tool_path' in v and v.get('active', False) is True:
-                tools.append(v.get('tool_path'))
+                tools.append(v['tool_path'])
         return tools
 
     @property
     def context(self):
-        # TODO add more things hre like commit sha
         _ctx = {
             'build_target': self._target['name'],
         }
@@ -211,6 +218,26 @@ def find_config_file(path='.'):
                 return fn
 
 
+def pretty_yaml_dump(obj):
+    return yaml.dump(obj, default_flow_style=False)
+
+
+def pretty_json_dump(obj):
+    return json.dumps(obj, indent=2, sort_keys=True) + '\n'
+
+
+def yaml_or_json(file_path):
+    if any(file_path.endswith(ext) for ext in ['.yaml', '.yml']):
+        logger.debug('Processing %s as a yaml file', file_path)
+        return yaml.load, pretty_yaml_dump
+    elif file_path.endswith('.json'):
+        logger.debug('Processing %s as a json file', file_path)
+        return json.load, pretty_json_dump
+    else:
+        msg = 'Unexpected extension for "{}", should be json or yml/yaml'
+        raise HarrierProblem(msg.format(file_path))
+
+
 def load_config(config_file=None) -> Config:
     if config_file:
         if os.path.isfile(config_file):
@@ -226,15 +253,7 @@ def load_config(config_file=None) -> Config:
         config = {}
         config_file = './None'
     else:
-        if any(file_path.endswith(ext) for ext in ['.yaml', '.yml']):
-            logger.debug('Processing %s as a yaml file', file_path)
-            loader = yaml.load
-        elif file_path.endswith('.json'):
-            logger.debug('Processing %s as a json file', file_path)
-            loader = json.load
-        else:
-            msg = 'Unexpected extension for config file: "{}", should be json or yml/yaml'
-            raise HarrierProblem(msg.format(file_path))
+        loader, _ = yaml_or_json(file_path)
         with open(file_path) as f:
             try:
                 config = loader(f)

@@ -24,7 +24,10 @@ copy:
   active: Yes
   tool_path: harrier.tools.Copy
 assets:
-  active: Yes
+  active: No
+  tool_path: harrier.tools.AssetDefinition
+  file: assets.json
+  url_root: /
 subprocesses: []
 exclude:
   - '*/bower_components/*'
