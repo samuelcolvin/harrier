@@ -129,7 +129,7 @@ async def websocket_handler(request):
                 command = data['command']
                 if command == 'hello':
                     if 'http://livereload.com/protocols/official-7' not in data['protocols']:
-                        logger.error('live reload protocol 7 not supported by client %s', data)
+                        logger.error('live reload protocol 7 not supported by client %s', msg.data)
                         ws.close()
                     else:
                         handshake = {
@@ -144,7 +144,7 @@ async def websocket_handler(request):
                     logger.info('browser connected at %s', data['url'])
                     logger.debug('browser plugins: %s', data['plugins'])
                 else:
-                    logger.error('Unknown ws message %s', data)
+                    logger.error('Unknown ws message %s', msg.data)
         elif msg.tp == aiohttp.MsgType.error:
             logger.error('ws connection closed with exception %s',  ws.exception())
         else:

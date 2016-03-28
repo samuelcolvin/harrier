@@ -66,6 +66,17 @@ async def test_websocket_hello(client):
             break
 
 
+async def test_websocket_wrong_protocol(client, capsys):
+    async with client.session.ws_connect(client.get_url('livereload')) as ws:
+        data = {
+            'command': 'hello',
+            'protocols': ['http://livereload.com/protocols/official-6']
+        }
+        ws.send_str(json.dumps(data))
+    stdout, _ = capsys.readouterr()
+    assert 'live reload protocol 7 not supported by client' in stdout
+
+
 async def test_websocket_info(client, capsys):
     async with client.session.ws_connect(client.get_url('livereload')) as ws:
         data = {
@@ -74,9 +85,18 @@ async def test_websocket_info(client, capsys):
             'plugins': 'bang',
         }
         ws.send_str(json.dumps(data))
-        print(dir(ws))
     stdout, _ = capsys.readouterr()
     assert 'browser connected at foobar' in stdout
+
+
+async def test_websocket_command_other(client, capsys):
+    async with client.session.ws_connect(client.get_url('livereload')) as ws:
+        data = {
+            'command': 'other',
+        }
+        ws.send_str(json.dumps(data))
+    stdout, _ = capsys.readouterr()
+    assert 'Unknown ws message {"command": "other"}' in stdout
 
 
 async def test_websocket_bad_json(client, capsys):
