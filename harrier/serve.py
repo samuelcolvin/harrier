@@ -6,7 +6,7 @@ from pathlib import Path
 
 import click
 import aiohttp
-from aiohttp.web_exceptions import HTTPNotModified
+from aiohttp.web_exceptions import HTTPNotModified, HTTPClientError, HTTPNotFound
 from aiohttp import web
 from aiohttp.web_urldispatcher import StaticRoute
 from watchdog.observers import Observer
@@ -44,25 +44,11 @@ formatter = logging.Formatter('[%(asctime)s] %(message)s', datefmt='%H:%M:%S')
 handler.setFormatter(formatter)
 logger.addHandler(handler)
 logger.setLevel(logging.INFO)
+logger.propagate = False
 
 
-def create_app(serve_root, subdirectory='/', loop=None):
-    loop = loop or asyncio.new_event_loop()
-    app = web.Application(loop=loop)
-    app[WS] = []
-
-    app.router.add_route('GET', '/livereload.js', lr_script_handler)
-    app.router.add_route('GET', '/livereload', websocket_handler)
-
-    serve_root = str(serve_root) + '/'
-    prefix = str(subdirectory).strip('/')
-    prefix = '/{}/'.format(prefix) if prefix else '/'
-    app.router.register_route(HarrierStaticRoute('static-router', prefix, serve_root))
-    return app
-
-
-def serve(serve_root, subdirectory, port):
-    app = create_app(serve_root, subdirectory)
+def serve(serve_root, subdirectory, port, asset_file=None):
+    app = create_app(serve_root, subdirectory=subdirectory, asset_file=asset_file)
 
     # TODO in theory file watching could be replaced by accessing tool_chain.source_map
     observer = Observer()
@@ -79,6 +65,24 @@ def serve(serve_root, subdirectory, port):
     finally:
         observer.stop()
         observer.join()
+
+
+def create_app(serve_root, subdirectory='/', asset_file=None, loop=None):
+    loop = loop or asyncio.new_event_loop()
+    app = web.Application(loop=loop)
+    app[WS] = []
+
+    app.router.add_route('GET', '/livereload.js', lr_script_handler)
+    app.router.add_route('GET', '/livereload', websocket_handler)
+
+    assert_path = asset_file and serve_root / asset_file
+    serve_root = str(serve_root) + '/'
+    prefix = str(subdirectory).strip('/')
+    prefix = '/{}/'.format(prefix) if prefix else '/'
+    app.router.register_route(HarrierStaticRoute('static-router', prefix, serve_root, assert_path=assert_path))
+    # if prefix != '/':
+    #     app.router.add_route('*', '/{path:.*}', OutsideSubdirectory(prefix, assert_path))
+    return app
 
 
 class DevServerEventEventHandler(FileSystemEventHandler):
@@ -158,6 +162,11 @@ async def websocket_handler(request):
 
 
 class HarrierStaticRoute(StaticRoute):
+
+    def __init__(self, *args, **kwargs):
+        self._asset_path = kwargs.pop('assert_path', None)
+        super().__init__(*args, **kwargs)
+
     async def handle(self, request):
         filename = request.match_info['filename']
         try:
@@ -167,21 +176,50 @@ class HarrierStaticRoute(StaticRoute):
         else:
             if filepath.is_dir():
                 request.match_info['filename'] = str(filepath.joinpath('index.html').relative_to(self._directory))
-        status, length = 'unknown', 0
+        status, length = 'unknown', ''
         try:
             response = await super().handle(request)
         except HTTPNotModified:
             status, length = 304, 0
             raise
+        except HTTPNotFound:
+            _404_msg = '404: Not Found\n\n' + _get_asset_content(self._asset_path)
+            response = web.Response(body=_404_msg.encode('utf8'), status=404)
+            status, length = response.status, response.content_length
+        except HTTPClientError as e:
+            status = e.status
+            raise
         else:
             status, length = response.status, response.content_length
         finally:
-            logger.info(' > %s %s %s %s', request.method, request.path, status, self.fmt_size(length))
+            l = logger.info if status in {200, 304} else logger.warning
+            l(' > %s %s %s %s', request.method, request.path, status, _fmt_size(length))
         return response
 
-    @staticmethod
-    def fmt_size(num):
-        if num < 1024:
-            return '{:0.0f}B'.format(num)
-        else:
-            return "{:0.0f}KB".format(num / 1024)
+
+class OutsideSubdirectory:
+    def __init__(self, prefix, assert_path):
+        self._asset_path = assert_path
+        self._msg = '404: Not Found (files are being served from the subdirectory "{}" only)\n\n'.format(prefix)
+
+    async def __call__(self, request):
+        msg = self._msg + _get_asset_content(self._asset_path)
+        r = web.Response(body=msg.encode('utf8'), status=404)
+        logger.warning(' > %s %s %s %s', request.method, request.path, r.status, _fmt_size(r.content_length))
+        return r
+
+
+def _get_asset_content(asset_path):
+    if not asset_path:
+        return ''
+    with asset_path.open() as f:
+        return 'Asset file contents:\n\n{}'.format(f.read())
+
+
+def _fmt_size(num):
+    if num == '':
+        return ''
+    if num < 1024:
+        return '{:0.0f}B'.format(num)
+    else:
+        return "{:0.0f}KB".format(num / 1024)

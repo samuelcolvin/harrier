@@ -69,21 +69,44 @@ class HarrierEventHandler(PatternMatchingEventHandler):
         if not self._passing:
             raise HarrierProblem('build failed')
 
-    def wait(self):
+    def wait(self, extra_checks):
         while True:
             time.sleep(1)
             self.check_build()
+            if not extra_checks():
+                return
 
 
 class Subprocess:
     def __init__(self, command):
+        self._cmd = command
         logger.info('starting subprocess "%s"', command)
         args = shlex.split(command)
         self.p = subprocess.Popen(args)
 
     def terminate(self):
-        if self.p.returncode is not None:
+        if self.p.returncode is None:
             self.p.terminate()
+
+    def check(self):
+        self.p.poll()
+        if self.p.returncode is None:
+            return True
+        if self.p.returncode == 0:
+            logger.warning('subprocess "%s" exited', self._cmd)
+        else:
+            logger.error('subprocess "%s" exited with errors (%r)', self._cmd, self.p.returncode)
+
+
+class SubprocessController:
+    def __init__(self, config):
+        self.subprocesses = [Subprocess(c) for c in config.subprocesses]
+
+    def check(self):
+        return all(s.check() for s in self.subprocesses)
+
+    def terminate(self):
+        [p.terminate() for p in self.subprocesses]
 
 
 def watch(config: Config):
@@ -93,20 +116,21 @@ def watch(config: Config):
     event_handler.build()
     event_handler.check_build()
 
-    server_process = Process(target=serve, args=(config.target_dir, config.subdirectory, config.serve_port))
+    server_process = Process(target=serve, args=(config.target_dir, config.subdirectory, config.serve_port,
+                                                 config.asset_file))
     server_process.start()
 
-    subprocesses = [Subprocess(c) for c in config.subprocesses]
+    sp_ctrl = SubprocessController(config)
 
     observer.schedule(event_handler, str(config.root), recursive=True)
     observer.start()
     try:
-        event_handler.wait()
+        event_handler.wait(sp_ctrl.check)
     except KeyboardInterrupt:
         pass
     finally:
         logger.warning('killing dev server')
-        [p.terminate() for p in subprocesses]
+        sp_ctrl.terminate()
         observer.stop()
         observer.join()
         if server_process.exitcode not in {None, 0}:

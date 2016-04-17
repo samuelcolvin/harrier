@@ -345,7 +345,7 @@ class AssetDefinition(Tool):
         args = ['git', 'rev-parse', 'HEAD']
         unknown = 'unknown'
         try:
-            cp = subprocess.run(args, stdout=subprocess.PIPE)
+            cp = subprocess.run(args, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
         except FileNotFoundError:
             return unknown
         if cp.returncode != 0:
