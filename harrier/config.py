@@ -1,3 +1,4 @@
+import re
 import json
 from pathlib import Path
 from copy import deepcopy
@@ -110,6 +111,11 @@ class Config:
         return Path(sd)
 
     @property
+    def uri_subdirectory(self):
+        s = str(self.subdirectory).strip('/')
+        return '/{}/'.format(s) if s else '/'
+
+    @property
     def serve_port(self):
         return self._target.get('port') or 8000
 
@@ -153,7 +159,13 @@ class Config:
 
     @property
     def asset_url_root(self):
-        return self._get_setting('assets', 'url_root')
+        url_root = self._get_setting('assets', 'url_root')
+        if url_root is None:
+            return self.uri_subdirectory
+        if re.match('^https?://', url_root) and not re.match('^https?://.*?/.+', url_root):
+            # url_root does not include path so subdirectory should be appended
+            return url_root.rstrip('/') + self.uri_subdirectory
+        return url_root
 
     @property
     def path_mapping(self):

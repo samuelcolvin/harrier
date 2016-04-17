@@ -54,7 +54,7 @@ assets:
 {
   "commit": "unknown",
   "files": {
-    "test.js": "http:/www.example.com/test.js"
+    "test.js": "http://www.example.com/test.js"
   }
 }
 """,
@@ -136,3 +136,80 @@ assets:
 }
 """,
     }
+
+
+def test_assets_blank_subdirectory(tmpworkdir):
+    mktree(tmpworkdir, {
+        'test.js': 'var hello = 1;',
+        'harrier.yml': """\
+root: .
+subdirectory: my_static
+assets:
+  active: True"""
+    })
+    config = load_config('harrier.yml')
+    config.setup('build')
+    build(config)
+    assert gettree(tmpworkdir.join('build')) == {
+        'my_static': {
+            'test.js': 'var hello = 1;',
+            'assets.json': """\
+{
+  "commit": "unknown",
+  "files": {
+    "test.js": "/my_static/test.js"
+  }
+}
+"""}}
+
+
+def test_url_root_domain_subdirectory(tmpworkdir):
+    mktree(tmpworkdir, {
+        'test.js': 'var hello = 1;',
+        'harrier.yml': """\
+root: .
+subdirectory: my_static
+assets:
+  active: True
+  url_root: http://www.foobar.com"""
+    })
+    config = load_config('harrier.yml')
+    config.setup('build')
+    build(config)
+    assert gettree(tmpworkdir.join('build')) == {
+        'my_static': {
+            'test.js': 'var hello = 1;',
+            'assets.json': """\
+{
+  "commit": "unknown",
+  "files": {
+    "test.js": "http://www.foobar.com/my_static/test.js"
+  }
+}
+"""}}
+
+
+def test_url_root_full_path_subdirectory(tmpworkdir):
+    mktree(tmpworkdir, {
+        'test.js': 'var hello = 1;',
+        'harrier.yml': """\
+root: .
+subdirectory: my_static
+assets:
+  active: True
+  url_root: https://www.foobar.com/whatever"""
+    })
+    config = load_config('harrier.yml')
+    config.setup('build')
+    build(config)
+    assert gettree(tmpworkdir.join('build')) == {
+        'my_static': {
+            'test.js': 'var hello = 1;',
+            'assets.json': """\
+{
+  "commit": "unknown",
+  "files": {
+    "test.js": "https://www.foobar.com/whatever/test.js"
+  }
+}
+"""}}

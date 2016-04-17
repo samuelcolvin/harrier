@@ -28,7 +28,7 @@ assets:
   active: No
   tool_path: harrier.tools.AssetDefinition
   file: assets.json
-  url_root: /
+  url_root: null
 subprocesses: []
 exclude:  # an extra pattern prepended by "*/@ is added for each one line, eg. "*/harrier.yml"
   - 'bower_components/*'

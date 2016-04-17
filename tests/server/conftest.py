@@ -52,7 +52,7 @@ def server(tmpworkdir, loop, port):
 
     async def create(prefix='/'):
         nonlocal app, handler, srv
-        app = create_app(tmpworkdir, prefix, loop=loop)
+        app = create_app(tmpworkdir, prefix, None, loop=loop)
 
         handler = app.make_handler(keep_alive_on=False)
         domain = '127.0.0.1'

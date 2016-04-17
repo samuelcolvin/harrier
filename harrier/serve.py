@@ -67,7 +67,7 @@ def serve(serve_root, subdirectory, port, asset_file=None):
         observer.join()
 
 
-def create_app(serve_root, subdirectory='/', asset_file=None, loop=None):
+def create_app(serve_root, subdirectory, asset_file, loop=None):
     loop = loop or asyncio.new_event_loop()
     app = web.Application(loop=loop)
     app[WS] = []
@@ -77,9 +77,7 @@ def create_app(serve_root, subdirectory='/', asset_file=None, loop=None):
 
     assert_path = asset_file and serve_root / asset_file
     serve_root = str(serve_root) + '/'
-    prefix = str(subdirectory).strip('/')
-    prefix = '/{}/'.format(prefix) if prefix else '/'
-    app.router.register_route(HarrierStaticRoute('static-router', prefix, serve_root, assert_path=assert_path))
+    app.router.register_route(HarrierStaticRoute('static-router', subdirectory, serve_root, assert_path=assert_path))
     # if prefix != '/':
     #     app.router.add_route('*', '/{path:.*}', OutsideSubdirectory(prefix, assert_path))
     return app

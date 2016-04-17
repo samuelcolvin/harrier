@@ -360,7 +360,7 @@ class AssetDefinition(Tool):
         _, dumper = yaml_or_json(file_path)
         commit = self._get_commit()
         file_map = {}
-        root = PurePosixPath(self._config.asset_url_root)
+        root = UrlPath(self._config.asset_url_root)
         for f in walk(self._config.target_dir):
             # TODO remove file hashes from key once they're implemented
             file_map[str(f)] = str(root / f)
@@ -371,3 +371,10 @@ class AssetDefinition(Tool):
         }
         content = dumper(obj)
         yield file_path, content.encode('utf8')
+
+
+class UrlPath(PurePosixPath):
+    def __str__(self):
+        s = super().__str__()
+        # we have to reinstate the second / of http:// as PurePosixPath removes it
+        return re.sub('(https?:)/([^/])', r'\1//\2', s)

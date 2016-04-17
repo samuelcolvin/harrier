@@ -116,7 +116,7 @@ def watch(config: Config):
     event_handler.build()
     event_handler.check_build()
 
-    server_process = Process(target=serve, args=(config.target_dir, config.subdirectory, config.serve_port,
+    server_process = Process(target=serve, args=(config.target_dir, config.uri_subdirectory, config.serve_port,
                                                  config.asset_file))
     server_process.start()
 

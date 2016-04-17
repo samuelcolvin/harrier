@@ -20,6 +20,6 @@ def test_serve_start(simpleharrier):
 
 def test_serve_run(port):
     with patch('harrier.serve.web.run_app') as mock_run_app:
-        serve('.', '', port)
+        serve('.', '/', port)
 
     assert mock_run_app.called
