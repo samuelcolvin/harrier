@@ -1,11 +1,18 @@
-
 import pytest
 
 from harrier.build import build
 from harrier.common import HarrierProblem
-from harrier.config import load_config
+from harrier.config import Config
 
 from ..conftest import gettree, mktree
+
+
+def test_no_config(tmpworkdir):
+    mktree(tmpworkdir, {'foo': 'bar'})
+    config = Config()
+    config.setup()
+    build(config)
+    assert gettree(tmpworkdir.join('build')) == {'foo': 'bar'}
 
 
 def test_simple_build(tmpworkdir):
@@ -15,16 +22,8 @@ root: .
 target:
   build:
     path: build""")
-    config = load_config('harrier.yml')
-    config.setup('build')
-    build(config)
-    assert gettree(tmpworkdir.join('build')) == {'test.js': 'var hello = 1;'}
-
-
-def test_no_config(tmpworkdir):
-    tmpworkdir.join('test.js').write('var hello = 1;')
-    config = load_config(None)
-    config.setup('build')
+    config = Config('harrier.yml')
+    config.setup()
     build(config)
     assert gettree(tmpworkdir.join('build')) == {'test.js': 'var hello = 1;'}
 
@@ -32,7 +31,7 @@ def test_no_config(tmpworkdir):
 def test_extra_config(tmpworkdir):
     tmpworkdir.join('harrier.yml').write('foobar: 42')
     with pytest.raises(HarrierProblem) as excinfo:
-        load_config(None)
+        Config()
     assert excinfo.value.args[0] == "Unexpected sections in config: {'foobar'}"
 
 
@@ -40,22 +39,10 @@ def test_json_seperate_root(tmpworkdir):
     root_dir = tmpworkdir.mkdir('foobar')
     tmpworkdir.join('harrier.json').write('{"root": "foobar"}')
     root_dir.join('bar').write('hello')
-    config = load_config('harrier.json')
-    config.setup('build')
+    config = Config('harrier.json')
+    config.setup()
     build(config)
     assert gettree(tmpworkdir.join('build')) == {'bar': 'hello'}
-
-
-def test_build_css_js(tmpworkdir):
-    tmpworkdir.join('test.js').write('var hello = 1;')
-    tmpworkdir.join('styles.scss').write('a { b { color: blue; } }')
-    config = load_config(None)
-    config.setup('build')
-    build(config)
-    assert gettree(tmpworkdir.join('build')) == {
-        'test.js': 'var hello = 1;',
-        'styles.css': 'a b {\n  color: blue; }\n'
-    }
 
 
 def test_execute(tmpworkdir):
@@ -68,8 +55,8 @@ execute:
       generates: ['foobar.js']
   patterns:
     - ./lib/*.js""")
-    config = load_config(None)
-    config.setup('build')
+    config = Config()
+    config.setup()
     build(config)
     assert gettree(tmpworkdir.join('build')) == {'foobar.js': 'XX'}
     assert tmpworkdir.join('foobar.js').check() is False
@@ -86,8 +73,8 @@ execute:
   cleanup: False
   patterns:
     - ./lib/*.js""")
-    config = load_config(None)
-    config.setup('build')
+    config = Config()
+    config.setup()
     build(config)
     assert gettree(tmpworkdir.join('build')) == {'foobar.js': 'XX'}
     assert tmpworkdir.join('foobar.js').check()
@@ -109,8 +96,8 @@ execute:
   patterns:
     - ./lib/*"""
     })
-    config = load_config(None)
-    config.setup('build')
+    config = Config()
+    config.setup()
     build(config)
     assert gettree(tmpworkdir.join('build')) == {'foo': 'C_foo', 'foobar.js': 'C_test.js'}
     assert gettree(tmpworkdir.join('path').join('different_root')) == {
@@ -121,30 +108,12 @@ execute:
     }
 
 
-def test_sass_exclude(tmpworkdir):
-    mktree(tmpworkdir, {
-        'src': {
-            '_foo.scss': '$primary-colour: #016997;',
-            'bar.scss': """\
-@import 'foo';
-body {
-  color: $primary-colour;
-}"""
-        },
-        'harrier.yml': '\nroot: src'
-    })
-    config = load_config(None)
-    config.setup('build')
-    build(config)
-    assert gettree(tmpworkdir.join('build')) == {'bar.css': 'body {\n  color: #016997; }\n'}
-
-
 def test_subdirectory(tmpworkdir):
     tmpworkdir.join('test.js').write('X')
     tmpworkdir.join('harrier.yml').write("""\
 subdirectory: apples""")
-    config = load_config('harrier.yml')
-    config.setup('build')
+    config = Config('harrier.yml')
+    config.setup()
     build(config)
     assert gettree(tmpworkdir.join('build')) == {'apples': {'test.js': 'X'}}
 
@@ -153,6 +122,6 @@ def test_subdirectory_bad(tmpworkdir):
     tmpworkdir.join('test.js').write('X')
     tmpworkdir.join('harrier.yml').write("""\
 subdirectory: /apples""")
-    config = load_config('harrier.yml')
+    config = Config('harrier.yml')
     with pytest.raises(HarrierProblem):
-        config.setup('build')
+        config.setup()

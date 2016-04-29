@@ -2,22 +2,22 @@ import pytest
 
 from harrier.build import build
 from harrier.common import HarrierProblem
-from harrier.config import load_config
+from harrier.config import Config
 
 from ..conftest import gettree, mktree
 
 
 def test_jinja(tmpworkdir):
     tmpworkdir.join('index.html').write('{{ 42 + 5 }}')
-    config = load_config(None)
-    config.setup('build')
+    config = Config()
+    config.setup()
     build(config)
     assert gettree(tmpworkdir.join('build')) == {'index.html': '47'}
 
 
 def test_jinja_live(tmpworkdir):
     tmpworkdir.join('index.html').write('{{ 42 + 5 }}')
-    config = load_config(None)
+    config = Config()
     config.setup('build', True)
     build(config)
     assert gettree(tmpworkdir.join('build')) == {
@@ -28,8 +28,8 @@ def test_jinja_live(tmpworkdir):
 def test_jinja_static(tmpworkdir):
     tmpworkdir.join('foo.txt').write('hello')
     tmpworkdir.join('index.html').write("{{ 'foo.txt'|S }}")
-    config = load_config(None)
-    config.setup('build')
+    config = Config()
+    config.setup()
     build(config)
     assert gettree(tmpworkdir.join('build')) == {'index.html': 'foo.txt', 'foo.txt': 'hello'}
 
@@ -38,8 +38,8 @@ def test_jinja_static_relpath(tmpworkdir):
     tmpworkdir.mkdir('path')
     tmpworkdir.join('path', 'foo.txt').write('hello')
     tmpworkdir.join('path', 'index.html').write("{{ 'foo.txt'|S }}")
-    config = load_config(None)
-    config.setup('build')
+    config = Config()
+    config.setup()
     build(config)
     assert gettree(tmpworkdir.join('build')) == {'path': {'index.html': 'foo.txt', 'foo.txt': 'hello'}}
 
@@ -48,16 +48,16 @@ def test_jinja_static_abs_url(tmpworkdir):
     tmpworkdir.mkdir('path')
     tmpworkdir.join('foo.txt').write('hello')
     tmpworkdir.join('path', 'index.html').write("{{ '/foo.txt'|S }}")
-    config = load_config(None)
-    config.setup('build')
+    config = Config()
+    config.setup()
     build(config)
     assert gettree(tmpworkdir.join('build')) == {'path': {'index.html': '/foo.txt'}, 'foo.txt': 'hello'}
 
 
 def test_jinja_static_missing(tmpworkdir):
     tmpworkdir.join('index.html').write("{{ 'foo.txt'|S }}")
-    config = load_config(None)
-    config.setup('build')
+    config = Config()
+    config.setup()
     with pytest.raises(HarrierProblem):
         build(config)
     assert gettree(tmpworkdir) == {'index.html': "{{ 'foo.txt'|S }}", 'build': {}}
@@ -79,8 +79,8 @@ def test_jinja_static_library(tmpworkdir, library):
         'index.html': "{{ 'lib_file.js'|S('%s') }}" % library
     })
 
-    config = load_config(None)
-    config.setup('build')
+    config = Config()
+    config.setup()
     build(config)
     assert gettree(tmpworkdir.join('build')) == {'index.html': 'lib_file.js', 'lib_file.js': 'lib content'}
 
@@ -88,8 +88,8 @@ def test_jinja_static_library(tmpworkdir, library):
 def test_jinja_static_library_missing(tmpworkdir):
     tmpworkdir.join('index.html').write("{{ 'lib_file.js'|S('libs/lib_file.js') }}")
 
-    config = load_config(None)
-    config.setup('build')
+    config = Config()
+    config.setup()
     with pytest.raises(HarrierProblem):
         build(config)
     assert gettree(tmpworkdir) == {'index.html': "{{ 'lib_file.js'|S('libs/lib_file.js') }}", 'build': {}}
@@ -107,8 +107,8 @@ body
         },
         'harrier.yml': '\nroot: src'
     })
-    config = load_config(None)
-    config.setup('build')
+    config = Config()
+    config.setup()
     build(config)
     assert gettree(tmpworkdir.join('build')) == {
         'foo.html': 'start\n',
@@ -132,8 +132,8 @@ body
         },
         'harrier.yml': '\nroot: src'
     })
-    config = load_config(None)
-    config.setup('build')
+    config = Config()
+    config.setup()
     build(config)
     assert gettree(tmpworkdir.join('build')) == {
         'bar.html': 'lib_file.js\nstart\n\nbody\n',
@@ -152,8 +152,8 @@ I would like some {{ test_var }}.""",
         },
         'harrier.yml': '\nroot: src'
     })
-    config = load_config(None)
-    config.setup('build')
+    config = Config()
+    config.setup()
     build(config)
     assert gettree(tmpworkdir.join('build')) == {
         'foo.html': 'I would like some carrot cake.',

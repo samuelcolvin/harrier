@@ -2,7 +2,7 @@ from unittest.mock import patch
 from subprocess import CompletedProcess
 
 from harrier.build import build
-from harrier.config import load_config
+from harrier.config import Config
 
 from ..conftest import gettree, mktree
 
@@ -18,8 +18,8 @@ root: .
 assets:
   active: True"""
     })
-    config = load_config('harrier.yml')
-    config.setup('build')
+    config = Config('harrier.yml')
+    config.setup()
     build(config)
     assert gettree(tmpworkdir.join('build')) == {
         'test.js': 'var hello = 1;',
@@ -45,8 +45,8 @@ assets:
   url_root: http://www.example.com
   active: True"""
     })
-    config = load_config('harrier.yml')
-    config.setup('build')
+    config = Config('harrier.yml')
+    config.setup()
     build(config)
     assert gettree(tmpworkdir.join('build')) == {
         'test.js': 'var hello = 1;',
@@ -70,8 +70,8 @@ assets:
   file: assets.yaml
   active: True"""
     })
-    config = load_config('harrier.yml')
-    config.setup('build')
+    config = Config('harrier.yml')
+    config.setup()
     build(config)
     assert gettree(tmpworkdir.join('build')) == {
         'test.js': 'var hello = 1;',
@@ -94,8 +94,8 @@ assets:
 
     with patch('harrier.tools.subprocess.run') as mock_run:
         mock_run.return_value = CompletedProcess(args=[], returncode=0, stdout='commit sha1\n')
-        config = load_config('harrier.yml')
-        config.setup('build')
+        config = Config('harrier.yml')
+        config.setup()
         build(config)
 
     assert gettree(tmpworkdir.join('build')) == {
@@ -122,8 +122,8 @@ assets:
     })
     with patch('harrier.tools.subprocess.run') as mock_run:
         mock_run.side_effect = FileNotFoundError('testing')
-        config = load_config('harrier.yml')
-        config.setup('build')
+        config = Config('harrier.yml')
+        config.setup()
         build(config)
     assert gettree(tmpworkdir.join('build')) == {
         'test.js': 'var hello = 1;',
@@ -147,8 +147,8 @@ subdirectory: my_static
 assets:
   active: True"""
     })
-    config = load_config('harrier.yml')
-    config.setup('build')
+    config = Config('harrier.yml')
+    config.setup()
     build(config)
     assert gettree(tmpworkdir.join('build')) == {
         'my_static': {
@@ -173,8 +173,8 @@ assets:
   active: True
   url_root: http://www.foobar.com"""
     })
-    config = load_config('harrier.yml')
-    config.setup('build')
+    config = Config('harrier.yml')
+    config.setup()
     build(config)
     assert gettree(tmpworkdir.join('build')) == {
         'my_static': {
@@ -199,8 +199,8 @@ assets:
   active: True
   url_root: https://www.foobar.com/whatever"""
     })
-    config = load_config('harrier.yml')
-    config.setup('build')
+    config = Config('harrier.yml')
+    config.setup()
     build(config)
     assert gettree(tmpworkdir.join('build')) == {
         'my_static': {

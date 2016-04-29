@@ -214,7 +214,11 @@ class Sass(Tool):
             # sass files starting with underscores are partials and should not be deployed themselves
             return
         try:
-            content_str = sass.compile(filename=str(full_path))
+            content_str = sass.compile(
+                filename=str(full_path),
+                precision=self._config.sass_precision,
+            )
+            print(self._config.sass_precision)
         except sass.CompileError as e:
             error = e.args[0]
             error = error.decode('utf8') if isinstance(error, bytes) else error
@@ -341,16 +345,16 @@ class AssetDefinition(Tool):
         self.to_build = [config.asset_file]
         self.active = True
 
-    def _get_commit(self):
-        args = ['git', 'rev-parse', 'HEAD']
-        unknown = 'unknown'
+    @classmethod
+    def _get_commit(cls):
         try:
-            cp = subprocess.run(args, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+            cp = subprocess.run(['git', 'rev-parse', 'HEAD'], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
         except FileNotFoundError:
-            return unknown
-        if cp.returncode != 0:
-            return unknown
-        return cp.stdout.strip('\n')
+            pass
+        else:
+            if cp.returncode == 0:
+                return cp.stdout.strip('\n')
+        return 'unknown'
 
     def _check_ownership(self, file_path):
         return False
@@ -364,7 +368,8 @@ class AssetDefinition(Tool):
         for f in walk(self._config.target_dir):
             # TODO remove file hashes from key once they're implemented
             file_map[str(f)] = str(root / f)
-        # TODO, find version from previous deploy
+        # TODO, find version from previous deploy, add hash of all files this could be done with
+        # modified source_map since hash doesn't have to be correct on partial builds
         obj = {
             'commit': commit,
             'files': file_map,

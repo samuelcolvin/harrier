@@ -11,14 +11,61 @@ from .common import HarrierProblem, logger
 DEFAULT_CONFIG = Path(__file__).parent / 'harrier.default.yml'
 
 
+# in order if preference:
+DEFAULT_CONFIG_FILES = [
+    'harrier.yml',
+    'harrier.json',
+    'config.yml',
+    'config.json',
+]
+
+
 class Config:
     _already_setup = _base_dir = _target = target_dir = served_direct = None
 
-    def __init__(self, config_dict: dict, config_file: Path):
+    def __init__(self, file_path=None, config_dict: dict=None):
+        if config_dict is None:
+            config_dict, file_path = self._load_file(file_path)
+        self.config_file = file_path or Path('./none)')
         self._orig_config = config_dict
         self._config = self._prepare_config(config_dict)
-        self.config_file = config_file
         self.root = Path(self._config['root'])
+
+    @classmethod
+    def _load_file(cls, config_file):
+        if config_file:
+            config_file = Path(config_file)
+            if config_file.is_file():
+                file_path = config_file
+            else:
+                file_path = cls._find_config_file(config_file)
+        else:
+            file_path = cls._find_config_file()
+
+        # TODO we should probably keep config_file as None
+        config, config_file = {}, None
+        if file_path is None:
+            msg = 'no config file supplied and none found with expected names: {}. Using default settings.'
+            logger.warning(msg.format(', '.join(DEFAULT_CONFIG_FILES)))
+        else:
+            loader, _ = yaml_or_json(str(file_path))
+            with file_path.open() as f:
+                try:
+                    config = loader(f)
+                except (MarkedYAMLError, ValueError) as e:
+                    logger.error('%s: %s', e.__class__.__name__, e)
+                    raise HarrierProblem('error loading "{}"'.format(file_path)) from e
+            config_file = file_path.relative_to('.')
+        return config, config_file
+
+    @classmethod
+    def _find_config_file(cls, path=Path('.')):
+        logger.debug('looking for config file with default name in "%s"', path.relative_to('.'))
+        for default_file in DEFAULT_CONFIG_FILES:
+            for fn in path.iterdir():
+                if fn.name == default_file:
+                    logger.info('Found default config file {}'.format(fn.name))
+                    return fn
 
     def _prepare_config(self, config):
         with DEFAULT_CONFIG.open() as f:
@@ -39,7 +86,7 @@ class Config:
                 d_new[k] = v
         return d_new
 
-    def setup(self, target_name, served_direct=False, base_dir=None):
+    def setup(self, target_name='build', served_direct=False, base_dir=None):
         if self._already_setup:
             return
         self.root = self._find_root_dir(base_dir)
@@ -141,6 +188,10 @@ class Config:
         return self._get_setting('jinja', 'patterns') + self._get_setting('jinja', 'extra_patterns')
 
     @property
+    def sass_precision(self):
+        return int(self._get_setting('sass', 'precision'))
+
+    @property
     def execute_commands(self):
         return self._listify(self._get_setting('execute', 'commands'))
 
@@ -222,24 +273,6 @@ class Config:
         return list(v or [])
 
 
-# in order if preference:
-DEFAULT_CONFIG_FILES = [
-    'harrier.yml',
-    'harrier.json',
-    'config.yml',
-    'config.json',
-]
-
-
-def find_config_file(path=Path('.')):
-    logger.debug('looking for config file with default name in "%s"', path.relative_to('.'))
-    for default_file in DEFAULT_CONFIG_FILES:
-        for fn in path.iterdir():
-            if fn.name == default_file:
-                logger.info('Found default config file {}'.format(fn.name))
-                return fn
-
-
 def pretty_yaml_dump(obj):
     return yaml.dump(obj, default_flow_style=False)
 
@@ -258,30 +291,3 @@ def yaml_or_json(file_path):
     else:
         msg = 'Unexpected extension for "{}", should be json or yml/yaml'
         raise HarrierProblem(msg.format(file_path))
-
-
-def load_config(config_file=None) -> Config:
-    if config_file:
-        config_file = Path(config_file)
-        if config_file.is_file():
-            file_path = config_file
-        else:
-            file_path = find_config_file(config_file)
-    else:
-        file_path = find_config_file()
-
-    if file_path is None:
-        msg = 'no config file supplied and none found with expected names: {}. Using default settings.'
-        logger.warning(msg.format(', '.join(DEFAULT_CONFIG_FILES)))
-        config = {}
-        config_file = Path('./None')
-    else:
-        loader, _ = yaml_or_json(str(file_path))
-        with file_path.open() as f:
-            try:
-                config = loader(f)
-            except (MarkedYAMLError, ValueError) as e:
-                logger.error('%s: %s', e.__class__.__name__, e)
-                raise HarrierProblem('error loading "{}"'.format(file_path)) from e
-        config_file = file_path.relative_to('.')
-    return Config(config, config_file)

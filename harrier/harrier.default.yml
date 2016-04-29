@@ -21,6 +21,7 @@ jinja:
 sass:
   active: Yes
   tool_path: harrier.tools.Sass
+  precision: 8
 copy:
   active: Yes
   tool_path: harrier.tools.Copy

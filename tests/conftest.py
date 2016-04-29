@@ -5,7 +5,7 @@ from copy import deepcopy
 import pytest
 from py._path.local import LocalPath
 
-from harrier.config import load_config
+from harrier.config import Config
 from harrier.common import logger
 
 
@@ -26,8 +26,8 @@ def tmpworkdir(tmpdir):
 def simpleharrier(tmpworkdir):
     js = tmpworkdir.join('test.js')
     js.write('var hello = 1;')
-    _config = load_config()
-    _config.setup('build')
+    _config = Config()
+    _config.setup()
 
     class Tmp:
         tmpdir = tmpworkdir

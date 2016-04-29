@@ -3,7 +3,7 @@ from time import sleep
 import pytest
 
 from harrier.build import Builder
-from harrier.config import load_config
+from harrier.config import Config
 
 from ..conftest import gettree, mktree, mtime
 
@@ -21,8 +21,8 @@ def simple_setup(tmpworkdir):
 
 
 def test_simple_full_rebuild(simple_setup):
-    config = load_config()
-    config.setup('build')
+    config = Config()
+    config.setup()
     builder = Builder(config)
     assert str(builder.build()) == '4 tools of which 1 run, 2 files built'
     assert gettree(simple_setup.join('build')) == {'bar.txt': 'c_bar', 'foo.txt': 'c_foo'}
@@ -37,8 +37,8 @@ def test_rebuild_dot(tmpworkdir):
         'foo.txt': 'c_foo',
         'bar.txt': 'c_bar',
     })
-    config = load_config()
-    config.setup('build')
+    config = Config()
+    config.setup()
     builder = Builder(config)
     assert builder.build().status == {'tools': 4, 'tools_run': 1, 'files_built': 2}
     assert gettree(tmpworkdir.join('build')) == {'bar.txt': 'c_bar', 'foo.txt': 'c_foo'}
@@ -48,8 +48,8 @@ def test_rebuild_dot(tmpworkdir):
 
 
 def test_simple_no_change_partial(simple_setup):
-    config = load_config()
-    config.setup('build')
+    config = Config()
+    config.setup()
     builder = Builder(config)
 
     assert builder.build(partial=True).status == {'tools': 4, 'tools_run': 1, 'files_built': 2}
@@ -60,8 +60,8 @@ def test_simple_no_change_partial(simple_setup):
 
 
 def test_simple_change_partial(simple_setup):
-    config = load_config()
-    config.setup('build')
+    config = Config()
+    config.setup()
     builder = Builder(config)
     assert builder.build(partial=True).status == {'tools': 4, 'tools_run': 1, 'files_built': 2}
     assert gettree(simple_setup.join('build')) == {'bar.txt': 'c_bar', 'foo.txt': 'c_foo'}
@@ -81,8 +81,8 @@ def test_change_sensitive_jinja_other_change(tmpworkdir):
         },
         'harrier.yml': '\nroot: src'
     })
-    config = load_config()
-    config.setup('build')
+    config = Config()
+    config.setup()
     builder = Builder(config)
     assert builder.build(partial=True).status == {'tools': 4, 'tools_run': 2, 'files_built': 3}
     assert gettree(tmpworkdir.join('build')) == {'foo.txt': 'c_foo', 'bar.html': 'c_bar', 'spam.html': '47'}
@@ -102,8 +102,8 @@ def test_change_sensitive_jinja_change(tmpworkdir):
         },
         'harrier.yml': '\nroot: src'
     })
-    config = load_config()
-    config.setup('build')
+    config = Config()
+    config.setup()
     builder = Builder(config)
     assert builder.build(partial=True).status == {'tools': 4, 'tools_run': 2, 'files_built': 3}
     assert gettree(tmpworkdir.join('build')) == {'foo.txt': 'c_foo', 'bar.html': 'c_bar', 'spam.html': '47'}
@@ -127,8 +127,8 @@ def test_change_sensitive_jinja_change(tmpworkdir):
 
 
 def test_add_file(simple_setup):
-    config = load_config()
-    config.setup('build')
+    config = Config()
+    config.setup()
     builder = Builder(config)
     assert builder.build(partial=True).status == {'tools': 4, 'tools_run': 1, 'files_built': 2}
     assert gettree(simple_setup.join('build')) == {'bar.txt': 'c_bar', 'foo.txt': 'c_foo'}
@@ -140,8 +140,8 @@ def test_add_file(simple_setup):
 
 
 def test_delete_file(simple_setup):
-    config = load_config()
-    config.setup('build')
+    config = Config()
+    config.setup()
     builder = Builder(config)
     assert builder.build(partial=True).status == {'tools': 4, 'tools_run': 1, 'files_built': 2}
     assert gettree(simple_setup.join('build')) == {'bar.txt': 'c_bar', 'foo.txt': 'c_foo'}
@@ -161,8 +161,8 @@ def test_delete_jinja(tmpworkdir):
         },
         'harrier.yml': '\nroot: src'
     })
-    config = load_config()
-    config.setup('build')
+    config = Config()
+    config.setup()
     builder = Builder(config)
     assert builder.build(partial=True).status == {'tools': 4, 'tools_run': 2, 'files_built': 3}
     assert gettree(tmpworkdir.join('build')) == {'foo.txt': 'c_foo', 'bar.html': 'c_bar', 'spam.html': '47'}

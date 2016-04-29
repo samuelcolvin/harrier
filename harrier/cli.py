@@ -4,7 +4,7 @@ import logging
 
 from harrier import VERSION
 from .build import build
-from .config import load_config
+from .config import Config
 from .common import logger, HarrierProblem
 from .watch import watch
 
@@ -62,7 +62,7 @@ def cli(action, config_file, target, dev_addr, verbose):
     is_served = action == 'serve'
     setup_logging(verbose, times=is_live)
     try:
-        config = load_config(config_file)
+        config = Config(config_file)
         target = target or action
         config.setup(target, served_direct=is_served)
         if action == 'serve':
