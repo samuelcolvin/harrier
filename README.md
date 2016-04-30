@@ -22,11 +22,13 @@ Partly because I'm much happier with everything that doesn't have to be javascri
 
 ## Install
 
-    pip install -e git+git@github.com:samuelcolvin/harrier.git#egg=harrier
+    pip install harrier
 
 ## Usage
 
     harrier --help
+
+<!-- end description -->
 
 ## TODO
 

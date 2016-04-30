@@ -1,7 +1,16 @@
+import sys
 from setuptools import setup
 from harrier import VERSION
 
 description = 'Jinja2 & sass/scss aware site builder'
+long_description = description
+
+if 'sdist' in sys.argv:
+    import pypandoc
+    with open('README.md', 'r') as f:
+        text = f.read()
+    text = text[:text.find('<!-- end description -->')].strip('\n ')
+    long_description = pypandoc.convert(text, 'rst', format='md')
 
 
 def check_livereload_js():
@@ -31,7 +40,7 @@ setup(
     name='harrier',
     version=str(VERSION),
     description=description,
-    long_description=description,
+    long_description=long_description,
     classifiers=[
         'Environment :: Console',
         'Environment :: Web Environment',
@@ -48,7 +57,7 @@ setup(
     license='MIT',
     packages=['harrier'],
     zip_safe=True,
-    include_package_data=True,
+    package_data={'harrier': ['harrier.default.yml', 'livereload.js']},
     entry_points="""
         [console_scripts]
         harrier=harrier.cli:cli

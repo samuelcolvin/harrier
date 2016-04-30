@@ -11,5 +11,7 @@ try.py
 harrier.yml
 .serve/
 /build/
+harrier.egg-info
+/dist/
 /htmlcov/
 /harrier/livereload.js
