@@ -29,34 +29,30 @@ def test_serve_run(port):
     assert mock_run_app.called
 
 
-def test_subprocess_simple_echo(capsys):
+def test_subprocess_simple_echo(logcap):
     spc = SubprocessController('echo hello')
     time.sleep(0.01)
     assert spc.check() is None
-    _, stderr = capsys.readouterr()
-    assert stderr == 'subprocess "echo hello" exited\n'
-    # should do nothing
+    assert logcap.log == 'subprocess "echo hello" exited\n'
+    # should do nothing:
     spc.terminate()
 
 
-def test_subprocess_non_zero_exit(capsys):
+def test_subprocess_non_zero_exit(logcap):
     spc = SubprocessController('cat foobar')
     time.sleep(0.01)
     assert spc.check() is None
-    _, stderr = capsys.readouterr()
-    assert stderr == 'subprocess "cat foobar" exited with errors (1)\n'
+    assert logcap.log == 'subprocess "cat foobar" exited with errors (1)\n'
 
 
-def test_subprocess_sleep(capsys):
+def test_subprocess_sleep(logcap):
     spc = SubprocessController('sleep 2')
     assert spc.check() is True
-    _, stderr = capsys.readouterr()
-    assert stderr == ''
+    assert logcap.log == ''
     spc.terminate()
     time.sleep(0.01)
     assert spc.check() is None
-    _, stderr = capsys.readouterr()
-    assert stderr == 'subprocess "sleep 2" exited with errors (-15)\n'
+    assert logcap.log == 'subprocess "sleep 2" exited with errors (-15)\n'
 
 
 def test_subprocess_group_good():
@@ -64,12 +60,11 @@ def test_subprocess_group_good():
     assert spgc.check() is True
 
 
-def test_subprocess_group_bad(capsys):
+def test_subprocess_group_bad(logcap):
     spgc = SubprocessGroupController(['cat foobar'])
     time.sleep(0.01)
     assert spgc.check() is False
-    _, stderr = capsys.readouterr()
-    assert stderr == 'subprocess "cat foobar" exited with errors (1)\n'
+    assert logcap.log == 'subprocess "cat foobar" exited with errors (1)\n'
 
 
 class MockHarrierEventHandler(HarrierEventHandler):

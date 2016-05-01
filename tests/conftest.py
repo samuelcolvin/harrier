@@ -1,4 +1,5 @@
 import os
+import io
 import logging
 from copy import deepcopy
 
@@ -44,6 +45,38 @@ def debug_logger():
     yield
 
     logger.removeHandler(handler)
+
+
+class StreamLog:
+    def __init__(self):
+        self.stream = io.StringIO()
+        self.handler = logging.StreamHandler(stream=self.stream)
+        logger.addHandler(self.handler)
+        logger.setLevel(logging.WARNING)
+
+    def set_level(self, level):
+        logger.setLevel(level)
+
+    @property
+    def log(self):
+        self.stream.seek(0)
+        return self.stream.read()
+
+    def finish(self):
+        logger.removeHandler(self.handler)
+
+
+@pytest.yield_fixture
+def logcap():
+    stream = io.StringIO("some initial text data")
+    handler = logging.StreamHandler(stream=stream)
+    logger.addHandler(handler)
+    logger.setLevel(logging.DEBUG)
+    stream_log = StreamLog()
+
+    yield stream_log
+
+    stream_log.finish()
 
 
 def gettree(lp:  LocalPath):
