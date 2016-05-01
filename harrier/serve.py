@@ -78,8 +78,8 @@ def create_app(serve_root, subdirectory, asset_file, loop=None):
     assert_path = asset_file and serve_root / asset_file
     serve_root = str(serve_root) + '/'
     app.router.register_route(HarrierStaticRoute('static-router', subdirectory, serve_root, assert_path=assert_path))
-    # if prefix != '/':
-    #     app.router.add_route('*', '/{path:.*}', OutsideSubdirectory(prefix, assert_path))
+    if subdirectory != '/':
+        app.router.add_route('*', '/{path:.*}', OutsideSubdirectory(subdirectory, assert_path))
     return app
 
 

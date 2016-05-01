@@ -41,6 +41,31 @@ async def test_prefix_file(tmpworkdir, loop, server):
     client.close()
 
 
+async def test_404(tmpworkdir, loop, server):
+    app, url = await server('/this_is_prefix/')
+    client = Client(loop, url=url)
+
+    mktree(tmpworkdir, {
+        'foo': 'X',
+    })
+    r = await client.get('/this_is_prefix/foo')
+    assert r.status == 200
+    content = await r.read()
+    assert content == b'X'
+
+    r = await client.get('/this_is_prefix/foobar')
+    assert r.status == 404
+    content = await r.read()
+    assert content == b'404: Not Found\n\n'
+
+    r = await client.get('/foobar')
+    assert r.status == 404
+    content = await r.read()
+    assert content == b'404: Not Found (files are being served from the subdirectory "/this_is_prefix/" only)\n\n'
+
+    client.close()
+
+
 async def test_livereload(client):
     r = await client.get('/livereload.js')
     assert r.status == 200
