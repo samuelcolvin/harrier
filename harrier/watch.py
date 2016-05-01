@@ -20,6 +20,7 @@ JB_BACKUP_FILE = '*___jb_???___'
 class HarrierEventHandler(PatternMatchingEventHandler):
     patterns = ['*.*']
     ignore_directories = True
+    wait_delay = 1
 
     ignore_patterns = [
         '*/.git/*',
@@ -71,13 +72,13 @@ class HarrierEventHandler(PatternMatchingEventHandler):
 
     def wait(self, extra_checks):
         while True:
-            time.sleep(1)
+            time.sleep(self.wait_delay)
             self.check_build()
             if not extra_checks():
                 return
 
 
-class Subprocess:
+class SubprocessController:
     def __init__(self, command):
         self._cmd = command
         logger.info('starting subprocess "%s"', command)
@@ -98,9 +99,9 @@ class Subprocess:
             logger.error('subprocess "%s" exited with errors (%r)', self._cmd, self.p.returncode)
 
 
-class SubprocessController:
-    def __init__(self, config):
-        self.subprocesses = [Subprocess(c) for c in config.subprocesses]
+class SubprocessGroupController:
+    def __init__(self, subprocess_list):
+        self.subprocesses = [SubprocessController(c) for c in subprocess_list]
 
     def check(self):
         return all(s.check() for s in self.subprocesses)
@@ -120,7 +121,7 @@ def watch(config: Config):
                                                  config.asset_file))
     server_process.start()
 
-    sp_ctrl = SubprocessController(config)
+    sp_ctrl = SubprocessGroupController(config.subprocesses)
 
     observer.schedule(event_handler, str(config.root), recursive=True)
     observer.start()
