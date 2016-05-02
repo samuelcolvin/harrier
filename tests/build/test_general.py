@@ -108,6 +108,52 @@ execute:
     }
 
 
+def test_execute_not_found(tmpworkdir):
+    tmpworkdir.mkdir('lib').join('test.js').write('XX')
+    tmpworkdir.join('harrier.yml').write("""\
+execute:
+  commands: ['cp missing.js foobar.js']
+  patterns:
+    - ./lib/*.js""")
+    config = Config()
+    config.setup()
+    with pytest.raises(HarrierProblem) as excinfo:
+        build(config)
+    assert excinfo.value.args[0] == 'command "cp missing.js foobar.js" returned non-zero exit status 1'
+
+
+def test_execute_bad_command(tmpworkdir, logcap):
+    tmpworkdir.mkdir('lib').join('test.js').write('XX')
+    tmpworkdir.join('harrier.yml').write("""\
+execute:
+  commands: ['foobar']
+  patterns:
+    - ./lib/*.js""")
+    config = Config()
+    config.setup()
+    with pytest.raises(HarrierProblem) as excinfo:
+        build(config)
+    assert excinfo.value.args[0] == 'problem executing "foobar"'
+    assert logcap.log == "FileNotFoundError: [Errno 2] No such file or directory: 'foobar'\n"
+
+
+def test_execute_generate_missing(tmpworkdir):
+    tmpworkdir.mkdir('lib').join('test.js').write('XX')
+    tmpworkdir.join('harrier.yml').write("""\
+execute:
+  commands:
+    -
+      command: 'cp lib/test.js foobar.js'
+      generates: ['missing.js']
+  patterns:
+    - ./lib/*.js""")
+    config = Config()
+    config.setup()
+    with pytest.raises(HarrierProblem) as excinfo:
+        build(config)
+    assert excinfo.value.args[0] == 'command "cp lib/test.js foobar.js" failed to generate missing.js'
+
+
 def test_subdirectory(tmpworkdir):
     tmpworkdir.join('test.js').write('X')
     tmpworkdir.join('harrier.yml').write("""\

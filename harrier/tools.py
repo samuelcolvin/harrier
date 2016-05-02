@@ -218,10 +218,10 @@ class Sass(Tool):
                 filename=str(full_path),
                 precision=self._config.sass_precision,
             )
-            print(self._config.sass_precision)
         except sass.CompileError as e:
             error = e.args[0]
             error = error.decode('utf8') if isinstance(error, bytes) else error
+            error = error.strip('\n ')
             logger.error(error)
             raise HarrierProblem('Error compiling SASS') from e
         # TODO cope with maps etc.
@@ -353,7 +353,7 @@ class AssetDefinition(Tool):
             pass
         else:
             if cp.returncode == 0:
-                return cp.stdout.strip('\n')
+                return cp.stdout.decode('utf8').strip('\n')
         return 'unknown'
 
     def _check_ownership(self, file_path):

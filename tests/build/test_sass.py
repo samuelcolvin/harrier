@@ -1,4 +1,8 @@
+import logging
+
+import pytest
 from harrier.build import build
+from harrier.common import HarrierProblem
 from harrier.config import Config
 
 from tests.conftest import gettree, mktree
@@ -60,3 +64,18 @@ def test_sass_precision_5(tmpworkdir):
     assert gettree(tmpworkdir.join('build')) == {
         'styles.css': 'a {\n  width: 16.66667 px; }\n'
     }
+
+
+def test_build_scss_bad(tmpworkdir, logcap):
+    logcap.set_level(logging.ERROR)
+    mktree(tmpworkdir, {'styles.scss': 'x = 42'})
+    config = Config()
+    config.setup()
+    with pytest.raises(HarrierProblem) as excinfo:
+        build(config)
+    assert excinfo.value.args[0] == 'Error compiling SASS'
+    assert logcap.log == """Error: Invalid CSS after "x": expected "{", was "= 42"
+        on line 1 of styles.scss
+>> x = 42
+   -^
+"""

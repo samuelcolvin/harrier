@@ -93,7 +93,7 @@ assets:
     })
 
     with patch('harrier.tools.subprocess.run') as mock_run:
-        mock_run.return_value = CompletedProcess(args=[], returncode=0, stdout='commit sha1\n')
+        mock_run.return_value = CompletedProcess(args=[], returncode=0, stdout=b'commit sha1\n')
         config = Config('harrier.yml')
         config.setup()
         build(config)
