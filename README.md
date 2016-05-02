@@ -4,7 +4,7 @@ harrier
 [![Build Status](https://travis-ci.org/samuelcolvin/harrier.svg?branch=master)](https://travis-ci.org/samuelcolvin/harrier)
 [![codecov.io](https://codecov.io/github/samuelcolvin/harrier/coverage.svg?branch=master)](https://codecov.io/github/samuelcolvin/harrier?branch=master)
 
-**(Named after the hound, not the plane.)**
+**(Named after the hound, not the plane)**
 
 Jinja2 & sass/scss aware site builder
 

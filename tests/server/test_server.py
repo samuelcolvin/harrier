@@ -1,8 +1,12 @@
+import logging
 import json
 
 import aiohttp
 
+from harrier.serve import WS, DevServerEventEventHandler
+
 from tests.conftest import mktree
+from watchdog.events import FileSystemEvent
 from .conftest import Client
 
 
@@ -64,6 +68,26 @@ async def test_404(tmpworkdir, loop, server):
     assert content == b'404: Not Found (files are being served from the subdirectory "/this_is_prefix/" only)\n\n'
 
     client.close()
+
+
+async def test_304(tmpworkdir, client, logcap):
+    logcap.set_logger('dev_server', logging.INFO)
+    mktree(tmpworkdir, {
+        'foo': 'X',
+    })
+    r = await client.get('/foo', headers={'IF-MODIFIED-SINCE': 'Mon, 03 Jan 2050 00:00:00 UTC'})
+    assert r.status == 304
+    content = await r.read()
+    assert content == b''
+    assert logcap.log == ' > GET /foo 304 0B\n'
+
+
+async def test_405(tmpworkdir, client, logcap):
+    logcap.set_logger('dev_server', logging.INFO)
+    r = await client.post('/foo')
+    assert r.status == 405
+    content = await r.read()
+    assert content == b'405: Method Not Allowed'
 
 
 async def test_livereload(client):
@@ -129,3 +153,33 @@ async def test_websocket_bad_json(client, capsys):
         ws.send_str('foo')
     stdout, _ = capsys.readouterr()
     assert 'JSON decode error' in stdout
+
+
+class MockWS:
+    def __init__(self):
+        self.sent_strs = []
+
+    def send_str(self, s):
+        self.sent_strs.append(s)
+
+
+def test_event_handler_one_client(logcap):
+    logcap.set_logger('dev_server', logging.INFO)
+    app = {WS: [MockWS()]}
+    hdl = DevServerEventEventHandler(app, 'foobar')
+    event = FileSystemEvent('foobar/whatever.js')
+    hdl.on_any_event(event)
+    ws = app[WS][0]
+    assert len(ws.sent_strs) == 1
+    data = json.loads(ws.sent_strs[0])
+    assert data == {'liveCSS': True, 'path': 'whatever.js', 'command': 'reload', 'liveImg': True}
+    assert logcap.log == 'prompting reload of whatever.js on 1 client\n'
+
+
+def test_event_handler_two_clients(logcap):
+    logcap.set_logger('dev_server', logging.INFO)
+    app = {WS: [MockWS(), MockWS()]}
+    hdl = DevServerEventEventHandler(app, 'foobar')
+    event = FileSystemEvent('foobar/whatever.js')
+    hdl.on_any_event(event)
+    assert logcap.log == 'prompting reload of whatever.js on 2 clients\n'

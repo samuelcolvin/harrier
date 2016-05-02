@@ -98,14 +98,7 @@ class Config:
 
     def _set_target(self, name):
         target = self._config['target']
-        self._target = target.get(name)
-        if self._target is None:
-            for k, v in target.items():
-                if v.get(name) is True:
-                    self._target = v
-                    name = k
-                    break
-        self._target = self._target or {}
+        self._target = target.get(name) or {}
         self._target['name'] = name
 
         default_paths = {

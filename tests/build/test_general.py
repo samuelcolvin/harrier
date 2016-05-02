@@ -125,3 +125,31 @@ subdirectory: /apples""")
     config = Config('harrier.yml')
     with pytest.raises(HarrierProblem):
         config.setup()
+
+
+def test_bad_yaml(tmpworkdir, logcap):
+    tmpworkdir.join('harrier.yml').write("""\
+root:
+[]""")
+    with pytest.raises(HarrierProblem) as excinfo:
+        Config('harrier.yml')
+    assert excinfo.value.args[0] == 'error loading "harrier.yml"'
+    assert 'ScannerError: while scanning a simple key' in logcap.log
+
+
+def test_bad_config_extension(tmpworkdir):
+    tmpworkdir.join('harrier.docx').write('foobar')
+    with pytest.raises(HarrierProblem) as excinfo:
+        Config('harrier.docx')
+    assert excinfo.value.args[0] == 'Unexpected extension for "harrier.docx", should be json or yml/yaml'
+
+
+def test_bad_config_base_dir(tmpworkdir):
+    tmpworkdir.join('harrier.yml').write('root: whatever')
+    config = Config()
+    with pytest.raises(HarrierProblem) as excinfo:
+        config.setup()
+    assert excinfo.value.args[0] == 'config root "whatever" does not exist relative to config file directory "."'
+    with pytest.raises(HarrierProblem) as excinfo:
+        config.setup(base_dir='basedir')
+    assert excinfo.value.args[0] == 'config root "whatever" does not exist relative to directory "basedir"'

@@ -49,13 +49,20 @@ def debug_logger():
 
 class StreamLog:
     def __init__(self):
+        self.logger = self.stream = self.handler = None
+        self.set_logger()
+
+    def set_logger(self, log_name='harrier', level=logging.WARNING):
+        if self.logger is not None:
+            self.finish()
+        self.logger = logging.getLogger(log_name)
         self.stream = io.StringIO()
         self.handler = logging.StreamHandler(stream=self.stream)
-        logger.addHandler(self.handler)
-        logger.setLevel(logging.WARNING)
+        self.logger.addHandler(self.handler)
+        self.set_level(level)
 
     def set_level(self, level):
-        logger.setLevel(level)
+        self.logger.setLevel(level)
 
     @property
     def log(self):
