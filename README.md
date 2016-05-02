@@ -24,6 +24,8 @@ Partly because I'm much happier with everything that doesn't have to be javascri
 
     pip install harrier
 
+(see [pypi](https://pypi.python.org/pypi/harrier) package page)
+
 ## Usage
 
     harrier --help

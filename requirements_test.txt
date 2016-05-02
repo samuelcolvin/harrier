@@ -1,6 +1,7 @@
-codecov==1.6.3
+codecov
 coverage==4.1b2
-flake8==2.5.1
-pep8==1.7.0
-pytest==2.8.5
-pytest-cov==2.2.0
+flake8
+pep8
+pytest
+pytest-cov
+pytest-sugar

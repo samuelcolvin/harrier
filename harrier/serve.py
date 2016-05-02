@@ -6,7 +6,7 @@ from pathlib import Path
 
 import click
 import aiohttp
-from aiohttp.web_exceptions import HTTPNotModified, HTTPClientError, HTTPNotFound
+from aiohttp.web_exceptions import HTTPNotModified, HTTPNotFound
 from aiohttp import web
 from aiohttp.web_urldispatcher import StaticRoute
 from watchdog.observers import Observer
@@ -160,7 +160,6 @@ async def websocket_handler(request):
 
 
 class HarrierStaticRoute(StaticRoute):
-
     def __init__(self, *args, **kwargs):
         self._asset_path = kwargs.pop('assert_path', None)
         super().__init__(*args, **kwargs)
@@ -169,7 +168,7 @@ class HarrierStaticRoute(StaticRoute):
         filename = request.match_info['filename']
         try:
             filepath = self._directory.joinpath(filename).resolve()
-        except (ValueError, FileNotFoundError):
+        except (ValueError, FileNotFoundError, OSError):
             pass
         else:
             if filepath.is_dir():
@@ -184,9 +183,6 @@ class HarrierStaticRoute(StaticRoute):
             _404_msg = '404: Not Found\n\n' + _get_asset_content(self._asset_path)
             response = web.Response(body=_404_msg.encode('utf8'), status=404)
             status, length = response.status, response.content_length
-        except HTTPClientError as e:
-            status = e.status
-            raise
         else:
             status, length = response.status, response.content_length
         finally:
@@ -220,4 +216,4 @@ def _fmt_size(num):
     if num < 1024:
         return '{:0.0f}B'.format(num)
     else:
-        return "{:0.0f}KB".format(num / 1024)
+        return "{:0.1f}KB".format(num / 1024)

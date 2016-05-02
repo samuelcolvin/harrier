@@ -171,7 +171,8 @@ class Execute(Tool):
             logger.debug('"%s" -> "%s" ✓', command, cp.stdout.decode('utf8'))
         return
         # noinspection PyUnreachableCode
-        yield  # we want an empty generator
+        # we want an empty generator
+        yield  # pragma: no cover
 
     def cleanup(self):
         if not self.active or not self._config.execute_cleanup:

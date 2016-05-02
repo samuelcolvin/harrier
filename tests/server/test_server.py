@@ -1,12 +1,14 @@
 import logging
 import json
+from pathlib import Path
 
+import pytest
 import aiohttp
+from watchdog.events import FileSystemEvent
 
-from harrier.serve import WS, DevServerEventEventHandler
+from harrier.serve import WS, DevServerEventEventHandler, _get_asset_content, _fmt_size
 
 from tests.conftest import mktree
-from watchdog.events import FileSystemEvent
 from .conftest import Client
 
 
@@ -80,14 +82,6 @@ async def test_304(tmpworkdir, client, logcap):
     content = await r.read()
     assert content == b''
     assert logcap.log == ' > GET /foo 304 0B\n'
-
-
-async def test_405(tmpworkdir, client, logcap):
-    logcap.set_logger('dev_server', logging.INFO)
-    r = await client.post('/foo')
-    assert r.status == 405
-    content = await r.read()
-    assert content == b'405: Method Not Allowed'
 
 
 async def test_livereload(client):
@@ -183,3 +177,23 @@ def test_event_handler_two_clients(logcap):
     event = FileSystemEvent('foobar/whatever.js')
     hdl.on_any_event(event)
     assert logcap.log == 'prompting reload of whatever.js on 2 clients\n'
+
+
+@pytest.mark.parametrize('v,result', [
+    (None, ''),
+    (Path('assets.json'), 'Asset file contents:\n\n{"x.js": "wherever/x.js"}'),
+], ids=['None', 'assets.json'])
+def test_get_asset_content(v, result, tmpworkdir):
+    mktree(tmpworkdir, {
+        'assets.json': '{"x.js": "wherever/x.js"}',
+    })
+    assert _get_asset_content(v) == result
+
+
+@pytest.mark.parametrize('v,result', [
+    ('', ''),
+    (123, '123B'),
+    (1230, '1.2KB'),
+])
+def test_fmt_size(v, result):
+    assert _fmt_size(v) == result
