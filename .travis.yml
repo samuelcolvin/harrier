@@ -2,10 +2,17 @@ language: python
 
 cache: pip
 
+addons:
+  apt:
+    packages:
+      - libyaml-dev
+
 python:
   - "3.5"
 
 install:
+  - pip install --upgrade pip
+  - pip install libsass pyyaml  # much faster installed wih pip
   - python setup.py install
   - pip install -r requirements_test.txt
 
