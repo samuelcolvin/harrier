@@ -46,8 +46,9 @@ setup(
     install_requires=[
         'Jinja2>=2.8',
         'PyYAML>=3.11',
+        'aiohttp-devtools>=0.9',
         'click>=6.2',
         'libsass>=0.10.1',
-        'aiohttp-devtools>=0.9',
+        'pydantic>=0.8',
     ]
 )

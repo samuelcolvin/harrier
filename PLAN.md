@@ -2,9 +2,12 @@
 
 https://gist.github.com/samuelcolvin/814f6609bdacb2cd8c80d3494fc67802
 
+* read config
 * read extensions
+* apply extensions to config
 * read `site` directory
 * apply defaults from config to each page
+* build SOM
 * apply modifiers to each page context
 * generate "synthetic pages"
 * apply SOM modifiers
