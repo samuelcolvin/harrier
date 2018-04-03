@@ -3,5 +3,5 @@ import logging
 logger = logging.getLogger('harrier')
 
 
-class HarrierProblem(Exception):
+class HarrierProblem(RuntimeError):
     pass

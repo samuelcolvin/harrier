@@ -1,12 +1,10 @@
-import click
-import re
 import logging
+import re
 
-from harrier import VERSION
-from .build import build
-from .config import Config
-from .common import logger, HarrierProblem
-from .watch import watch
+import click
+
+from .common import HarrierProblem, logger
+from .version import VERSION
 
 config_help = 'Provide a specific harrier config yml file path.'
 dev_address_help = 'IP address and port to serve documentation locally (default: localhost:8000).'
@@ -59,17 +57,11 @@ def cli(action, config_file, target, dev_addr, verbose):
     harrier - Jinja2 & sass/scss aware site builder
     """
     is_live = action == 'serve'  # TODO add watch
-    is_served = action == 'serve'
+    # is_served = action == 'serve'
     setup_logging(verbose, times=is_live)
     try:
-        config = Config(config_file)
-        target = target or action
-        config.setup(target, served_direct=is_served)
-        if action == 'serve':
-            watch(config)
-        else:
-            assert action == 'build'
-            build(config)
+        pass
+        # TODO
     except HarrierProblem as e:
         msg = 'Error: {}'
         if not verbose:

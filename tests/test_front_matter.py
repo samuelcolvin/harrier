@@ -1,6 +1,7 @@
 import pytest
-from harrier.tools import parse_front_matter
 from yaml.scanner import MarkedYAMLError
+
+from harrier.tools import parse_front_matter
 
 
 def test_simple_front_matter():
