@@ -49,14 +49,19 @@ def render(som: dict):
                     yield v
             else:
                 yield from page_gen(v)
+    dist_dir: Path = som['dist_dir']
+    if dist_dir.exists():
+        shutil.rmtree(dist_dir)
 
     env: Environment = som.pop('jinja_env')
     for p in page_gen(som['pages']):
-        outfile: Path = p['outfile']
+        outfile: Path = p['outfile'].resolve()
+        # this will raise an exception if somehow outfile is outside dis_dir
+        outfile.relative_to(dist_dir)
         outfile.parent.mkdir(exist_ok=True, parents=True)
         if 'template' in p:
             template = env.get_template(p['template'])
-            rendered = template.render(**p, site=som)
+            rendered = template.render(page=p, site=som)
             outfile.write_text(rendered)
         else:
             shutil.copy(p['infile'], outfile)

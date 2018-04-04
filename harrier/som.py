@@ -11,6 +11,7 @@ from .common import Config, HarrierProblem
 FRONT_MATTER_REGEX = re.compile(r'^---[ \t]*(.*)\n---[ \t]*\n', re.S)
 # extensions where we want to do anything except just copy the file to the output dir
 OUTPUT_HTML = {'.html', '.md'}
+MAYBE_RENDER = {'.xml'}
 URI_NOT_ALLOWED = re.compile(r'[^a-zA-Z0-9_\-/.]')
 DATE_REGEX = re.compile(r'(\d{4})-(\d{2})-(\d{2})-?(.*)')
 URI_IS_TEMPLATE = re.compile('[{}]')
@@ -42,22 +43,28 @@ def build_som(config: Config):
                     name = new_name or name
                 else:
                     created = p.stat().st_mtime
-                data.update(title=name, slug=slugify(name), created=created)
+                data.update(
+                    title=name,
+                    slug='' if p.name in {'index.html', 'index.md'} else slugify(name),
+                    created=created
+                )
 
                 data.update(all_defaults)
                 for regex, defaults in path_defaults:
                     if regex.match(str(p)):
                         data.update(defaults)
 
-                if html_output:
+                maybe_render = p.suffix in MAYBE_RENDER
+                if html_output or maybe_render:
                     fm_data, content = parse_front_matter(p.read_text())
-                    data['content'] = content
-                    if fm_data:
-                        # removing site avoids error when rendering template
-                        fm_data.pop('site', None)
-                        data.update(fm_data)
+                    if not html_output and not fm_data:
+                        # don't render this file, just copy it across
+                        data.pop('template')
+                    else:
+                        data['content'] = content
+                        fm_data and data.update(fm_data)
                 else:
-                    data.pop('template', None)
+                    data.pop('template')
 
                 uri = data.get('uri')
                 if not uri:
@@ -72,7 +79,7 @@ def build_som(config: Config):
                     outfile = config.dist_dir / data['uri'][1:]
                     if html_output and outfile.suffix != '.html':
                         outfile /= 'index.html'
-                    data['outfile'] = outfile.resolve()
+                    data['outfile'] = outfile
 
                 final_data = FileData(**data).dict()
                 final_data['__file__'] = 1
@@ -106,11 +113,10 @@ def parse_front_matter(s):
 
 
 class FileData(BaseModel):
+    infile: Path
     title: str
     slug: str
     created: datetime
-    path: Path
-    render: bool
     uri: str
 
     @validator('uri')
