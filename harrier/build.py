@@ -1,7 +1,9 @@
+import shutil
 from itertools import product
 from pathlib import Path
 
 import yaml
+from jinja2 import Environment
 from yaml.error import YAMLError
 
 from .common import Config, HarrierProblem, logger
@@ -35,5 +37,26 @@ def build(config_file):
 
     config = Config(**raw_config)
 
-    debug(config.dict())
-    build_som(config)
+    som = build_som(config)
+    render(som)
+
+
+def render(som: dict):
+    def page_gen(d: dict):
+        for v in d.values():
+            if '__file__' in v:
+                if v.get('outfile'):
+                    yield v
+            else:
+                yield from page_gen(v)
+
+    env: Environment = som.pop('jinja_env')
+    for p in page_gen(som['pages']):
+        outfile: Path = p['outfile']
+        outfile.parent.mkdir(exist_ok=True, parents=True)
+        if 'template' in p:
+            template = env.get_template(p['template'])
+            rendered = template.render(**p, site=som)
+            outfile.write_text(rendered)
+        else:
+            shutil.copy(p['infile'], outfile)

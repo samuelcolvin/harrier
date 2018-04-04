@@ -4,56 +4,82 @@ from pathlib import Path
 
 import yaml
 from jinja2 import FileSystemLoader, Environment
-from pydantic import BaseModel, ValidationError, validator
+from pydantic import BaseModel, validator
 
 from .common import Config, HarrierProblem
 
 FRONT_MATTER_REGEX = re.compile(r'^---[ \t]*(.*)\n---[ \t]*\n', re.S)
 # extensions where we want to do anything except just copy the file to the output dir
-ACTIVE_EXT = {'.html', '.md'}
-URI_NOT_ALLOWED_REGEX = re.compile(r'[^a-zA-Z0-9_\-/.]')
+OUTPUT_HTML = {'.html', '.md'}
+URI_NOT_ALLOWED = re.compile(r'[^a-zA-Z0-9_\-/.]')
 DATE_REGEX = re.compile(r'(\d{4})-(\d{2})-(\d{2})-?(.*)')
+URI_IS_TEMPLATE = re.compile('[{}]')
+DEFAULT_TEMPLATE = 'main.jinja'
 
 
 def build_som(config: Config):
+    all_defaults = config.defaults.pop('all', None) or {'template': DEFAULT_TEMPLATE}
+    path_defaults = [
+        (re.compile(k), v)
+        for k, v in config.defaults.items() if v
+    ]
+
     def build_dir(paths, *parents):
         d = {}
         for name, p in paths:
             if not isinstance(p, Path):
                 d[name] = build_dir(p, *parents, name)
                 continue
-
-            render = p.suffix in ACTIVE_EXT
-            data = {
-                'path': p,
-                'ext': p.suffix and p.suffix[1:],
-                'render': render,
-            }
-            name = p.stem if render else name
-
-            date_match = DATE_REGEX.match(name)
-            if date_match:
-                *date_args, new_name = date_match.groups()
-                created = datetime(*map(int, date_args))
-                name = new_name or name
-            else:
-                created = p.stat().st_mtime
-            data.update(title=name, slug=slugify(name), created=created)
-
-            if render:
-                fm_data, content = parse_front_matter(p.read_text())
-                data['content'] = content
-                fm_data and data.update(fm_data)
-
             try:
-                fd = FileData(**data)
-            except ValidationError as e:
-                raise HarrierProblem(f'{p}: {e}') from e
+                html_output = p.suffix in OUTPUT_HTML
+                data = {'infile': p}
+                name = p.stem if html_output else name
 
-            if not fd.uri:
-                fd.uri = '/' + '/'.join([slugify(p) for p in parents] + [fd.slug])
+                date_match = DATE_REGEX.match(name)
+                if date_match:
+                    *date_args, new_name = date_match.groups()
+                    created = datetime(*map(int, date_args))
+                    name = new_name or name
+                else:
+                    created = p.stat().st_mtime
+                data.update(title=name, slug=slugify(name), created=created)
 
-            d[name] = fd.dict()
+                data.update(all_defaults)
+                for regex, defaults in path_defaults:
+                    if regex.match(str(p)):
+                        data.update(defaults)
+
+                if html_output:
+                    fm_data, content = parse_front_matter(p.read_text())
+                    data['content'] = content
+                    if fm_data:
+                        # removing site avoids error when rendering template
+                        fm_data.pop('site', None)
+                        data.update(fm_data)
+                else:
+                    data.pop('template', None)
+
+                uri = data.get('uri')
+                if not uri:
+                    data['uri'] = '/' + '/'.join([slugify(p) for p in parents] + [data['slug']])
+                elif URI_IS_TEMPLATE.search(uri):
+                    try:
+                        data['uri'] = slugify(uri.format(**data))
+                    except KeyError as e:
+                        raise KeyError(f'missing format variable "{e}" for "{fd.uri}"')
+
+                if data.get('output', True):
+                    outfile = config.dist_dir / data['uri'][1:]
+                    if html_output and outfile.suffix != '.html':
+                        outfile /= 'index.html'
+                    data['outfile'] = outfile.resolve()
+
+                final_data = FileData(**data).dict()
+                final_data['__file__'] = 1
+                d[name] = final_data
+            except Exception as e:
+                raise HarrierProblem(f'{p}: {e.__class__.__name__} {e}') from e
+
         return d
 
     som = config.dict()
@@ -84,19 +110,13 @@ class FileData(BaseModel):
     slug: str
     created: datetime
     path: Path
-    ext: str
     render: bool
-    uri: str = None
-    output: bool = True
+    uri: str
 
     @validator('uri')
     def validate_uri(cls, v):
-        if not v.startswith('/'):
-            raise ValueError('uri must start with a slash')
-        invalid = URI_NOT_ALLOWED_REGEX.findall(v)
-        if invalid:
-            invalid = ', '.join(f'"{inv}"' for inv in invalid)
-            raise ValueError(f'uri contains invalid characters: {invalid}')
+        check_slug(v)
+        return v
 
     class Config:
         allow_extra = True
@@ -104,6 +124,16 @@ class FileData(BaseModel):
 
 def slugify(title):
     name = title.replace(' ', '-').lower()
-    name = URI_NOT_ALLOWED_REGEX.sub('', name)
+    name = URI_NOT_ALLOWED.sub('', name)
     name = re.sub('-{2,}', '-', name)
     return name.strip('_-')
+
+
+def check_slug(uri):
+    if not uri.startswith('/'):
+        raise ValueError(f'uri must start with a slash: "{uri}')
+    invalid = URI_NOT_ALLOWED.findall(uri)
+    if invalid:
+        invalid = ', '.join(f'"{inv}"' for inv in invalid)
+        raise ValueError(f'uri contains invalid characters: {invalid}')
+
