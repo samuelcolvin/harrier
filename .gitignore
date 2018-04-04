@@ -14,3 +14,4 @@ harrier.egg-info
 /.pytest_cache/
 /old/
 /example/
+/sandbox/

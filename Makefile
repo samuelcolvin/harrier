@@ -4,7 +4,7 @@
 install:
 	pip install -U setuptools pip
 	pip install -U -r tests/requirements.txt
-	pip install -U .
+	pip install -U -e .
 
 .PHONY: isort
 isort:
