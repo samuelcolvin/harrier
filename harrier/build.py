@@ -7,8 +7,9 @@ from jinja2 import Environment
 from misaka import Markdown, HtmlRenderer
 from yaml.error import YAMLError
 
+from .assets import download_assets, build_sass
 from .common import Config, HarrierProblem, logger
-from .som import build_som
+from .som import BuildSOM
 
 CONFIG_FILE_TRIES = 'harrier', 'config', '_config'
 CONFIG_FILE_TRIES = [Path(f'{name}.{ext}') for name, ext in product(CONFIG_FILE_TRIES, ['yml', 'yaml'])]
@@ -38,8 +39,11 @@ def build(config_file):
 
     config = Config(**raw_config)
 
-    som = build_som(config)
+    build_som = BuildSOM(config)
+    som = build_som()
     render(som)
+    download_assets(config)
+    build_sass(config)
 
 
 def render(som: dict):

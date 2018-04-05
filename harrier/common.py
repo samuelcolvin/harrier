@@ -1,4 +1,5 @@
 import logging
+import logging.config
 from pathlib import Path
 from typing import Any, Dict
 
@@ -17,6 +18,10 @@ class Config(BaseSettings):
     theme_dir: Path = 'theme'
     data_dir: Path = 'data'
     dist_dir: Path = 'dist'
+    dist_dir_sass: Path = 'styles/css'
+
+    download: Dict[str, Any] = {}
+    download_aliases: Dict[str, str] = {}
 
     defaults: Dict[str, Dict[str, Any]] = {}
 
@@ -50,5 +55,60 @@ class Config(BaseSettings):
         else:
             raise ValueError(f'theme directory "{v}" does not contain a "templates" directory')
 
+    @property
+    def download_root(self) -> Path:
+        return self.theme_dir / 'libs'
+
     class Config:
         allow_extra = True
+
+
+def log_config(log_level: str) -> dict:
+    """
+    Setup default config. for dictConfig.
+    :param log_level: str name or django debugging int
+    :return: dict suitable for ``logging.config.dictConfig``
+    """
+    assert log_level in {'DEBUG', 'INFO', 'WARNING', 'ERROR'}, 'wrong log level %s' % log_level
+    return {
+        'version': 1,
+        'disable_existing_loggers': True,
+        'formatters': {
+            'default': {'format': '%(message)s'},
+            'indent': {'format': '    %(message)s'},
+        },
+        'handlers': {
+            'default': {
+                'level': log_level,
+                'class': 'grablib.common.ClickHandler',
+                'formatter': 'default'
+            },
+            'progress': {
+                'level': log_level,
+                'class': 'grablib.common.ProgressHandler',
+                'formatter': 'indent'
+            },
+        },
+        'loggers': {
+            logger.name: {
+                'handlers': ['default'],
+                'level': log_level,
+                'propagate': False,
+            },
+            'grablib.main': {
+                'handlers': ['default'],
+                'level': log_level,
+                'propagate': False,
+            },
+            'grablib.progress': {
+                'handlers': ['progress'],
+                'level': log_level,
+                'propagate': False,
+            },
+        },
+    }
+
+
+def setup_logging(log_level):
+    config = log_config(log_level)
+    logging.config.dictConfig(config)
