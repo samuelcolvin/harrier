@@ -1,12 +1,11 @@
-import logging
-import re
+import traceback
 
 import click
 from grablib.common import GrablibError
 from pydantic import ValidationError
 
 from .build import build
-from .common import HarrierProblem, setup_logging
+from .common import HarrierProblem, logger, setup_logging
 from .version import VERSION
 
 target_help = 'choice from targets in harrier.yml, defaults to same value as action eg. build or serve.'
@@ -36,4 +35,5 @@ def cli(action, config_file, verbose):
         msg = 'Error: {}'
         if not verbose:
             msg += '\n\nUse "--verbose" for more details'
-        click.secho(msg.format(e), fg='red', err=True)
+        logger.debug(traceback.format_exc())
+        logger.error(msg.format(e))

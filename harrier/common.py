@@ -27,7 +27,7 @@ class Config(BaseSettings):
 
     @validator('pages_dir', 'theme_dir', 'data_dir')
     def relative_paths(cls, v, values, **kwargs):
-        return values['source_dir'] / v
+        return (values['source_dir'] / v).resolve()
 
     @validator('pages_dir', 'theme_dir')
     def is_dir(cls, v, field, **kwargs):

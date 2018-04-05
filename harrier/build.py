@@ -1,9 +1,10 @@
 import shutil
 from itertools import product
 from pathlib import Path
+from tempfile import TemporaryDirectory
 
 import yaml
-from jinja2 import Environment
+from jinja2 import Environment, TemplateError
 from misaka import Markdown, HtmlRenderer
 from yaml.error import YAMLError
 
@@ -39,11 +40,12 @@ def build(config_file):
 
     config = Config(**raw_config)
 
-    build_som = BuildSOM(config)
-    som = build_som()
-    render(som)
-    download_assets(config)
-    build_sass(config)
+    with TemporaryDirectory() as tmp_dir:
+        build_som = BuildSOM(config, tmp_dir)
+        som = build_som()
+        render(som)
+        download_assets(config)
+        build_sass(config)
 
 
 def render(som: dict):
@@ -62,25 +64,37 @@ def render(som: dict):
     md = Markdown(rndr)
 
     env: Environment = som.pop('jinja_env')
+    gen, copy = 0, 0
     for p in page_gen(som['pages']):
         outfile: Path = p['outfile'].resolve()
         # this will raise an exception if somehow outfile is outside dis_dir
         outfile.relative_to(dist_dir)
         outfile.parent.mkdir(exist_ok=True, parents=True)
         infile: Path = p['infile']
-        template_file = p.get('template')
-        if template_file:
-            content = p.pop('content')
+        if 'template' in p:
+            template_file = p['template']
+            try:
+                if p['render']:
+                    content_template = env.get_template(str(p['content_template']))
+                    content = content_template.render(page=p, site=som)
+                else:
+                    content = p.pop('content')
 
-            if infile.suffix == '.md':
-                content = md(content)
+                if infile.suffix == '.md':
+                    content = md(content)
 
-            if p['render']:
-                content_template = env.from_string(content)
-                content = content_template.render(page=p, site=som)
-
-            template = env.get_template(template_file)
-            rendered = template.render(content=content, page=p, site=som)
-            outfile.write_text(rendered)
+                if template_file:
+                    template = env.get_template(template_file)
+                    rendered = template.render(content=content, page=p, site=som)
+                else:
+                    rendered = content
+            except Exception as e:
+                logger.error('%s: %s %s', infile, e.__class__.__name__, e)
+                raise
+            else:
+                gen += 1
+                outfile.write_text(rendered)
         else:
+            copy += 1
             shutil.copy(infile, outfile)
+    logger.info('generated %d files, copied %d files', gen, copy)

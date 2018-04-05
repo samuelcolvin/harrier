@@ -1,6 +1,7 @@
 import re
 from datetime import datetime
 from pathlib import Path
+from typing import Optional
 
 import yaml
 from jinja2 import FileSystemLoader, Environment
@@ -19,8 +20,9 @@ DEFAULT_TEMPLATE = 'main.jinja'
 
 
 class BuildSOM:
-    def __init__(self, config: Config):
+    def __init__(self, config: Config, tmp_dir):
         self.config = config
+        self.tmp_dir = Path(tmp_dir)
         self.all_defaults = {
             'template': DEFAULT_TEMPLATE,
             **config.defaults.pop('all', {})
@@ -34,14 +36,19 @@ class BuildSOM:
         self.output_files = 0
 
     def __call__(self):
-        som = self.config.dict()
-        som.update(
-            pages=self.build_dir(walk(self.config.pages_dir)),
-            data={},
-            jinja_env=Environment(loader=FileSystemLoader(str(self.config.theme_dir / 'templates')))
-        )
+        pages = self.build_dir(walk(self.config.pages_dir))
         logger.info('Built site object model with %d files, %d to apply template, %d to output',
                     self.files, self.template_files, self.output_files)
+        loader = FileSystemLoader([
+            str(self.tmp_dir),
+            str(self.config.theme_dir / 'templates'),
+        ])
+        som = self.config.dict()
+        som.update(
+            pages=pages,
+            data={},
+            jinja_env=Environment(loader=loader)
+        )
         return som
 
     def build_dir(self, paths, *parents):
@@ -59,7 +66,10 @@ class BuildSOM:
 
     def prep_file(self, name, p, parents):
         html_output = p.suffix in OUTPUT_HTML
-        data = {'infile': p}
+        data = {
+            'infile': p,
+            'content_template': self.tmp_dir / p.relative_to(self.config.pages_dir)
+        }
         name = p.stem if html_output else name
 
         date_match = DATE_REGEX.match(name)
@@ -81,13 +91,13 @@ class BuildSOM:
                 data.update(defaults)
 
         maybe_render = p.suffix in MAYBE_RENDER
-        apply_template = False
+        apply_jinja = False
         if html_output or maybe_render:
             fm_data, content = parse_front_matter(p.read_text())
             if html_output or fm_data:
                 data['content'] = content
                 fm_data and data.update(fm_data)
-                apply_template = True
+                apply_jinja = True
 
         uri = data.get('uri')
         if not uri:
@@ -105,15 +115,22 @@ class BuildSOM:
             data['outfile'] = outfile
 
         fd = FileData(**data)
-        logger.debug('added %s apply_template: %s, outfile %s', p, apply_template, fd.outfile)
+        final_data = fd.dict(exclude=set() if apply_jinja else {'template', 'render'})
+        final_data['__file__'] = 1
+        if apply_jinja and fd.render:
+            fd.content_template.parent.mkdir(parents=True, exist_ok=True)
+            fd.content_template.write_text(final_data.pop('content'))
+            final_data['content_template'] = str(fd.content_template.relative_to(self.tmp_dir))
+        else:
+            final_data.pop('content_template')
+
+        logger.debug('added %s apply_jinja: %s, outfile %s', p, apply_jinja, fd.outfile)
         self.files += 1
-        if apply_template:
+        if apply_jinja:
             self.template_files += 1
         if fd.outfile:
             self.output_files += 1
 
-        final_data = fd.dict(exclude=set() if apply_template else {'template', 'render'})
-        final_data['__file__'] = 1
         return final_data
 
 
@@ -132,11 +149,12 @@ def parse_front_matter(s):
 
 class FileData(BaseModel):
     infile: Path
+    content_template: Path
     title: str
     slug: str
     created: datetime
     uri: str
-    template: str
+    template: Optional[str]
     render: bool = True
     outfile: Path = None
 
