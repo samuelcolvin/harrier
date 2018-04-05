@@ -33,12 +33,11 @@ class BuildSOM:
         ]
         self.files = 0
         self.template_files = 0
-        self.output_files = 0
 
     def __call__(self):
+        logger.info('Building "%s"...', self.config.pages_dir)
         pages = self.build_dir(walk(self.config.pages_dir))
-        logger.info('Built site object model with %d files, %d to apply template, %d to output',
-                    self.files, self.template_files, self.output_files)
+        logger.info('Built site object model with %d files, %d files to render', self.files, self.template_files)
         loader = FileSystemLoader([
             str(self.tmp_dir),
             str(self.config.theme_dir / 'templates'),
@@ -128,8 +127,6 @@ class BuildSOM:
         self.files += 1
         if apply_jinja:
             self.template_files += 1
-        if fd.outfile:
-            self.output_files += 1
 
         return final_data
 

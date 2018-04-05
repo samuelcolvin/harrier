@@ -69,7 +69,6 @@ default webpack config with no need to setup?
 
 # TODO
 
-* webpack support
 * watch
 * tests
 * incremental builds
