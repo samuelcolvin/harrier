@@ -19,7 +19,10 @@ DEFAULT_TEMPLATE = 'main.jinja'
 
 
 def build_som(config: Config):
-    all_defaults = config.defaults.pop('all', None) or {'template': DEFAULT_TEMPLATE}
+    all_defaults = {
+        'template': DEFAULT_TEMPLATE,
+        **config.defaults.pop('all', {})
+    }
     path_defaults = [
         (re.compile(k), v)
         for k, v in config.defaults.items() if v
@@ -55,16 +58,15 @@ def build_som(config: Config):
                         data.update(defaults)
 
                 maybe_render = p.suffix in MAYBE_RENDER
+                apply_template = False
+                fm_data = content = None
                 if html_output or maybe_render:
                     fm_data, content = parse_front_matter(p.read_text())
-                    if not html_output and not fm_data:
-                        # don't render this file, just copy it across
-                        data.pop('template')
-                    else:
-                        data['content'] = content
-                        fm_data and data.update(fm_data)
-                else:
-                    data.pop('template')
+
+                if html_output or fm_data:
+                    data['content'] = content
+                    fm_data and data.update(fm_data)
+                    apply_template = True
 
                 uri = data.get('uri')
                 if not uri:
@@ -81,7 +83,8 @@ def build_som(config: Config):
                         outfile /= 'index.html'
                     data['outfile'] = outfile
 
-                final_data = FileData(**data).dict()
+                fd = FileData(**data)
+                final_data = fd.dict(exclude=set() if apply_template else {'template', 'render'})
                 final_data['__file__'] = 1
                 d[name] = final_data
             except Exception as e:
@@ -107,9 +110,9 @@ def walk(path: Path, _root: Path=None):
 def parse_front_matter(s):
     m = re.match(FRONT_MATTER_REGEX, s)
     if not m:
-        return None, s
+        return None, s.strip('\r\n')
     data = yaml.load(m.groups()[0]) or {}
-    return data, s[m.end():].lstrip('\r\n')
+    return data, s[m.end():].strip('\r\n')
 
 
 class FileData(BaseModel):
@@ -118,6 +121,8 @@ class FileData(BaseModel):
     slug: str
     created: datetime
     uri: str
+    template: str
+    render: bool = True
 
     @validator('uri')
     def validate_uri(cls, v):

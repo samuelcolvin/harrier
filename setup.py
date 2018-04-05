@@ -49,6 +49,7 @@ setup(
         'aiohttp-devtools>=0.9',
         'click>=6.2',
         'libsass>=0.10.1',
+        'misaka>=2.1.0',
         'pydantic>=0.8',
     ]
 )

@@ -4,6 +4,7 @@ from pathlib import Path
 
 import yaml
 from jinja2 import Environment
+from misaka import Markdown, HtmlRenderer
 from yaml.error import YAMLError
 
 from .common import Config, HarrierProblem, logger
@@ -53,15 +54,29 @@ def render(som: dict):
     if dist_dir.exists():
         shutil.rmtree(dist_dir)
 
+    rndr = HtmlRenderer()
+    md = Markdown(rndr)
+
     env: Environment = som.pop('jinja_env')
     for p in page_gen(som['pages']):
         outfile: Path = p['outfile'].resolve()
         # this will raise an exception if somehow outfile is outside dis_dir
         outfile.relative_to(dist_dir)
         outfile.parent.mkdir(exist_ok=True, parents=True)
-        if 'template' in p:
-            template = env.get_template(p['template'])
-            rendered = template.render(page=p, site=som)
+        infile: Path = p['infile']
+        template_file = p.get('template')
+        if template_file:
+            content = p.pop('content')
+
+            if infile.suffix == '.md':
+                content = md(content)
+
+            if p['render']:
+                content_template = env.from_string(content)
+                content = content_template.render(page=p, site=som)
+
+            template = env.get_template(template_file)
+            rendered = template.render(content=content, page=p, site=som)
             outfile.write_text(rendered)
         else:
-            shutil.copy(p['infile'], outfile)
+            shutil.copy(infile, outfile)
