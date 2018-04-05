@@ -66,3 +66,10 @@ default webpack config with no need to setup?
     └── templates
         └── index.jinja
 ```
+
+# TODO
+
+* webpack support
+* watch
+* tests
+* incremental builds

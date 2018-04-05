@@ -8,7 +8,7 @@ from jinja2 import Environment, TemplateError
 from misaka import Markdown, HtmlRenderer
 from yaml.error import YAMLError
 
-from .assets import download_assets, build_sass
+from .assets import download_assets, build_sass, build_webpack
 from .common import Config, HarrierProblem, logger
 from .som import BuildSOM
 
@@ -44,8 +44,9 @@ def build(config_file):
         build_som = BuildSOM(config, tmp_dir)
         som = build_som()
         render(som)
-        download_assets(config)
-        build_sass(config)
+    download_assets(config)
+    build_sass(config)
+    build_webpack(config)
 
 
 def render(som: dict):

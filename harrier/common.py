@@ -18,14 +18,24 @@ class Config(BaseSettings):
     theme_dir: Path = 'theme'
     data_dir: Path = 'data'
     dist_dir: Path = 'dist'
-    dist_dir_sass: Path = 'styles/css'
+    sass_dir: Path = 'styles/css'
 
     download: Dict[str, Any] = {}
     download_aliases: Dict[str, str] = {}
 
     defaults: Dict[str, Dict[str, Any]] = {}
 
-    @validator('pages_dir', 'theme_dir', 'data_dir')
+    webpack_cli: Path = 'node_modules/.bin/webpack-cli'
+    webpack_entry: Path = 'js/index.js'
+    webpack_output_path: Path = 'styles/js'
+    webpack_config: Path = None
+    webpack_run: bool = True
+
+    @validator('source_dir')
+    def resolve_source_dir(cls, v):
+        return v.resolve(strict=True)
+
+    @validator('pages_dir', 'theme_dir', 'data_dir', 'webpack_cli')
     def relative_paths(cls, v, values, **kwargs):
         return (values['source_dir'] / v).resolve()
 
