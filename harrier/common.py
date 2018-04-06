@@ -21,7 +21,8 @@ class Config(BaseSettings):
     theme_dir: Path = 'theme'
     data_dir: Path = 'data'
     dist_dir: Path = 'dist'
-    sass_dir: Path = 'styles/css'
+    sass_dir: Path = 'theme'
+    theme_assets_dir: Path = 'theme/assets'
 
     download: Dict[str, Any] = {}
     download_aliases: Dict[str, str] = {}
@@ -30,7 +31,7 @@ class Config(BaseSettings):
 
     webpack_cli: Path = 'node_modules/.bin/webpack-cli'
     webpack_entry: Path = 'js/index.js'
-    webpack_output_path: Path = 'styles/js'
+    webpack_output_path: Path = 'theme'
     webpack_output_filename = 'main.js'
     webpack_config: Path = None
     webpack_run: bool = True

@@ -1,10 +1,12 @@
 import re
+import shutil
 from datetime import datetime
 from pathlib import Path
 from time import time
 from typing import Optional
 
 import yaml
+from misaka import Markdown, HtmlRenderer
 from jinja2 import FileSystemLoader, Environment
 from pydantic import BaseModel, validator
 
@@ -23,6 +25,52 @@ DEFAULT_TEMPLATE = 'main.jinja'
 def build_som(config: Config):
     som_builder = BuildSOM(config)
     return som_builder()
+
+
+def render(config: Config, som: dict):
+    dist_dir: Path = som['dist_dir']
+
+    rndr = HtmlRenderer()
+    md = Markdown(rndr)
+
+    env = Environment(loader=FileSystemLoader([
+        str(config.get_tmp_dir()),
+        str(config.theme_dir / 'templates'),
+    ]))
+    gen, copy = 0, 0
+    for p in page_gen(som['pages']):
+        outfile: Path = p['outfile'].resolve()
+        # this will raise an exception if somehow outfile is outside dis_dir
+        outfile.relative_to(dist_dir)
+        outfile.parent.mkdir(exist_ok=True, parents=True)
+        infile: Path = p['infile']
+        if 'template' in p:
+            template_file = p['template']
+            try:
+                if p['render']:
+                    content_template = env.get_template(str(p['content_template']))
+                    content = content_template.render(page=p, site=som)
+                else:
+                    content = p.pop('content')
+
+                if infile.suffix == '.md':
+                    content = md(content)
+
+                if template_file:
+                    template = env.get_template(template_file)
+                    rendered = template.render(content=content, page=p, site=som)
+                else:
+                    rendered = content
+            except Exception as e:
+                logger.error('%s: %s %s', infile, e.__class__.__name__, e)
+                raise
+            else:
+                gen += 1
+                outfile.write_text(rendered)
+        else:
+            copy += 1
+            shutil.copy(infile, outfile)
+    logger.info('generated %d files, copied %d files', gen, copy)
 
 
 class BuildSOM:
@@ -44,19 +92,13 @@ class BuildSOM:
         logger.info('Building "%s"...', self.config.pages_dir)
         start = time()
         pages = self.build_dir(walk(self.config.pages_dir))
-        loader = FileSystemLoader([
-            str(self.tmp_dir),
-            str(self.config.theme_dir / 'templates'),
-        ])
-        som = self.config.dict()
-        som.update(
-            pages=pages,
-            data={},
-            jinja_env=Environment(loader=loader)
-        )
         logger.info('Built site object model with %d files, %d files to render in %0.2fs',
                     self.files, self.template_files, time() - start)
-        return som
+        data = {}
+        return {
+            **self.config.dict(),
+            **dict(pages=pages, data=data)
+        }
 
     def build_dir(self, paths, *parents):
         d = {}
@@ -184,3 +226,12 @@ def slugify(title):
     name = URI_NOT_ALLOWED.sub('', name)
     name = re.sub('-{2,}', '-', name)
     return name.strip('_-')
+
+
+def page_gen(d: dict):
+    for v in d.values():
+        if '__file__' in v:
+            if v.get('outfile'):
+                yield v
+        else:
+            yield from page_gen(v)

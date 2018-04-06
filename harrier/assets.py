@@ -1,5 +1,6 @@
 import asyncio
 import logging
+import shutil
 import subprocess
 from time import time
 
@@ -11,6 +12,7 @@ from .common import Config, HarrierProblem, logger
 
 def run_grablib(config: Config, *, debug=False):
     if config.download:
+        logger.info('running grablib download...')
         download = Downloader(
             download_root=config.download_root,
             download=config.download,
@@ -21,6 +23,7 @@ def run_grablib(config: Config, *, debug=False):
 
     sass_dir = config.theme_dir / 'sass'
     if sass_dir.is_dir():
+        logger.info('running sass build...')
         build = Builder(
             build_root=config.dist_dir,
             build={
@@ -32,6 +35,19 @@ def run_grablib(config: Config, *, debug=False):
             debug=debug,
         )
         build()
+
+
+def copy_assets(config: Config):
+    in_dir = config.theme_dir / 'assets'
+    if not in_dir.exists():
+        return
+    if not in_dir.is_dir():
+        raise HarrierProblem(f'assert directory "{in_dir}" is not a directory')
+    out_dir = config.dist_dir / config.theme_assets_dir
+    logger.info('copying theme assets from "%s" to "%s"',
+                in_dir.relative_to(config.source_dir), out_dir.relative_to(config.dist_dir))
+    out_dir.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copytree(in_dir, out_dir)
 
 
 def webpack_args(config: Config, mode: str, watch: bool):
@@ -53,7 +69,6 @@ def webpack_args(config: Config, mode: str, watch: bool):
     args = (
         config.webpack_cli,
         '--context', config.theme_dir,
-        # '--colour', '0',
         '--entry', f'./{entry_path.relative_to(config.theme_dir)}',
         '--output-path', output_path,
         '--output-filename', config.webpack_output_filename,
@@ -81,7 +96,7 @@ def run_webpack(config: Config, *, mode='production'):
         return
     cmd = ' '.join(args)
     kwargs = dict(check=True, cwd=config.source_dir)
-    logger.info('running webpack ...')
+    logger.info('running webpack...')
     logger.debug('webpack command "%s"', cmd)
     if not logger.isEnabledFor(logging.DEBUG):
         kwargs.update(stdout=subprocess.PIPE, stderr=subprocess.PIPE, encoding='utf8')
