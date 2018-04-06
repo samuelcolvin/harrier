@@ -1,10 +1,12 @@
 import asyncio
 import contextlib
+import signal
 
 from aiohttp.web_runner import AppRunner, TCPSite
 from aiohttp_devtools.runserver import serve_static
 from watchgod import awatch
 
+from .assets import start_webpack_watch
 from .common import Config, logger
 
 HOST = '0.0.0.0'
@@ -38,13 +40,28 @@ async def update_site(config: Config):
 
 
 async def adev(config: Config, port: int):
+    stop_event = asyncio.Event()
+    loop = asyncio.get_event_loop()
+    loop.add_signal_handler(signal.SIGINT, stop_event.set)
+    loop.add_signal_handler(signal.SIGTERM, stop_event.set)
+
+    webpack_process = await start_webpack_watch(config)
+
+    logger.info('\nStarting dev server start, go to http://localhost:%s', port)
     server = Server(config, port)
     await server.start()
-    logger.info('\nStarting dev server start, go to http://localhost:%s', port)
+
     try:
-        async for changes in awatch(config.source_dir):
+        async for changes in awatch(config.source_dir, stop_event=stop_event):
             print(changes)
-    except KeyboardInterrupt:  # pragma: no branch
-        pass
     finally:
+        if webpack_process and webpack_process.returncode is None:
+            webpack_process.send_signal(signal.SIGTERM)
         await server.shutdown()
+    # try:
+    #     async for changes in awatch(config.source_dir):
+    #         print(changes)
+    # except KeyboardInterrupt:  # pragma: no branch
+    #     pass
+    # finally:
+    #     await server.shutdown()

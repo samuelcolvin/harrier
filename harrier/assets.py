@@ -1,3 +1,4 @@
+import asyncio
 import logging
 import subprocess
 from time import time
@@ -33,7 +34,7 @@ def run_grablib(config: Config, *, debug=False):
         build()
 
 
-def run_webpack(config: Config, *, watch=False, mode='production'):
+def webpack_args(config: Config, mode: str, watch: bool):
     if not config.webpack_run:
         return
 
@@ -48,10 +49,11 @@ def run_webpack(config: Config, *, watch=False, mode='production'):
 
     output_path = (config.dist_dir / config.webpack_output_path).resolve()
 
-    # ./ is required to satisfy webpack when files are inside --context
+    # ./ is required to satisfy webpack when files are inside the "--context" directory
     args = (
-        config.webpack_cli.relative_to(config.source_dir),
+        config.webpack_cli,
         '--context', config.theme_dir,
+        # '--colour', '0',
         '--entry', f'./{entry_path.relative_to(config.theme_dir)}',
         '--output-path', output_path,
         '--output-filename', config.webpack_output_filename,
@@ -70,7 +72,13 @@ def run_webpack(config: Config, *, watch=False, mode='production'):
             return
         args += '--config', f'./{config_path.relative_to(config.theme_dir)}'
 
-    args = [str(a) for a in args]
+    return [str(a) for a in args]
+
+
+def run_webpack(config: Config, *, mode='production'):
+    args = webpack_args(config, mode, False)
+    if not args:
+        return
     cmd = ' '.join(args)
     kwargs = dict(check=True, cwd=config.source_dir)
     logger.info('running webpack ...')
@@ -78,9 +86,7 @@ def run_webpack(config: Config, *, watch=False, mode='production'):
     if not logger.isEnabledFor(logging.DEBUG):
         kwargs.update(stdout=subprocess.PIPE, stderr=subprocess.PIPE, encoding='utf8')
     start = time()
-    # loop = asyncio.get_event_loop()
     try:
-        # loop.run_until_complete(asyncio.create_subprocess_exec(*args, **kwargs))
         subprocess.run(args, **kwargs)
     except subprocess.CalledProcessError as e:
         logger.warning('error running webpack "%s", returncode %s\nstdout: %s\nstderr: %s',
@@ -88,3 +94,12 @@ def run_webpack(config: Config, *, watch=False, mode='production'):
         raise HarrierProblem('error running webpack')
     else:
         logger.info('webpack completed successfully in %0.2fs', time() - start)
+
+
+async def start_webpack_watch(config: Config, *, mode='development'):
+    args = webpack_args(config, mode, True)
+    if args:
+        cmd = ' '.join(args)
+        logger.info('running webpack ...')
+        logger.debug('webpack command "%s"', cmd)
+        return await asyncio.create_subprocess_exec(*args)

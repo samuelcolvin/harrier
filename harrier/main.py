@@ -11,7 +11,7 @@ from yaml.error import YAMLError
 from .assets import run_grablib, run_webpack
 from .common import Config, HarrierProblem, logger
 from .som import build_som
-from .watch import adev
+from .dev import adev
 
 CONFIG_FILE_TRIES = 'harrier', 'config', '_config'
 CONFIG_FILE_TRIES = [Path(f'{name}.{ext}') for name, ext in product(CONFIG_FILE_TRIES, ['yml', 'yaml'])]
@@ -56,12 +56,6 @@ def build(path):
 
 def dev(path, port):
     config = get_config(path)
-
-    # som = build_som(config)
-    # render(som)
-    #
-    # run_grablib(config)
-    # run_webpack(config)
     loop = asyncio.get_event_loop()
     loop.run_until_complete(adev(config, port))
 
