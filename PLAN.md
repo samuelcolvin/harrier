@@ -69,6 +69,11 @@ default webpack config with no need to setup?
 
 # TODO
 
-* watch
+* less logging in dev mode
 * tests
-* incremental builds
+* features:
+  * extensions
+  * multipart front-matter
+  * ignored directories
+  * local config file
+  * sass/js files available in som

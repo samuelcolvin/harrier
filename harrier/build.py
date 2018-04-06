@@ -100,26 +100,26 @@ class BuildSOM:
             **dict(pages=pages, data=data)
         }
 
-    def build_dir(self, paths, *parents):
+    def build_dir(self, paths):
         d = {}
         for name, p in paths:
             if not isinstance(p, Path):
-                d[name] = self.build_dir(p, *parents, name)
+                d[name] = self.build_dir(p)
                 continue
             try:
-                d[name] = self.prep_file(name, p, parents)
+                d[name] = self.prep_file(p)
             except Exception as e:
                 raise HarrierProblem(f'{p}: {e.__class__.__name__} {e}') from e
 
         return d
 
-    def prep_file(self, name, p, parents):
+    def prep_file(self, p):
         html_output = p.suffix in OUTPUT_HTML
         data = {
             'infile': p,
             'content_template': self.tmp_dir / p.relative_to(self.config.pages_dir)
         }
-        name = p.stem if html_output else name
+        name = p.stem if html_output else p.name
 
         date_match = DATE_REGEX.match(name)
         if date_match:
@@ -150,6 +150,7 @@ class BuildSOM:
 
         uri = data.get('uri')
         if not uri:
+            parents = str(p.parent.relative_to(self.config.pages_dir)).split('/')
             data['uri'] = '/' + '/'.join([slugify(p) for p in parents] + [data['slug']])
         elif URI_IS_TEMPLATE.search(uri):
             try:
