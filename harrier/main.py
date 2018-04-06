@@ -1,16 +1,17 @@
+import asyncio
 import shutil
 from itertools import product
 from pathlib import Path
-from tempfile import TemporaryDirectory
 
 import yaml
-from jinja2 import Environment, TemplateError
+from jinja2 import Environment
 from misaka import Markdown, HtmlRenderer
 from yaml.error import YAMLError
 
-from .assets import download_assets, build_sass, build_webpack
+from .assets import run_grablib, run_webpack
 from .common import Config, HarrierProblem, logger
-from .som import BuildSOM
+from .som import build_som
+from .watch import adev
 
 CONFIG_FILE_TRIES = 'harrier', 'config', '_config'
 CONFIG_FILE_TRIES = [Path(f'{name}.{ext}') for name, ext in product(CONFIG_FILE_TRIES, ['yml', 'yaml'])]
@@ -26,47 +27,69 @@ def load_config_file(config_path: Path):
     return raw_config
 
 
-def build(config_file):
-    config_path = Path(config_file)
+def get_config(path) -> Config:
+    config_path = Path(path)
     if config_path.is_file():
-        raw_config = load_config_file(config_path)
+        config = load_config_file(config_path)
     else:
         try:
             config_path = next(config_path / f for f in CONFIG_FILE_TRIES if (config_path / f).exists())
         except StopIteration:
-            raw_config = {'source_dir': config_path}
+            config = {'source_dir': config_path}
         else:
-            raw_config = load_config_file(config_path)
+            config = load_config_file(config_path)
 
-    config = Config(**raw_config)
+    return Config(**config)
 
-    with TemporaryDirectory() as tmp_dir:
-        build_som = BuildSOM(config, tmp_dir)
-        som = build_som()
-        render(som)
-    download_assets(config)
-    build_sass(config)
-    build_webpack(config)
+
+def build(path):
+    config = get_config(path)
+
+    _empty_dir(config.dist_dir)
+    _empty_dir(config.get_tmp_dir())
+
+    som = build_som(config)
+    render(som)
+    run_grablib(config)
+    run_webpack(config)
+
+
+def dev(path, port):
+    config = get_config(path)
+
+    # som = build_som(config)
+    # render(som)
+    #
+    # run_grablib(config)
+    # run_webpack(config)
+    loop = asyncio.get_event_loop()
+    loop.run_until_complete(adev(config, port))
+
+
+def _empty_dir(d: Path):
+    if d.exists():
+        shutil.rmtree(d)
+    d.mkdir(parents=True)
+
+
+def _page_gen(d: dict):
+    for v in d.values():
+        if '__file__' in v:
+            if v.get('outfile'):
+                yield v
+        else:
+            yield from _page_gen(v)
 
 
 def render(som: dict):
-    def page_gen(d: dict):
-        for v in d.values():
-            if '__file__' in v:
-                if v.get('outfile'):
-                    yield v
-            else:
-                yield from page_gen(v)
     dist_dir: Path = som['dist_dir']
-    if dist_dir.exists():
-        shutil.rmtree(dist_dir)
 
     rndr = HtmlRenderer()
     md = Markdown(rndr)
 
     env: Environment = som.pop('jinja_env')
     gen, copy = 0, 0
-    for p in page_gen(som['pages']):
+    for p in _page_gen(som['pages']):
         outfile: Path = p['outfile'].resolve()
         # this will raise an exception if somehow outfile is outside dis_dir
         outfile.relative_to(dist_dir)

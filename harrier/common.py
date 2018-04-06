@@ -1,8 +1,11 @@
+import hashlib
 import logging
 import logging.config
+import tempfile
 from pathlib import Path
 from typing import Any, Dict
 
+import click
 from pydantic import BaseSettings, validator
 
 logger = logging.getLogger('harrier')
@@ -70,23 +73,48 @@ class Config(BaseSettings):
     def download_root(self) -> Path:
         return self.theme_dir / 'libs'
 
+    def get_tmp_dir(self) -> Path:
+        path_hash = hashlib.md5(b'%s' % self.source_dir).hexdigest()
+        return Path(tempfile.gettempdir()) / f'harrier-{path_hash}'
+
     class Config:
         allow_extra = True
 
 
-def log_config(log_level: str) -> dict:
-    """
-    Setup default config. for dictConfig.
-    :param log_level: str name or django debugging int
-    :return: dict suitable for ``logging.config.dictConfig``
-    """
-    assert log_level in {'DEBUG', 'INFO', 'WARNING', 'ERROR'}, 'wrong log level %s' % log_level
+class GrablibHandler(logging.Handler):
+    formats = {
+        logging.DEBUG: {'fg': 'white', 'dim': True},
+        logging.INFO: {'fg': 'white', 'dim': True},
+        logging.WARN: {'fg': 'yellow'},
+    }
+
+    def get_log_format(self, record):
+        return self.formats.get(record.levelno, {'fg': 'red'})
+
+    def emit(self, record):
+        log_entry = self.format(record)
+        click.secho(log_entry, **self.get_log_format(record))
+
+
+def log_config(verbose: bool) -> dict:
+    if verbose is True:
+        log_level = 'DEBUG'
+    elif verbose is False:
+        log_level = 'WARNING'
+    else:
+        assert verbose is None
+        log_level = 'INFO'
     return {
         'version': 1,
         'disable_existing_loggers': True,
         'formatters': {
-            'default': {'format': '%(message)s'},
-            'indent': {'format': '    %(message)s'},
+            'default': {
+                'format': '%(message)s'
+            },
+            'server': {
+                'format': '[%(asctime)s] %(message)s',
+                'datefmt': '%H:%M:%S',
+            },
         },
         'handlers': {
             'default': {
@@ -94,32 +122,34 @@ def log_config(log_level: str) -> dict:
                 'class': 'grablib.common.ClickHandler',
                 'formatter': 'default'
             },
-            'progress': {
+            'grablib': {
+                'level': 'INFO' if verbose else 'WARNING',
+                'class': 'harrier.common.GrablibHandler',
+                'formatter': 'default'
+            },
+            'server_logging': {
                 'level': log_level,
-                'class': 'grablib.common.ProgressHandler',
-                'formatter': 'indent'
+                'class': 'aiohttp_devtools.runserver.log_handlers.AuxiliaryHandler',
+                'formatter': 'server'
             },
         },
         'loggers': {
             logger.name: {
                 'handlers': ['default'],
                 'level': log_level,
-                'propagate': False,
             },
-            'grablib.main': {
-                'handlers': ['default'],
+            'grablib': {
+                'handlers': ['grablib'],
                 'level': log_level,
-                'propagate': False,
             },
-            'grablib.progress': {
-                'handlers': ['progress'],
+            'adev.server.aux': {
+                'handlers': ['server_logging'],
                 'level': log_level,
-                'propagate': False,
             },
         },
     }
 
 
-def setup_logging(log_level):
-    config = log_config(log_level)
+def setup_logging(verbose):
+    config = log_config(verbose)
     logging.config.dictConfig(config)

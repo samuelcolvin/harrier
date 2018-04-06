@@ -1,6 +1,7 @@
 import re
 from datetime import datetime
 from pathlib import Path
+from time import time
 from typing import Optional
 
 import yaml
@@ -19,10 +20,15 @@ URI_IS_TEMPLATE = re.compile('[{}]')
 DEFAULT_TEMPLATE = 'main.jinja'
 
 
+def build_som(config: Config):
+    som_builder = BuildSOM(config)
+    return som_builder()
+
+
 class BuildSOM:
-    def __init__(self, config: Config, tmp_dir):
+    def __init__(self, config: Config):
         self.config = config
-        self.tmp_dir = Path(tmp_dir)
+        self.tmp_dir = config.get_tmp_dir()
         self.all_defaults = {
             'template': DEFAULT_TEMPLATE,
             **config.defaults.pop('all', {})
@@ -36,8 +42,8 @@ class BuildSOM:
 
     def __call__(self):
         logger.info('Building "%s"...', self.config.pages_dir)
+        start = time()
         pages = self.build_dir(walk(self.config.pages_dir))
-        logger.info('Built site object model with %d files, %d files to render', self.files, self.template_files)
         loader = FileSystemLoader([
             str(self.tmp_dir),
             str(self.config.theme_dir / 'templates'),
@@ -48,6 +54,8 @@ class BuildSOM:
             data={},
             jinja_env=Environment(loader=loader)
         )
+        logger.info('Built site object model with %d files, %d files to render in %0.2fs',
+                    self.files, self.template_files, time() - start)
         return som
 
     def build_dir(self, paths, *parents):
@@ -80,7 +88,7 @@ class BuildSOM:
             created = p.stat().st_mtime
         data.update(
             title=name,
-            slug='' if p.name in {'index.html', 'index.md'} else slugify(name),
+            slug='' if html_output and p.stem == 'index' else slugify(name),
             created=created
         )
 
@@ -116,6 +124,8 @@ class BuildSOM:
         fd = FileData(**data)
         final_data = fd.dict(exclude=set() if apply_jinja else {'template', 'render'})
         final_data['__file__'] = 1
+
+        # TODO do his in render to
         if apply_jinja and fd.render:
             fd.content_template.parent.mkdir(parents=True, exist_ok=True)
             fd.content_template.write_text(final_data.pop('content'))

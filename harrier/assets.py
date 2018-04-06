@@ -1,42 +1,39 @@
+import logging
 import subprocess
-from pathlib import Path
+from time import time
 
 from grablib.download import Downloader
 from grablib.build import Builder
 
-from .common import Config, logger
+from .common import Config, HarrierProblem, logger
 
 
-def download_assets(config: Config):
-    if not config.download:
-        return
-    download = Downloader(
-        download_root=config.download_root,
-        download=config.download,
-        aliases=config.download_aliases,
-        lock=config.theme_dir / '.grablib.lock',
-    )
-    download()
+def run_grablib(config: Config, *, debug=False):
+    if config.download:
+        download = Downloader(
+            download_root=config.download_root,
+            download=config.download,
+            aliases=config.download_aliases,
+            lock=config.theme_dir / '.grablib.lock',
+        )
+        download()
 
-
-def build_sass(config: Config, debug=False):
     sass_dir = config.theme_dir / 'sass'
-    if not sass_dir.is_dir():
-        return
-    build = Builder(
-        build_root=config.dist_dir,
-        build={
-            'sass': {
-                str(config.sass_dir): str(sass_dir)
-            }
-        },
-        download_root=config.download_root,
-        debug=debug,
-    )
-    build()
+    if sass_dir.is_dir():
+        build = Builder(
+            build_root=config.dist_dir,
+            build={
+                'sass': {
+                    str(config.sass_dir): str(sass_dir)
+                }
+            },
+            download_root=config.download_root,
+            debug=debug,
+        )
+        build()
 
 
-def build_webpack(config: Config, mode='production'):
+def run_webpack(config: Config, *, watch=False, mode='production'):
     if not config.webpack_run:
         return
 
@@ -61,6 +58,8 @@ def build_webpack(config: Config, mode='production'):
         '--devtool', 'source-map',
         '--mode', mode,
     )
+    if watch:
+        args += '--watch',
     if mode == 'production':
         args += '--optimize-minimize',
 
@@ -72,5 +71,20 @@ def build_webpack(config: Config, mode='production'):
         args += '--config', f'./{config_path.relative_to(config.theme_dir)}'
 
     args = [str(a) for a in args]
-    logger.info('running webpack "%s"...', ' '.join(args))
-    subprocess.run(args, check=True, cwd=config.source_dir)
+    cmd = ' '.join(args)
+    kwargs = dict(check=True, cwd=config.source_dir)
+    logger.info('running webpack ...')
+    logger.debug('webpack command "%s"', cmd)
+    if not logger.isEnabledFor(logging.DEBUG):
+        kwargs.update(stdout=subprocess.PIPE, stderr=subprocess.PIPE, encoding='utf8')
+    start = time()
+    # loop = asyncio.get_event_loop()
+    try:
+        # loop.run_until_complete(asyncio.create_subprocess_exec(*args, **kwargs))
+        subprocess.run(args, **kwargs)
+    except subprocess.CalledProcessError as e:
+        logger.warning('error running webpack "%s", returncode %s\nstdout: %s\nstderr: %s',
+                       cmd, e.returncode, e.output, e.stderr)
+        raise HarrierProblem('error running webpack')
+    else:
+        logger.info('webpack completed successfully in %0.2fs', time() - start)
