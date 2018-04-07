@@ -10,6 +10,7 @@ from pydantic import BaseModel, validator
 from yaml.error import YAMLError
 
 from .common import HarrierProblem
+from .extensions import Extensions
 
 logger = logging.getLogger('harrier.config')
 CONFIG_FILE_TRIES = 'harrier', 'config', '_config'
@@ -31,8 +32,10 @@ class WebpackConfig(BaseModel):
 class Config(BaseModel):
     source_dir: Path
     pages_dir: Path = 'pages'
+    extensions: Extensions = 'extensions.py'
     theme_dir: Path = 'theme'
     data_dir: Path = 'data'
+
     dist_dir: Path = 'dist'
     dist_dir_sass: Path = 'theme'
     dist_dir_assets: Path = 'theme/assets'
@@ -78,6 +81,16 @@ class Config(BaseModel):
             return v
         else:
             raise ValueError(f'theme directory "{v}" does not contain a "templates" directory')
+
+    @validator('extensions', pre=True)
+    def validate_extensions(cls, v, values, **kwargs):
+        p = values['source_dir'] / v
+        if not p.exists():
+            return None
+        elif not p.is_file():
+            raise ValueError(f'"extensions" should be a python file, not directory')
+        else:
+            return p
 
     @validator('webpack')
     def validate_webpack(cls, v, *, values, **kwargs):
