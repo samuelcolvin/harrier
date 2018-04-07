@@ -50,7 +50,7 @@ def dev(path, port, verbose):
     """
     Serve the site while watching for file changes and rebuilding upon changes.
     """
-    setup_logging(verbose)
+    setup_logging(verbose, dev=True)
     try:
         _dev(path, port)
     except (HarrierProblem, ValidationError, GrablibError) as e:

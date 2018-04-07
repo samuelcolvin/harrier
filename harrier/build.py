@@ -1,3 +1,4 @@
+import hashlib
 import logging
 import re
 import shutil
@@ -30,7 +31,8 @@ def build_som(config: Config):
     return som_builder()
 
 
-def render(config: Config, som: dict):
+def render(config: Config, som: dict, build_cache=None):
+    start = time()
     dist_dir: Path = som['dist_dir']
 
     rndr = HtmlRenderer()
@@ -40,12 +42,17 @@ def render(config: Config, som: dict):
         str(config.get_tmp_dir()),
         str(config.theme_dir / 'templates'),
     ]))
+    checked_dirs = set()
     gen, copy = 0, 0
     for p in page_gen(som['pages']):
         outfile: Path = p['outfile'].resolve()
-        # this will raise an exception if somehow outfile is outside dis_dir
-        outfile.relative_to(dist_dir)
-        outfile.parent.mkdir(exist_ok=True, parents=True)
+        out_dir = outfile.parent
+        if out_dir not in checked_dirs:
+            # this will raise an exception if somehow outfile is outside dis_dir
+            out_dir.relative_to(dist_dir)
+            out_dir.mkdir(exist_ok=True, parents=True)
+            checked_dirs.add(out_dir)
+
         infile: Path = p['infile']
         if 'template' in p:
             template_file = p['template']
@@ -68,12 +75,28 @@ def render(config: Config, som: dict):
                 logger.exception('%s: %s %s', infile, e.__class__.__name__, e)
                 raise
             else:
+                rendered_b = rendered.encode()
+                if build_cache is not None:
+                    out_hash = hashlib.md5(rendered_b).digest()
+                    if build_cache.get(infile) == out_hash:
+                        # file hasn't changed
+                        continue
+                    else:
+                        build_cache[infile] = out_hash
                 gen += 1
-                outfile.write_text(rendered)
+                outfile.write_bytes(rendered_b)
         else:
+            if build_cache is not None:
+                mtime = infile.stat().st_mtime
+                if build_cache.get(infile) == mtime:
+                    # file hasn't changed
+                    continue
+                else:
+                    build_cache[infile] = mtime
             copy += 1
             shutil.copy(infile, outfile)
-    logger.info('generated %d files, copied %d files', gen, copy)
+    logger.info('generated %d files, copied %d files in %0.2fs', gen, copy, time() - start)
+    return build_cache
 
 
 class BuildSOM:
@@ -179,7 +202,7 @@ class BuildSOM:
         else:
             final_data.pop('content_template')
 
-        logger.debug('added %s apply_jinja: %s, outfile %s', p, apply_jinja, fd.outfile)
+        # logger.debug('added %s apply_jinja: %s, outfile %s', p, apply_jinja, fd.outfile)
         self.files += 1
         if apply_jinja:
             self.template_files += 1

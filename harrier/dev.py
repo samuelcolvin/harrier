@@ -42,10 +42,11 @@ class Server:
         logger.debug('shutdown took %0.2fs', self.loop.time() - start)
 
 
-# SOM will only be set after the fork in the child process created by ProcessPoolExecutor
-SOM = None
 # CONFIG will bet set before the fork so it can be used by the child process
 CONFIG: Config = None
+# SOM and BUILD_CACHE will only be set after the fork in the child process created by ProcessPoolExecutor
+SOM = None
+BUILD_CACHE = {}
 
 
 def update_site(pages, assets, sass, templates):
@@ -85,7 +86,8 @@ def update_site(pages, assets, sass, templates):
                 obj[path.name] = som_builder.prep_file(path)
 
     if templates or first_build or any(change != Change.deleted for change, _ in pages):
-        render(CONFIG, SOM)
+        global BUILD_CACHE
+        BUILD_CACHE = render(CONFIG, SOM, BUILD_CACHE)
 
     if sass:
         run_grablib(CONFIG)

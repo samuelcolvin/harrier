@@ -122,7 +122,7 @@ def log_config(verbose: bool, dev) -> dict:
                 'formatter': 'default'
             },
             'build': {
-                'level': 'DEBUG' if verbose else 'WARNING',
+                'level': 'DEBUG' if verbose else ('WARNING' if dev else 'INFO'),
                 'class': 'grablib.common.ClickHandler',
                 'formatter': 'default'
             },
