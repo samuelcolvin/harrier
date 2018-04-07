@@ -13,6 +13,7 @@ from watchgod import Change, awatch
 from .assets import copy_assets, run_grablib, start_webpack_watch
 from .build import BuildSOM, build_som, render
 from .config import Config
+from .extensions import apply_modifiers
 
 HOST = '0.0.0.0'
 FIRST_BUILD = '__FB__'
@@ -70,6 +71,7 @@ def update_site(pages, assets, sass, templates):
     global SOM
     if first_build or not SOM:
         SOM = build_som(CONFIG)
+        SOM = apply_modifiers(SOM, CONFIG.extensions.post_modifiers)
     elif pages:
         som_builder = BuildSOM(CONFIG)
         for change, path in pages:
@@ -81,6 +83,7 @@ def update_site(pages, assets, sass, templates):
                 obj.pop(path.name)
             else:
                 obj[path.name] = som_builder.prep_file(path)
+        SOM = apply_modifiers(SOM, CONFIG.extensions.post_modifiers)
 
     if templates or first_build or any(change != Change.deleted for change, _ in pages):
         global BUILD_CACHE
@@ -101,6 +104,7 @@ def is_within(location: Path, directory: Path):
 
 
 async def adev(config: Config, port: int):
+    config = apply_modifiers(config, config.extensions.pre_modifiers)
     global CONFIG
     CONFIG = config
     stop_event = asyncio.Event()

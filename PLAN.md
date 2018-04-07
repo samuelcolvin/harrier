@@ -69,11 +69,9 @@ default webpack config with no need to setup?
 
 # TODO
 
-* tests
 * features:
-  * extensions
   * multipart front-matter
-  * sass/js files available in som
+  * sass/js files available in som also hashes in sass file names
   * ignored directories
   * local config file
   * process data

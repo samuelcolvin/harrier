@@ -20,6 +20,7 @@ def build(path: StrPath):
         logger.debug('Config:\n%s', '\n'.join([f'  {k}: {v}' for k, v in config.dict().items()]))
 
     config = apply_modifiers(config, config.extensions.pre_modifiers)
+
     _empty_dir(config.dist_dir)
     _empty_dir(config.get_tmp_dir())
 
