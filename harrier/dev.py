@@ -1,5 +1,6 @@
 import asyncio
 import contextlib
+import logging
 import signal
 from concurrent.futures import ProcessPoolExecutor
 from pathlib import Path
@@ -11,10 +12,11 @@ from watchgod import Change, awatch
 
 from .assets import start_webpack_watch, copy_assets, run_grablib
 from .build import BuildSOM, build_som, render
-from .common import Config, logger
+from .common import Config
 
 HOST = '0.0.0.0'
-BUILD_START = 'start'
+FIRST_BUILD = '__FB__'
+logger = logging.getLogger('harrier.dev')
 
 
 class Server:
@@ -40,13 +42,20 @@ class Server:
         logger.debug('shutdown took %0.2fs', self.loop.time() - start)
 
 
-def update_site(config, som, pages, assets, sass, templates):
+# SOM will only be set after the fork in the child process created by ProcessPoolExecutor
+SOM = None
+# CONFIG will bet set before the fork so it can be used by the child process
+CONFIG: Config = None
+
+
+def update_site(pages, assets, sass, templates):
+    assert CONFIG, 'CONFIG global not set'
     if not any([pages, assets, sass, templates]):
         logger.debug('no changes to site, not rebuilding')
         return
     start_time = time()
-    is_start = pages == BUILD_START
-    if is_start:
+    first_build = pages == FIRST_BUILD
+    if first_build:
         logger.info('building...')
     else:
         msg = [
@@ -58,15 +67,16 @@ def update_site(config, som, pages, assets, sass, templates):
         logger.info('%s rebuilding...', ', '.join([m for m in msg if m]))
 
     if assets:
-        copy_assets(config)
+        copy_assets(CONFIG)
 
-    if is_start or not som:
-        som = build_som(config)
+    global SOM
+    if first_build or not SOM:
+        SOM = build_som(CONFIG)
     elif pages:
-        som_builder = BuildSOM(config)
+        som_builder = BuildSOM(CONFIG)
         for change, path in pages:
-            obj = som['pages']
-            for item in str(path.relative_to(config.pages_dir)).split('/')[:-1]:
+            obj = SOM['pages']
+            for item in str(path.relative_to(CONFIG.pages_dir)).split('/')[:-1]:
                 obj = obj[item]
             if change == Change.deleted:
                 obj[path.name]['outfile'].unlink()
@@ -74,13 +84,12 @@ def update_site(config, som, pages, assets, sass, templates):
             else:
                 obj[path.name] = som_builder.prep_file(path)
 
-    if templates or is_start or any(change != Change.deleted for change, _ in pages):
-        render(config, som)
+    if templates or first_build or any(change != Change.deleted for change, _ in pages):
+        render(CONFIG, SOM)
 
     if sass:
-        run_grablib(config)
-    logger.info('%sbuild completed in %0.3fs', '' if is_start else 're', time() - start_time)
-    return som
+        run_grablib(CONFIG)
+    logger.info('%sbuild completed in %0.3fs', '' if first_build else 're', time() - start_time)
 
 
 def is_within(location: Path, directory: Path):
@@ -93,6 +102,8 @@ def is_within(location: Path, directory: Path):
 
 
 async def adev(config: Config, port: int):
+    global CONFIG
+    CONFIG = config
     stop_event = asyncio.Event()
     loop = asyncio.get_event_loop()
     loop.add_signal_handler(signal.SIGINT, stop_event.set)
@@ -100,9 +111,9 @@ async def adev(config: Config, port: int):
 
     webpack_process = await start_webpack_watch(config)
 
-    with ProcessPoolExecutor() as executor:
-        loop.set_default_executor(executor)
-        som = await loop.run_in_executor(None, update_site, config, None, BUILD_START, True, True, True)
+    # max_workers = 1 so the same config and som are always used to build the site
+    with ProcessPoolExecutor(max_workers=1) as executor:
+        await loop.run_in_executor(executor, update_site, FIRST_BUILD, True, True, True)
 
         logger.info('\nStarting dev server, go to http://localhost:%s', port)
         server = Server(config, port)
@@ -112,8 +123,8 @@ async def adev(config: Config, port: int):
             async for changes in awatch(config.source_dir, stop_event=stop_event):
                 logger.debug('file changes: %s', changes)
                 pages, assets, sass, templates = set(), False, False, False
-                for change, path in changes:
-                    path = Path(path)
+                for change, raw_path in changes:
+                    path = Path(raw_path)
                     if is_within(path, config.pages_dir):
                         pages.add((change, path))
                     elif is_within(path, config.theme_dir / 'assets'):
@@ -122,7 +133,7 @@ async def adev(config: Config, port: int):
                         sass = True
                     elif is_within(path, config.theme_dir / 'templates'):
                         templates = True
-                som = await loop.run_in_executor(None, update_site, config, som, pages, assets, sass, templates)
+                await loop.run_in_executor(executor, update_site, pages, assets, sass, templates)
         finally:
             if webpack_process:
                 if webpack_process.returncode is None:

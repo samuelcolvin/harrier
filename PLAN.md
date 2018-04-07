@@ -69,7 +69,6 @@ default webpack config with no need to setup?
 
 # TODO
 
-* less logging in dev mode
 * tests
 * features:
   * extensions

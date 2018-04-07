@@ -51,6 +51,6 @@ setup(
         'libsass>=0.10.1',
         'misaka>=2.1.0',
         'pydantic>=0.8',
-        'watchgod>=0.1',
+        'watchgod>=0.1.1',
     ]
 )

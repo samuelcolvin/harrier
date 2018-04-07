@@ -8,8 +8,6 @@ from typing import Any, Dict
 import click
 from pydantic import BaseSettings, validator
 
-logger = logging.getLogger('harrier')
-
 
 class HarrierProblem(RuntimeError):
     pass
@@ -97,7 +95,7 @@ class GrablibHandler(logging.Handler):
         click.secho(log_entry, **self.get_log_format(record))
 
 
-def log_config(verbose: bool) -> dict:
+def log_config(verbose: bool, dev) -> dict:
     if verbose is True:
         log_level = 'DEBUG'
     elif verbose is False:
@@ -123,6 +121,11 @@ def log_config(verbose: bool) -> dict:
                 'class': 'grablib.common.ClickHandler',
                 'formatter': 'default'
             },
+            'build': {
+                'level': 'DEBUG' if verbose else 'WARNING',
+                'class': 'grablib.common.ClickHandler',
+                'formatter': 'default'
+            },
             'grablib': {
                 'level': 'INFO' if verbose else 'WARNING',
                 'class': 'harrier.common.GrablibHandler',
@@ -135,9 +138,19 @@ def log_config(verbose: bool) -> dict:
             },
         },
         'loggers': {
-            logger.name: {
+            'harrier': {
                 'handlers': ['default'],
                 'level': log_level,
+            },
+            'harrier.build': {
+                'handlers': ['build'],
+                'level': log_level,
+                'propagate': False,
+            },
+            'harrier.assets': {
+                'handlers': ['build'],
+                'level': log_level,
+                'propagate': False,
             },
             'grablib': {
                 'handlers': ['grablib'],
@@ -151,6 +164,6 @@ def log_config(verbose: bool) -> dict:
     }
 
 
-def setup_logging(verbose):
-    config = log_config(verbose)
+def setup_logging(verbose, dev=False):
+    config = log_config(verbose, dev)
     logging.config.dictConfig(config)

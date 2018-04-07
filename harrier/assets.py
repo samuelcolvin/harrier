@@ -7,7 +7,8 @@ from time import time
 from grablib.download import Downloader
 from grablib.build import Builder
 
-from .common import Config, HarrierProblem, logger
+from .common import Config, HarrierProblem
+logger = logging.getLogger('harrier.assets')
 
 
 def run_grablib(config: Config, *, debug=False):

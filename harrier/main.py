@@ -1,4 +1,5 @@
 import asyncio
+import logging
 import shutil
 from itertools import product
 from pathlib import Path
@@ -7,12 +8,13 @@ import yaml
 from yaml.error import YAMLError
 
 from .assets import copy_assets, run_grablib, run_webpack
-from .common import Config, HarrierProblem, logger
+from .common import Config, HarrierProblem
 from .build import build_som, render
 from .dev import adev
 
 CONFIG_FILE_TRIES = 'harrier', 'config', '_config'
 CONFIG_FILE_TRIES = [Path(f'{name}.{ext}') for name, ext in product(CONFIG_FILE_TRIES, ['yml', 'yaml'])]
+logger = logging.getLogger('harrier.main')
 
 
 def load_config_file(config_path: Path):

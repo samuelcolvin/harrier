@@ -1,16 +1,18 @@
+import logging
 import traceback
 
 import click
 from grablib.common import GrablibError
 from pydantic import ValidationError
 
-from .common import HarrierProblem, logger, setup_logging
+from .common import HarrierProblem, setup_logging
 from .main import build as _build
 from .main import dev as _dev
 from .version import VERSION
 
 target_help = 'choice from targets in harrier.yml, defaults to same value as action eg. build or serve.'
 verbose_help = 'Enable verbose output.'
+logger = logging.getLogger('harrier')
 
 
 @click.group()

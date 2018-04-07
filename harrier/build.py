@@ -1,3 +1,4 @@
+import logging
 import re
 import shutil
 from datetime import datetime
@@ -10,7 +11,7 @@ from misaka import Markdown, HtmlRenderer
 from jinja2 import FileSystemLoader, Environment
 from pydantic import BaseModel, validator
 
-from .common import Config, HarrierProblem, logger
+from .common import Config, HarrierProblem
 
 FRONT_MATTER_REGEX = re.compile(r'^---[ \t]*(.*)\n---[ \t]*\n', re.S)
 # extensions where we want to do anything except just copy the file to the output dir
@@ -20,6 +21,8 @@ URI_NOT_ALLOWED = re.compile(r'[^a-zA-Z0-9_\-/.]')
 DATE_REGEX = re.compile(r'(\d{4})-(\d{2})-(\d{2})-?(.*)')
 URI_IS_TEMPLATE = re.compile('[{}]')
 DEFAULT_TEMPLATE = 'main.jinja'
+
+logger = logging.getLogger('harrier.build')
 
 
 def build_som(config: Config):
@@ -62,7 +65,7 @@ def render(config: Config, som: dict):
                 else:
                     rendered = content
             except Exception as e:
-                logger.error('%s: %s %s', infile, e.__class__.__name__, e)
+                logger.exception('%s: %s %s', infile, e.__class__.__name__, e)
                 raise
             else:
                 gen += 1
