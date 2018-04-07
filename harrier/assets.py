@@ -4,10 +4,11 @@ import shutil
 import subprocess
 from time import time
 
-from grablib.download import Downloader
 from grablib.build import Builder
+from grablib.download import Downloader
 
 from .common import Config, HarrierProblem
+
 logger = logging.getLogger('harrier.assets')
 
 

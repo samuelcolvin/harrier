@@ -8,8 +8,8 @@ from time import time
 from typing import Optional
 
 import yaml
-from misaka import Markdown, HtmlRenderer
-from jinja2 import FileSystemLoader, Environment
+from jinja2 import Environment, FileSystemLoader
+from misaka import HtmlRenderer, Markdown
 from pydantic import BaseModel, validator
 
 from .common import Config, HarrierProblem
@@ -182,7 +182,7 @@ class BuildSOM:
             try:
                 data['uri'] = slugify(uri.format(**data))
             except KeyError as e:
-                raise KeyError(f'missing format variable "{e}" for "{fd.uri}"')
+                raise KeyError(f'missing format variable "{e}" for "{uri}"')
 
         if data.get('output', True):
             outfile = self.config.dist_dir / data['uri'][1:]

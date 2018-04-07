@@ -8,8 +8,8 @@ import yaml
 from yaml.error import YAMLError
 
 from .assets import copy_assets, run_grablib, run_webpack
-from .common import Config, HarrierProblem
 from .build import build_som, render
+from .common import Config, HarrierProblem
 from .dev import adev
 
 CONFIG_FILE_TRIES = 'harrier', 'config', '_config'

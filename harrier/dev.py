@@ -10,7 +10,7 @@ from aiohttp.web_runner import AppRunner, TCPSite
 from aiohttp_devtools.runserver import serve_static
 from watchgod import Change, awatch
 
-from .assets import start_webpack_watch, copy_assets, run_grablib
+from .assets import copy_assets, run_grablib, start_webpack_watch
 from .build import BuildSOM, build_som, render
 from .common import Config
 
