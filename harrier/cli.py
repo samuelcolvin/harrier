@@ -1,77 +1,64 @@
-import click
-import re
 import logging
+import sys
+import traceback
 
-from harrier import VERSION
-from .build import build
-from .config import Config
-from .common import logger, HarrierProblem
-from .watch import watch
+import click
+from grablib.common import GrablibError
+from pydantic import ValidationError
 
-config_help = 'Provide a specific harrier config yml file path.'
-dev_address_help = 'IP address and port to serve documentation locally (default: localhost:8000).'
+from .common import HarrierProblem, setup_logging
+from .main import build as _build
+from .main import dev as _dev
+from .version import VERSION
+
 target_help = 'choice from targets in harrier.yml, defaults to same value as action eg. build or serve.'
-site_dir_help = 'The directory to output the result of the documentation build.'
-reload_help = 'Enable and disable the live reloading in the development server.'
 verbose_help = 'Enable verbose output.'
+logger = logging.getLogger('harrier')
 
 
-class ClickHandler(logging.Handler):
-    colours = {
-        logging.DEBUG: 'white',
-        logging.INFO: 'green',
-        logging.WARN: 'yellow',
-    }
-
-    def emit(self, record):
-        log_entry = self.format(record)
-        colour = self.colours.get(record.levelno, 'red')
-        m = re.match('^(\[.*?\])', log_entry)
-        if m:
-            time = click.style(m.groups()[0], fg='magenta')
-            msg = click.style(log_entry[m.end():], fg=colour)
-            click.echo(time + msg)
-        else:
-            click.secho(log_entry, fg=colour)
-
-
-def setup_logging(verbose=False, times=False):
-    for h in logger.handlers:
-        if isinstance(h, ClickHandler):
-            return
-    handler = ClickHandler()
-    fmt = '[%(asctime)s] %(message)s' if times else '%(message)s'
-    formatter = logging.Formatter(fmt, datefmt='%H:%M:%S')
-    handler.setFormatter(formatter)
-    logger.addHandler(handler)
-    logger.setLevel(logging.DEBUG if verbose else logging.INFO)
-
-
-@click.command()
-@click.version_option(VERSION, '-V', '--version')
-@click.argument('action', type=click.Choice(['serve', 'build']))
-@click.argument('config-file', type=click.Path(exists=True), required=False)
-@click.option('-t', '--target', help=dev_address_help)
-@click.option('-a', '--dev-addr', help=dev_address_help, metavar='<IP:PORT>')
-@click.option('-v', '--verbose', is_flag=True, help=verbose_help)
-def cli(action, config_file, target, dev_addr, verbose):
+@click.group()
+@click.version_option(VERSION, '-V', '--version', prog_name='harrier')
+def cli():
     """
-    harrier - Jinja2 & sass/scss aware site builder
+    harrier - yet another static site builder
     """
-    is_live = action == 'serve'  # TODO add watch
-    is_served = action == 'serve'
-    setup_logging(verbose, times=is_live)
+    pass
+
+
+@cli.command()
+@click.argument('path', type=click.Path(exists=True), required=False, default='.')
+@click.option('-v/-q', '--verbose/--quiet', 'verbose', default=None)
+def build(path, verbose):
+    """
+    build the site
+    """
+    setup_logging(verbose)
     try:
-        config = Config(config_file)
-        target = target or action
-        config.setup(target, served_direct=is_served)
-        if action == 'serve':
-            watch(config)
-        else:
-            assert action == 'build'
-            build(config)
-    except HarrierProblem as e:
+        _build(path)
+    except (HarrierProblem, ValidationError, GrablibError) as e:
         msg = 'Error: {}'
         if not verbose:
-            msg += ', use "--verbose" for more details'
-        click.secho(msg.format(e), fg='red', err=True)
+            msg += '\n\nUse "--verbose" for more details'
+        logger.debug(traceback.format_exc())
+        logger.error(msg.format(e))
+        sys.exit(2)
+
+
+@cli.command()
+@click.argument('path', type=click.Path(exists=True), required=False, default='.')
+@click.option('-p', '--port', default=8000, type=int)
+@click.option('-v/-q', '--verbose/--quiet', 'verbose', default=None)
+def dev(path, port, verbose):
+    """
+    Serve the site while watching for file changes and rebuilding upon changes.
+    """
+    setup_logging(verbose, dev=True)
+    try:
+        _dev(path, port)
+    except (HarrierProblem, ValidationError, GrablibError) as e:
+        msg = 'Error: {}'
+        if not verbose:
+            msg += '\n\nUse "--verbose" for more details'
+        logger.debug(traceback.format_exc())
+        logger.error(msg.format(e))
+        sys.exit(2)

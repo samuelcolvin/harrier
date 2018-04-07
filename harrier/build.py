@@ -1,130 +1,275 @@
+import hashlib
+import logging
+import re
 import shutil
-from copy import copy
-from fnmatch import fnmatch
+from datetime import datetime
 from pathlib import Path
+from time import time
+from typing import Optional
 
-from .common import logger, HarrierProblem
+import yaml
+from jinja2 import Environment, FileSystemLoader
+from misaka import HtmlRenderer, Markdown
+from pydantic import BaseModel, validator
+
+from .common import HarrierProblem
 from .config import Config
-from .tool_chain import ToolChainFactory, ToolChain
-from .tools import walk, hash_file
+
+FRONT_MATTER_REGEX = re.compile(r'^---[ \t]*(.*)\n---[ \t]*\n', re.S)
+# extensions where we want to do anything except just copy the file to the output dir
+OUTPUT_HTML = {'.html', '.md'}
+MAYBE_RENDER = {'.xml'}
+URI_NOT_ALLOWED = re.compile(r'[^a-zA-Z0-9_\-/.]')
+DATE_REGEX = re.compile(r'(\d{4})-(\d{2})-(\d{2})-?(.*)')
+URI_IS_TEMPLATE = re.compile('[{}]')
+DEFAULT_TEMPLATE = 'main.jinja'
+
+logger = logging.getLogger('harrier.build')
 
 
-def build(config: Config):
-    return Builder(config).build()
+def build_som(config: Config):
+    som_builder = BuildSOM(config)
+    return som_builder()
 
 
-class Builder:
-    _hash_dict = _previous_source_map = None
-    _already_built = False
-    _previous_hash_dict = {}
-    _previous_full_build = False
+def render(config: Config, som: dict, build_cache=None):
+    start = time()
+    dist_dir: Path = config.dist_dir
 
+    rndr = HtmlRenderer()
+    md = Markdown(rndr)
+
+    template_dirs = [str(config.get_tmp_dir()), str(config.theme_dir / 'templates')]
+    logger.debug('template directories: %s', ', '.join(template_dirs))
+
+    env = Environment(loader=FileSystemLoader(template_dirs))
+    checked_dirs = set()
+    gen, copy = 0, 0
+    for p in page_gen(som['pages']):
+        outfile: Path = p['outfile'].resolve()
+        out_dir = outfile.parent
+        if out_dir not in checked_dirs:
+            # this will raise an exception if somehow outfile is outside dis_dir
+            out_dir.relative_to(dist_dir)
+            out_dir.mkdir(exist_ok=True, parents=True)
+            checked_dirs.add(out_dir)
+
+        infile: Path = p['infile']
+        if 'template' in p:
+            template_file = p['template']
+            try:
+                if p['render']:
+                    content_template = env.get_template(str(p['content_template']))
+                    content = content_template.render(page=p, site=som)
+                else:
+                    content = p['content']
+
+                if infile.suffix == '.md':
+                    content = md(content)
+
+                if template_file:
+                    template = env.get_template(template_file)
+                    rendered = template.render(content=content, page=p, site=som)
+                else:
+                    rendered = content
+            except Exception as e:
+                logger.exception('%s: %s %s', infile, e.__class__.__name__, e)
+                raise
+            else:
+                rendered_b = rendered.encode()
+                if build_cache is not None:
+                    out_hash = hashlib.md5(rendered_b).digest()
+                    if build_cache.get(infile) == out_hash:
+                        # file hasn't changed
+                        continue
+                    else:
+                        build_cache[infile] = out_hash
+                gen += 1
+                outfile.write_bytes(rendered_b)
+        else:
+            if build_cache is not None:
+                mtime = infile.stat().st_mtime
+                if build_cache.get(infile) == mtime:
+                    # file hasn't changed
+                    continue
+                else:
+                    build_cache[infile] = mtime
+            copy += 1
+            shutil.copy(infile, outfile)
+    logger.info('generated %d files, copied %d files in %0.2fs', gen, copy, time() - start)
+    return build_cache
+
+
+class BuildSOM:
     def __init__(self, config: Config):
-        self._config = config
-        self._tool_chain_factory = ToolChainFactory(config)
-        self._exclude_patterns = self._config.exclude_patterns
+        self.config = config
+        self.tmp_dir = config.get_tmp_dir()
+        self.all_defaults = {
+            'template': DEFAULT_TEMPLATE,
+            **config.defaults.pop('all', {})
+        }
+        self.path_defaults = [
+            (re.compile(k), v)
+            for k, v in config.defaults.items() if v
+        ]
+        self.files = 0
+        self.template_files = 0
 
-    def build(self, partial=False) -> ToolChain:
-        if not partial:
-            self._previous_full_build = True
-        elif self._previous_full_build:
-            raise HarrierProblem('Partial builds are not allowed following full builds with the same builder')
+    def __call__(self):
+        logger.info('Building "%s"...', self.config.pages_dir)
+        start = time()
+        pages = self.build_dir(walk(self.config.pages_dir))
+        logger.info('Built site object model with %d files, %d files to render in %0.2fs',
+                    self.files, self.template_files, time() - start)
+        data = {}
+        return {
+            **self.config.dict(),
+            **dict(pages=pages, data=data)
+        }
 
-        self._delete(partial)
-        self._already_built = True
+    def build_dir(self, paths):
+        d = {}
+        for name, p in paths:
+            if not isinstance(p, Path):
+                d[name] = self.build_dir(p)
+                continue
+            try:
+                d[name] = self.prep_file(p)
+            except Exception as e:
+                raise HarrierProblem(f'{p}: {e.__class__.__name__} {e}') from e
 
-        tools = self._tool_chain_factory(partial)
-        all_files = self._file_list()
+        return d
 
-        logger.debug('%s files to build: %s', len(all_files), ', '.join(map(str, all_files)))
+    def prep_file(self, p):
+        html_output = p.suffix in OUTPUT_HTML
+        data = self.get_page_data(p, html_output)
 
-        self._hash_dict = {}
-        files_changed = 0
+        maybe_render = p.suffix in MAYBE_RENDER
+        apply_jinja = False
+        if html_output or maybe_render:
+            fm_data, content = parse_front_matter(p.read_text())
+            if html_output or fm_data:
+                data['content'] = content
+                fm_data and data.update(fm_data)
+                apply_jinja = True
 
-        for file_path in all_files:
-            changed = self._file_changed(file_path) if partial else True
-            files_changed += changed
-            tools.assign_file(file_path, changed)
-            if partial:
-                logger.debug('%20s: %s', file_path, 'changed' if changed else 'unchanged')
+        self.set_page_uri_outfile(p, data, html_output)
 
-        extra_files = tools.get_extra_files()
-        logger.debug('%s extra files will be generated', len(extra_files))
+        fd = FileData(**data)
+        final_data = fd.dict(exclude=set() if apply_jinja else {'template', 'render'})
+        final_data['__file__'] = 1
 
-        for file_path in extra_files:
-            files_changed += 1
-            tools.assign_file(file_path, True)
-            logger.debug('%20s: extra file', file_path)
+        if apply_jinja and fd.render:
+            if not fd.content_template.parent.exists():
+                fd.content_template.parent.mkdir(parents=True)
+            fd.content_template.write_text(final_data.pop('content'))
+            final_data['content_template'] = str(fd.content_template.relative_to(self.tmp_dir))
+        else:
+            final_data.pop('content_template')
 
-        if partial:
-            logger.info('%s files changed or associated with changed files', files_changed)
+        # logger.debug('added %s apply_jinja: %s, outfile %s', p, apply_jinja, fd.outfile)
+        self.files += 1
+        if apply_jinja:
+            self.template_files += 1
 
-        self._config.target_dir.mkdir(parents=True, exist_ok=True)
-        tools.build()
+        return final_data
 
-        tool_str = 'tool' if tools.tools_run == 1 else 'tools'
-        file_str = 'file' if tools.files_built == 1 else 'files'
-        logger.info('Built %s %s with %s %s', tools.files_built, file_str, tools.tools_run, tool_str)
+    def get_page_data(self, p, html_output):
+        data = {
+            'infile': p,
+            'content_template': self.tmp_dir / 'content' / p.relative_to(self.config.pages_dir)
+        }
+        name = p.stem if html_output else p.name
 
-        for t in tools:
-            t.cleanup()
+        date_match = DATE_REGEX.match(name)
+        if date_match:
+            *date_args, new_name = date_match.groups()
+            created = datetime(*map(int, date_args))
+            name = new_name or name
+        else:
+            created = p.stat().st_mtime
+        data.update(
+            title=name,
+            slug='' if html_output and p.stem == 'index' else slugify(name),
+            created=created
+        )
 
-        if partial:
-            # TODO deleting stale files is fairly aggressive and could cause problems, maybe needs switch
-            # could check for force activation of the tool associated with this file, but would need to
-            # modify check_ownership on Jinja
-            stale_files = self._delete_stale()
-            logger.debug('Deleted %d stale files', stale_files)
+        data.update(self.all_defaults)
+        for regex, defaults in self.path_defaults:
+            if regex.match(str(p.relative_to(self.config.pages_dir))):
+                data.update(defaults)
+        return data
 
-        if partial:
-            self._previous_hash_dict = copy(self._hash_dict)
-            self._previous_source_map = copy(tools.source_map)
-        logger.debug('-' * 20)
-        return tools
+    def set_page_uri_outfile(self, p, data, html_output):
+        uri = data.get('uri')
+        if not uri:
+            parents = str(p.parent.relative_to(self.config.pages_dir)).split('/')
+            if parents == ['.']:
+                data['uri'] = '/' + data['slug']
+            else:
+                data['uri'] = '/' + '/'.join([slugify(p) for p in parents] + [data['slug']])
+        elif URI_IS_TEMPLATE.search(uri):
+            try:
+                data['uri'] = slugify(uri.format(**data))
+            except KeyError as e:
+                raise KeyError(f'missing format variable "{e}" for "{uri}"')
 
-    def _file_changed(self, file_path):
-        file_hash = hash_file(Path(self._config.root) / file_path)
+        if data.get('output', True):
+            outfile = self.config.dist_dir / data['uri'][1:]
+            if html_output and outfile.suffix != '.html':
+                outfile /= 'index.html'
+            data['outfile'] = outfile
 
-        # add hash so it can be used on next build
-        self._hash_dict[file_path] = file_hash
 
-        # check if the file_hash exists in and matches _hash_dict
-        return self._previous_hash_dict.get(file_path) != file_hash
+def walk(path: Path):
+    for p in sorted(path.iterdir(), key=lambda p_: (p_.is_dir(), p_.name)):
+        yield p.name, walk(p) if p.is_dir() else p.resolve()
 
-    def _file_list(self):
-        all_files = walk(self._config.root)
-        logger.debug('%s files in root directory', len(all_files))
 
-        before_exclude = len(all_files)
-        all_files = list(filter(self._not_excluded, all_files))
-        logger.debug('%s files excluded', before_exclude - len(all_files))
-        return all_files
+def parse_front_matter(s):
+    m = re.match(FRONT_MATTER_REGEX, s)
+    if not m:
+        return None, s.strip('\r\n')
+    data = yaml.load(m.groups()[0]) or {}
+    return data, s[m.end():].strip('\r\n')
 
-    def _not_excluded(self, fn):
-        return not any(fnmatch(str(fn), m) for m in self._exclude_patterns)
 
-    def _delete_stale(self):
-        """
-        Find deleted files root by comparing hash_dict and previous hash_dict, then delete the associated target
-        files.
-        """
-        c = 0
-        for deleted_file in (set(self._previous_hash_dict.keys()) - set(self._hash_dict.keys())):
-            for target_deleted_file in self._previous_source_map.get(deleted_file, []):
-                self._config.target_dir.joinpath(target_deleted_file).unlink()
-            c += 1
-        return c
+class FileData(BaseModel):
+    infile: Path
+    content_template: Path
+    title: str
+    slug: str
+    created: datetime
+    uri: str
+    template: Optional[str]
+    render: bool = True
+    outfile: Path = None
 
-    def _delete(self, partial):
-        if not self._config.target_dir.exists():
-            return
+    @validator('uri')
+    def validate_uri(cls, v):
+        if not v.startswith('/'):
+            raise ValueError(f'uri must start with a slash: "{v}')
+        invalid = URI_NOT_ALLOWED.findall(v)
+        if invalid:
+            invalid = ', '.join(f'"{inv}"' for inv in invalid)
+            raise ValueError(f'uri contains invalid characters: {invalid}')
+        return v
 
-        reason = None
-        if not partial:
-            reason = 'Full'
-        elif not self._already_built:
-            reason = 'First'
+    class Config:
+        allow_extra = True
 
-        if reason:
-            logger.info('%s build, deleting target directory %s', reason, self._config.target_dir)
-            shutil.rmtree(str(self._config.target_dir))
+
+def slugify(title):
+    name = title.replace(' ', '-').lower()
+    name = URI_NOT_ALLOWED.sub('', name)
+    name = re.sub('-{2,}', '-', name)
+    return name.strip('_-')
+
+
+def page_gen(d: dict):
+    for v in d.values():
+        if '__file__' in v:
+            if v.get('outfile'):
+                yield v
+        else:
+            yield from page_gen(v)

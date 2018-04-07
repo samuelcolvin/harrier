@@ -2,24 +2,23 @@ language: python
 
 cache: pip
 
-addons:
-  apt:
-    packages:
-      - libyaml-dev
-
 python:
-  - "3.5"
+- '3.6'
+- 'nightly'  # currently 3.7
+
+matrix:
+  allow_failures:
+  - python: 'nightly'
 
 install:
-  - pip install --upgrade pip
-  - pip install libsass pyyaml  # much faster installed wih pip
-  - python setup.py install
-  - pip install -r requirements_test.txt
+- make install
+- pip freeze
 
 script:
-  - flake8 harrier/ tests/
-  - py.test --cov=harrier
+- make lint
+- make test
+- ./tests/check_tag.py
 
 after_success:
-  - coverage combine
-  - codecov
+- ls -lha
+- bash <(curl -s https://codecov.io/bash)
