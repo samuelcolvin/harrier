@@ -43,6 +43,9 @@ def render(config: Config, som: dict, build_cache=None):
     logger.debug('template directories: %s', ', '.join(template_dirs))
 
     env = Environment(loader=FileSystemLoader(template_dirs))
+    env.filters.update(config.extensions.template_filters)
+    env.globals.update(config.extensions.template_functions)
+
     checked_dirs = set()
     gen, copy = 0, 0
     for p in page_gen(som['pages']):
@@ -142,7 +145,8 @@ class BuildSOM:
 
     def prep_file(self, p):
         html_output = p.suffix in OUTPUT_HTML
-        data = self.get_page_data(p, html_output)
+        rel_path = str(p.relative_to(self.config.pages_dir))
+        data = self.get_page_data(p, html_output, rel_path)
 
         maybe_render = p.suffix in MAYBE_RENDER
         apply_jinja = False
@@ -172,9 +176,13 @@ class BuildSOM:
         if apply_jinja:
             self.template_files += 1
 
+        for regex, f in self.config.extensions.page_modifiers:
+            if regex.match(rel_path):
+                final_data = f(final_data, config=self.config)
+
         return final_data
 
-    def get_page_data(self, p, html_output):
+    def get_page_data(self, p, html_output, rel_path):
         data = {
             'infile': p,
             'content_template': self.tmp_dir / 'content' / p.relative_to(self.config.pages_dir)
@@ -196,7 +204,7 @@ class BuildSOM:
 
         data.update(self.all_defaults)
         for regex, defaults in self.path_defaults:
-            if regex.match(str(p.relative_to(self.config.pages_dir))):
+            if regex.match(rel_path):
                 data.update(defaults)
         return data
 

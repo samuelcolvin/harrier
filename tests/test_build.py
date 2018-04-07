@@ -121,6 +121,13 @@ def test_build_simple_som(tmpdir):
     assert {
         'source_dir': source_dir,
         'pages_dir': source_dir / 'pages',
+        'extensions': {
+            'page_modifiers': [],
+            'post_modifiers': [],
+            'pre_modifiers': [],
+            'template_filters': {},
+            'template_functions': {},
+        },
         'theme_dir': source_dir / 'theme',
         'data_dir': source_dir / 'data',
         'dist_dir': source_dir / 'dist',

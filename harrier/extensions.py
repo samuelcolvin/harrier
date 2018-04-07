@@ -14,23 +14,39 @@ __all__ = (
 )
 
 
-class ExtensionTypes(str, Enum):
-    pre_modifier = 'pre_modifier'
-    post_modifier = 'post_modifier'
-    page_modifier = 'page_modifier'
+class ExtType(str, Enum):
+    pre_modifiers = 'pre_modifiers'
+    post_modifiers = 'post_modifiers'
+    page_modifiers = 'page_modifiers'
     template_filters = 'template_filters'
     template_functions = 'template_functions'
 
 
-class Extensions:
+class Extensions(dict):
+    def __init__(self, extensions):
+        super().__init__(extensions)
+        self.pre_modifiers = extensions[ExtType.pre_modifiers]
+        self.post_modifiers = extensions[ExtType.post_modifiers]
+        self.page_modifiers = extensions[ExtType.page_modifiers]
+        self.template_filters = extensions[ExtType.template_filters]
+        self.template_functions = extensions[ExtType.template_functions]
+
     @classmethod
     def get_validators(cls):
         yield cls.validate
 
     @classmethod
     def validate(cls, value):
+        extensions = {
+            ExtType.pre_modifiers: [],
+            ExtType.post_modifiers: [],
+            ExtType.page_modifiers: [],
+            ExtType.template_filters: {},
+            ExtType.template_functions: {},
+        }
         if not value:
-            return
+            return cls(extensions)
+
         try:
             spec = spec_from_file_location('extensions', value)
             module = module_from_spec(spec)
@@ -38,29 +54,26 @@ class Extensions:
         except ImportError as e:
             raise ValueError(str(e)) from e
 
-        extensions = {
-            ExtensionTypes.pre_modifier: [],
-            ExtensionTypes.post_modifier: [],
-            ExtensionTypes.page_modifier: [],
-            ExtensionTypes.template_filters: {},
-            ExtensionTypes.template_functions: {},
-        }
-
         for attr_name in dir(module):
             attr = getattr(module, attr_name)
             ext_type = getattr(attr, '__extension__', None)
-            if ext_type == ExtensionTypes.page_modifier:
+            if ext_type == ExtType.page_modifiers:
                 for regex in attr.regexes:
                     extensions[ext_type].append((re.compile(regex), attr))
             elif ext_type:
                 extensions[ext_type].append(attr)
             elif any(getattr(attr, n, False) for n in filter_attrs):
-                extensions[ExtensionTypes.template_filters][attr_name] = attr
+                extensions[ExtType.template_filters][attr_name] = attr
             elif any(getattr(attr, n, False) for n in function_attrs):
-                extensions[ExtensionTypes.template_functions][attr_name] = attr
+                extensions[ExtType.template_functions][attr_name] = attr
 
-        if any(extensions.values()):
-            return extensions
+        return cls(extensions)
+
+
+def apply_modifiers(obj, ext):
+    for f in ext:
+        obj = f(obj)
+    return obj
 
 
 class modify:
@@ -69,15 +82,15 @@ class modify:
         if isinstance(f, FunctionType):
             raise HarrierProblem("pre_build should be used bare. "
                                  "E.g. usage should be `@pre_build`")
-        f.__extension__ = ExtensionTypes.pre_modifier
+        f.__extension__ = ExtType.pre_modifiers
         return f
 
     @staticmethod
-    def pre(f):
+    def post(f):
         if isinstance(f, FunctionType):
             raise HarrierProblem("post_build should be used bare. "
                                  "E.g. usage should be `@post_build`")
-        f.__extension__ = ExtensionTypes.post_modifier
+        f.__extension__ = ExtType.post_modifiers
         return f
 
     @staticmethod
@@ -89,7 +102,7 @@ class modify:
                                  "E.g. usage should be `@modify_pages('<page_regex>', ...)`")
 
         def dec(f):
-            f.__extension__ = ExtensionTypes.page_modifier
+            f.__extension__ = ExtType.page_modifiers
             f.regexes = regexes
             return f
         return dec
