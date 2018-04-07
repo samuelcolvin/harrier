@@ -62,7 +62,7 @@ def render(config: Config, som: dict, build_cache=None):
                     content_template = env.get_template(str(p['content_template']))
                     content = content_template.render(page=p, site=som)
                 else:
-                    content = p.pop('content')
+                    content = p['content']
 
                 if infile.suffix == '.md':
                     content = md(content)
@@ -142,6 +142,39 @@ class BuildSOM:
 
     def prep_file(self, p):
         html_output = p.suffix in OUTPUT_HTML
+        data = self.get_page_data(p, html_output)
+
+        maybe_render = p.suffix in MAYBE_RENDER
+        apply_jinja = False
+        if html_output or maybe_render:
+            fm_data, content = parse_front_matter(p.read_text())
+            if html_output or fm_data:
+                data['content'] = content
+                fm_data and data.update(fm_data)
+                apply_jinja = True
+
+        self.set_page_uri_outfile(p, data, html_output)
+
+        fd = FileData(**data)
+        final_data = fd.dict(exclude=set() if apply_jinja else {'template', 'render'})
+        final_data['__file__'] = 1
+
+        if apply_jinja and fd.render:
+            if not fd.content_template.parent.exists():
+                fd.content_template.parent.mkdir(parents=True)
+            fd.content_template.write_text(final_data.pop('content'))
+            final_data['content_template'] = str(fd.content_template.relative_to(self.tmp_dir))
+        else:
+            final_data.pop('content_template')
+
+        # logger.debug('added %s apply_jinja: %s, outfile %s', p, apply_jinja, fd.outfile)
+        self.files += 1
+        if apply_jinja:
+            self.template_files += 1
+
+        return final_data
+
+    def get_page_data(self, p, html_output):
         data = {
             'infile': p,
             'content_template': self.tmp_dir / 'content' / p.relative_to(self.config.pages_dir)
@@ -163,22 +196,18 @@ class BuildSOM:
 
         data.update(self.all_defaults)
         for regex, defaults in self.path_defaults:
-            if regex.match(str(p)):
+            if regex.match(str(p.relative_to(self.config.pages_dir))):
                 data.update(defaults)
+        return data
 
-        maybe_render = p.suffix in MAYBE_RENDER
-        apply_jinja = False
-        if html_output or maybe_render:
-            fm_data, content = parse_front_matter(p.read_text())
-            if html_output or fm_data:
-                data['content'] = content
-                fm_data and data.update(fm_data)
-                apply_jinja = True
-
+    def set_page_uri_outfile(self, p, data, html_output):
         uri = data.get('uri')
         if not uri:
             parents = str(p.parent.relative_to(self.config.pages_dir)).split('/')
-            data['uri'] = '/' + '/'.join([slugify(p) for p in parents] + [data['slug']])
+            if parents == ['.']:
+                data['uri'] = '/' + data['slug']
+            else:
+                data['uri'] = '/' + '/'.join([slugify(p) for p in parents] + [data['slug']])
         elif URI_IS_TEMPLATE.search(uri):
             try:
                 data['uri'] = slugify(uri.format(**data))
@@ -190,25 +219,6 @@ class BuildSOM:
             if html_output and outfile.suffix != '.html':
                 outfile /= 'index.html'
             data['outfile'] = outfile
-
-        fd = FileData(**data)
-        final_data = fd.dict(exclude=set() if apply_jinja else {'template', 'render'})
-        final_data['__file__'] = 1
-
-        # TODO do his in render to
-        if apply_jinja and fd.render:
-            fd.content_template.parent.mkdir(parents=True, exist_ok=True)
-            fd.content_template.write_text(final_data.pop('content'))
-            final_data['content_template'] = str(fd.content_template.relative_to(self.tmp_dir))
-        else:
-            final_data.pop('content_template')
-
-        # logger.debug('added %s apply_jinja: %s, outfile %s', p, apply_jinja, fd.outfile)
-        self.files += 1
-        if apply_jinja:
-            self.template_files += 1
-
-        return final_data
 
 
 def walk(path: Path):
