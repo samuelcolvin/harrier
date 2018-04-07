@@ -7,7 +7,8 @@ from time import time
 from grablib.build import Builder
 from grablib.download import Downloader
 
-from .common import Config, HarrierProblem
+from .common import HarrierProblem
+from .config import Config
 
 logger = logging.getLogger('harrier.assets')
 
@@ -53,43 +54,24 @@ def copy_assets(config: Config):
 
 
 def webpack_args(config: Config, mode: str, watch: bool):
-    if not config.webpack_run:
+    if not config.webpack or not config.webpack.run:
         return
-
-    if not config.webpack_cli.exists():
-        logger.info('webpack cli path "%s" does not exist, not running webpack', config.webpack_cli)
-        return
-
-    entry_path = (config.theme_dir / config.webpack_entry).resolve()
-    if not entry_path.exists():
-        logger.info('webpack entry point "%s" does not exist, not running webpack', entry_path)
-        return
-
-    output_path = (config.dist_dir / config.webpack_output_path).resolve()
 
     # ./ is required to satisfy webpack when files are inside the "--context" directory
     args = (
-        config.webpack_cli,
+        config.webpack.cli,
         '--context', config.theme_dir,
-        '--entry', f'./{entry_path.relative_to(config.theme_dir)}',
-        '--output-path', output_path,
-        '--output-filename', config.webpack_output_filename,
+        '--entry', f'./{config.webpack.entry.relative_to(config.theme_dir)}',
+        '--output-path', config.webpack.output_path,
+        '--output-filename', config.webpack.output_filename,
         '--devtool', 'source-map',
         '--mode', mode,
+        watch and '--watch',
+        mode == 'production' and '--optimize-minimize',
+        config.webpack.config and '--config',
+        config.webpack.config and f'./{config.webpack.config.relative_to(config.theme_dir)}',
     )
-    if watch:
-        args += '--watch',
-    if mode == 'production':
-        args += '--optimize-minimize',
-
-    if config.webpack_config:
-        config_path = (config.source_dir / config.webpack_config).resolve()
-        if not config_path.exists():
-            logger.warning('webpack config set but does not exist "%s", not running webpack', config_path)
-            return
-        args += '--config', f'./{config_path.relative_to(config.theme_dir)}'
-
-    return [str(a) for a in args]
+    return [str(a) for a in args if a]
 
 
 def run_webpack(config: Config, *, mode='production'):

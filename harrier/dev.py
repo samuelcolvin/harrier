@@ -12,7 +12,7 @@ from watchgod import Change, awatch
 
 from .assets import copy_assets, run_grablib, start_webpack_watch
 from .build import BuildSOM, build_som, render
-from .common import Config
+from .config import Config
 
 HOST = '0.0.0.0'
 FIRST_BUILD = '__FB__'

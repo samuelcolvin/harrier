@@ -12,7 +12,8 @@ from jinja2 import Environment, FileSystemLoader
 from misaka import HtmlRenderer, Markdown
 from pydantic import BaseModel, validator
 
-from .common import Config, HarrierProblem
+from .common import HarrierProblem
+from .config import Config
 
 FRONT_MATTER_REGEX = re.compile(r'^---[ \t]*(.*)\n---[ \t]*\n', re.S)
 # extensions where we want to do anything except just copy the file to the output dir
@@ -33,15 +34,15 @@ def build_som(config: Config):
 
 def render(config: Config, som: dict, build_cache=None):
     start = time()
-    dist_dir: Path = som['dist_dir']
+    dist_dir: Path = config.dist_dir
 
     rndr = HtmlRenderer()
     md = Markdown(rndr)
 
-    env = Environment(loader=FileSystemLoader([
-        str(config.get_tmp_dir()),
-        str(config.theme_dir / 'templates'),
-    ]))
+    template_dirs = [str(config.get_tmp_dir()), str(config.theme_dir / 'templates')]
+    logger.debug('template directories: %s', ', '.join(template_dirs))
+
+    env = Environment(loader=FileSystemLoader(template_dirs))
     checked_dirs = set()
     gen, copy = 0, 0
     for p in page_gen(som['pages']):
@@ -143,7 +144,7 @@ class BuildSOM:
         html_output = p.suffix in OUTPUT_HTML
         data = {
             'infile': p,
-            'content_template': self.tmp_dir / p.relative_to(self.config.pages_dir)
+            'content_template': self.tmp_dir / 'content' / p.relative_to(self.config.pages_dir)
         }
         name = p.stem if html_output else p.name
 
