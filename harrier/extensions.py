@@ -20,7 +20,6 @@ class ExtType(str, Enum):
     page_modifiers = 'page_modifiers'
     template_filters = 'template_filters'
     template_functions = 'template_functions'
-    # Could also do on_save modifiers which run before files are saved and override_copy which modify the copy command
 
 
 class Extensions(dict):
