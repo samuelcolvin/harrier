@@ -25,6 +25,7 @@ test:
 testcov:
 	pytest --cov=harrier
 	@echo "building coverage html"
+	@coverage combine
 	@coverage html
 
 .PHONY: all

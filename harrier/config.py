@@ -34,7 +34,7 @@ class Config(BaseModel):
     theme_dir: Path = 'theme'
     data_dir: Path = 'data'
     dist_dir: Path = 'dist'
-    sass_dir: Path = 'theme'
+    dist_dir_sass: Path = 'theme'
     theme_assets_dir: Path = 'theme/assets'
     tmp_dir: Path = None
 
@@ -83,6 +83,10 @@ class Config(BaseModel):
     def validate_webpack(cls, v, *, values, **kwargs):
         webpack: WebpackConfig = v
         if not webpack.run:
+            return webpack
+
+        if {'source_dir', 'theme_dir', 'source_dir', 'dist_dir'} - values.keys():
+            # some values are missing, can't validate properly
             return webpack
 
         if not webpack.cli.is_absolute():

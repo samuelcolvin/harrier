@@ -1,4 +1,5 @@
 import logging
+import sys
 import traceback
 
 import click
@@ -19,7 +20,7 @@ logger = logging.getLogger('harrier')
 @click.version_option(VERSION, '-V', '--version', prog_name='harrier')
 def cli():
     """
-    harrier - Jinja2 & sass/scss aware site builder
+    harrier - yet another static site builder
     """
     pass
 
@@ -40,6 +41,7 @@ def build(path, verbose):
             msg += '\n\nUse "--verbose" for more details'
         logger.debug(traceback.format_exc())
         logger.error(msg.format(e))
+        sys.exit(2)
 
 
 @cli.command()
@@ -59,3 +61,4 @@ def dev(path, port, verbose):
             msg += '\n\nUse "--verbose" for more details'
         logger.debug(traceback.format_exc())
         logger.error(msg.format(e))
+        sys.exit(2)

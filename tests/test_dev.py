@@ -9,13 +9,14 @@ from harrier.dev import update_site
 from harrier.main import dev
 
 
-def test_dev_simple(tmpdir, mocker):
+def test_dev_simple(tmpdir, mocker, loop):
     async def awatch_alt(*args, **kwargs):
         yield {(Change.modified, str(tmpdir.join('pages/foobar.md')))}
         yield {(Change.modified, str(tmpdir.join('pages/features/whatever.md')))}
         yield {(Change.modified, str(tmpdir.join('harrier.yml')))}
         yield {(Change.added, str(tmpdir.join('theme/sass/main.scss')))}
 
+    asyncio.set_event_loop(loop)
     mktree(tmpdir, {
         'pages': {
             'foobar.md': '# hello',
@@ -49,10 +50,11 @@ def test_dev_simple(tmpdir, mocker):
     }
 
 
-def test_dev_delete(tmpdir, mocker):
+def test_dev_delete(tmpdir, mocker, loop):
     async def awatch_alt(*args, **kwargs):
         yield {(Change.deleted, str(tmpdir.join('pages/features/whatever.md')))}
 
+    asyncio.set_event_loop(loop)
     mktree(tmpdir, {
         'pages': {
             'foobar.md': '# hello',

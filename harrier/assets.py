@@ -31,7 +31,7 @@ def run_grablib(config: Config, *, debug=False):
             build_root=config.dist_dir,
             build={
                 'sass': {
-                    str(config.sass_dir): str(sass_dir)
+                    str(config.dist_dir_sass): str(sass_dir)
                 }
             },
             download_root=config.download_root,
@@ -60,8 +60,8 @@ def webpack_args(config: Config, mode: str, watch: bool):
     # ./ is required to satisfy webpack when files are inside the "--context" directory
     args = (
         config.webpack.cli,
-        '--context', config.theme_dir,
-        '--entry', f'./{config.webpack.entry.relative_to(config.theme_dir)}',
+        '--context', config.source_dir,
+        '--entry', f'./{config.webpack.entry.relative_to(config.source_dir)}',
         '--output-path', config.webpack.output_path,
         '--output-filename', config.webpack.output_filename,
         '--devtool', 'source-map',
@@ -69,7 +69,7 @@ def webpack_args(config: Config, mode: str, watch: bool):
         watch and '--watch',
         mode == 'production' and '--optimize-minimize',
         config.webpack.config and '--config',
-        config.webpack.config and f'./{config.webpack.config.relative_to(config.theme_dir)}',
+        config.webpack.config and f'./{config.webpack.config.relative_to(config.source_dir)}',
     )
     return [str(a) for a in args if a]
 
