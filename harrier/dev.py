@@ -51,9 +51,6 @@ BUILD_CACHE = {}
 
 def update_site(pages, assets, sass, templates):
     assert CONFIG, 'CONFIG global not set'
-    if not any([pages, assets, sass, templates]):
-        logger.debug('no changes to site, not rebuilding')
-        return
     start_time = time()
     first_build = pages == FIRST_BUILD
     if first_build:
@@ -135,7 +132,9 @@ async def adev(config: Config, port: int):
                         sass = True
                     elif is_within(path, config.theme_dir / 'templates'):
                         templates = True
-                await loop.run_in_executor(executor, update_site, pages, assets, sass, templates)
+
+                if any([pages, assets, sass, templates]):
+                    await loop.run_in_executor(executor, update_site, pages, assets, sass, templates)
         finally:
             if webpack_process:
                 if webpack_process.returncode is None:
