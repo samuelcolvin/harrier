@@ -3,9 +3,9 @@ import json
 import sys
 
 import pytest
-from pytest_toolbox import mktree
+from pytest_toolbox import gettree, mktree
 
-from harrier.assets import run_webpack, start_webpack_watch
+from harrier.assets import copy_assets, run_grablib, run_webpack, start_webpack_watch
 from harrier.common import HarrierProblem
 from harrier.config import get_config
 
@@ -25,13 +25,9 @@ if 'error' in ' '.join(sys.argv):
 def test_run_webpack(tmpdir):
     webpack_path = tmpdir.join('mock_webpack')
     mktree(tmpdir, {
-        'pages': {
-            'foobar.md': '# hello',
-        },
+        'pages': {'foobar.md': '# hello'},
         'theme': {
-            'templates': {
-                'main.jinja': 'main:\n {{ content }}'
-            },
+            'templates': {'main.jinja': 'main:\n {{ content }}'},
             'js': {
                 'index.js': '*'
             }
@@ -63,13 +59,9 @@ def test_run_webpack(tmpdir):
 def test_run_webpack_error(tmpdir):
     webpack_path = tmpdir.join('mock_webpack')
     mktree(tmpdir, {
-        'pages': {
-            'foobar.md': '# hello',
-        },
+        'pages': {'foobar.md': '# hello'},
         'theme': {
-            'templates': {
-                'main.jinja': 'main:\n {{ content }}'
-            },
+            'templates': {'main.jinja': 'main:\n {{ content }}'},
             'js': {
                 'error.js': '*'
             },
@@ -105,13 +97,9 @@ def test_run_webpack_error(tmpdir):
 async def test_start_webpack_watch(tmpdir, loop):
     webpack_path = tmpdir.join('mock_webpack')
     mktree(tmpdir, {
-        'pages': {
-            'foobar.md': '# hello',
-        },
+        'pages': {'foobar.md': '# hello'},
         'theme': {
-            'templates': {
-                'main.jinja': 'main:\n {{ content }}'
-            },
+            'templates': {'main.jinja': 'main:\n {{ content }}'},
             'js': {
                 'index.js': '*'
             }
@@ -141,3 +129,57 @@ async def test_start_webpack_watch(tmpdir, loop):
         '--mode', 'development',
         '--watch',
     ] == json.loads(tmpdir.join('webpack_args.json').read_text('utf8'))
+
+
+def test_grablib(tmpdir):
+    mktree(tmpdir, {
+        'pages': {'foobar.md': '# hello'},
+        'theme': {
+            'templates': {'main.jinja': 'main:\n {{ content }}'},
+            'sass': {
+                'main.scss': (
+                    '@import "DL/demo";'
+                    'body {background: $foo}'
+                )
+            }
+        },
+        'harrier.yml': (
+            f'dist_dir: {tmpdir.join("dist")}\n'
+            f'download:\n'
+            f"  'https://cdn.rawgit.com/samuelcolvin/ae6d04dadbb4d552d365f440d3ac8015/raw/"
+            f"cda04f66c71e4a5f418e78d111d651ae3a2e3784/demo.scss': '_demo.scss'"
+        )
+    })
+
+    config = get_config(str(tmpdir))
+    run_grablib(config)
+    assert gettree(tmpdir.join('dist')) == {
+        'theme': {
+            'main.css': 'body{background:#BAD}\n',
+        },
+    }
+
+
+def test_copy_assets(tmpdir):
+    mktree(tmpdir, {
+        'pages': {'foobar.md': '# hello'},
+        'theme': {
+            'templates': {'main.jinja': 'main:\n {{ content }}'},
+            'assets': {
+                'image.png': '*'
+            }
+        },
+        'harrier.yml': (
+            f'dist_dir: {tmpdir.join("dist")}\n'
+        )
+    })
+
+    config = get_config(str(tmpdir))
+    copy_assets(config)
+    assert gettree(tmpdir.join('dist')) == {
+        'theme': {
+            'assets': {
+                'image.png': '*'
+            },
+        },
+    }

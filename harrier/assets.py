@@ -14,10 +14,11 @@ logger = logging.getLogger('harrier.assets')
 
 
 def run_grablib(config: Config, *, debug=False):
+    download_root = config.theme_dir / 'libs'
     if config.download:
         logger.info('running grablib download...')
         download = Downloader(
-            download_root=config.download_root,
+            download_root=download_root,
             download=config.download,
             aliases=config.download_aliases,
             lock=config.theme_dir / '.grablib.lock',
@@ -34,7 +35,7 @@ def run_grablib(config: Config, *, debug=False):
                     str(config.dist_dir_sass): str(sass_dir)
                 }
             },
-            download_root=config.download_root,
+            download_root=download_root,
             debug=debug,
         )
         build()
@@ -42,11 +43,10 @@ def run_grablib(config: Config, *, debug=False):
 
 def copy_assets(config: Config):
     in_dir = config.theme_dir / 'assets'
-    if not in_dir.exists():
-        return
     if not in_dir.is_dir():
-        raise HarrierProblem(f'assert directory "{in_dir}" is not a directory')
-    out_dir = config.dist_dir / config.theme_assets_dir
+        return
+    out_dir = config.dist_dir / config.dist_dir_assets
+    out_dir.relative_to(config.dist_dir)
     logger.info('copying theme assets from "%s" to "%s"',
                 in_dir.relative_to(config.source_dir), out_dir.relative_to(config.dist_dir))
     out_dir.parent.mkdir(parents=True, exist_ok=True)

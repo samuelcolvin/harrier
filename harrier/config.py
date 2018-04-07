@@ -35,7 +35,7 @@ class Config(BaseModel):
     data_dir: Path = 'data'
     dist_dir: Path = 'dist'
     dist_dir_sass: Path = 'theme'
-    theme_assets_dir: Path = 'theme/assets'
+    dist_dir_assets: Path = 'theme/assets'
     tmp_dir: Path = None
 
     download: Dict[str, Any] = {}
@@ -108,10 +108,6 @@ class Config(BaseModel):
 
         webpack.output_path = (values['dist_dir'] / webpack.output_path).resolve()
         return webpack
-
-    @property
-    def download_root(self) -> Path:
-        return self.theme_dir / 'libs'
 
     def get_tmp_dir(self) -> Path:
         if self.tmp_dir:

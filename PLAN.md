@@ -73,6 +73,6 @@ default webpack config with no need to setup?
 * features:
   * extensions
   * multipart front-matter
+  * sass/js files available in som
   * ignored directories
   * local config file
-  * sass/js files available in som

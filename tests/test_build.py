@@ -125,7 +125,7 @@ def test_build_simple_som(tmpdir):
         'data_dir': source_dir / 'data',
         'dist_dir': source_dir / 'dist',
         'dist_dir_sass': Path('theme'),
-        'theme_assets_dir': Path('theme/assets'),
+        'dist_dir_assets': Path('theme/assets'),
         'tmp_dir': source_dir / 'tmp',
         'download': {},
         'download_aliases': {},
