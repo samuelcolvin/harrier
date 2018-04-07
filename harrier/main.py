@@ -2,6 +2,7 @@ import asyncio
 import logging
 import shutil
 from pathlib import Path
+from typing import Union
 
 from .assets import copy_assets, run_grablib, run_webpack
 from .build import build_som, render
@@ -10,9 +11,10 @@ from .dev import adev
 from .extensions import apply_modifiers
 
 logger = logging.getLogger('harrier.main')
+StrPath = Union[str, Path]
 
 
-def build(path):
+def build(path: StrPath):
     config = get_config(path)
     if logger.isEnabledFor(logging.DEBUG):
         logger.debug('Config:\n%s', '\n'.join([f'  {k}: {v}' for k, v in config.dict().items()]))
@@ -31,7 +33,7 @@ def build(path):
     run_webpack(config)
 
 
-def dev(path, port):
+def dev(path: StrPath, port: int):
     config = get_config(path)
 
     _empty_dir(config.dist_dir)

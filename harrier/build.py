@@ -159,6 +159,12 @@ class BuildSOM:
 
         self.set_page_uri_outfile(p, data, html_output)
 
+        for regex, f in self.config.extensions.page_modifiers:
+            if regex.match(rel_path):
+                data = f(data, config=self.config)
+                if not isinstance(data, dict):
+                    raise HarrierProblem(f'extension "{f.__name__}" did not return a dict')
+
         fd = FileData(**data)
         final_data = fd.dict(exclude=set() if apply_jinja else {'template', 'render'})
         final_data['__file__'] = 1
@@ -175,10 +181,6 @@ class BuildSOM:
         self.files += 1
         if apply_jinja:
             self.template_files += 1
-
-        for regex, f in self.config.extensions.page_modifiers:
-            if regex.match(rel_path):
-                final_data = f(final_data, config=self.config)
 
         return final_data
 

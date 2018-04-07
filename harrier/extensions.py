@@ -71,25 +71,22 @@ class Extensions(dict):
 
 
 def apply_modifiers(obj, ext):
+    original_type = type(obj)
     for f in ext:
         obj = f(obj)
+        if not isinstance(obj, original_type):
+            raise HarrierProblem(f'extension "{f.__name__}" did not return a {original_type.__name__} as expected')
     return obj
 
 
 class modify:
     @staticmethod
     def pre(f):
-        if isinstance(f, FunctionType):
-            raise HarrierProblem("pre_build should be used bare. "
-                                 "E.g. usage should be `@pre_build`")
         f.__extension__ = ExtType.pre_modifiers
         return f
 
     @staticmethod
     def post(f):
-        if isinstance(f, FunctionType):
-            raise HarrierProblem("post_build should be used bare. "
-                                 "E.g. usage should be `@post_build`")
         f.__extension__ = ExtType.post_modifiers
         return f
 
