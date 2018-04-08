@@ -7,7 +7,7 @@ from pytest_toolbox import gettree, mktree
 
 from harrier.assets import copy_assets, run_grablib, run_webpack, start_webpack_watch
 from harrier.common import HarrierProblem
-from harrier.config import get_config
+from harrier.config import Mode, get_config
 
 MOCK_WEBPACK = f"""\
 #!{sys.executable}
@@ -70,6 +70,7 @@ def test_run_webpack_error(tmpdir):
         'webpack_config.js': '*',
         'mock_webpack': MOCK_WEBPACK,
         'harrier.yml': (
+            f'mode: development\n'
             f'webpack:\n'
             f'  cli: {webpack_path}\n'
             f'  entry: js/error.js\n'
@@ -80,7 +81,7 @@ def test_run_webpack_error(tmpdir):
 
     config = get_config(str(tmpdir))
     with pytest.raises(HarrierProblem):
-        run_webpack(config, mode='development')
+        run_webpack(config)
     args = json.loads(tmpdir.join('webpack_args.json').read_text('utf8'))
     assert [
         f'{tmpdir}/mock_webpack',
@@ -115,6 +116,7 @@ async def test_start_webpack_watch(tmpdir, loop):
     webpack_path.chmod(0o777)
 
     config = get_config(str(tmpdir))
+    config.mode = Mode.development
 
     asyncio.set_event_loop(loop)
     p = await start_webpack_watch(config)

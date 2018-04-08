@@ -1,6 +1,7 @@
 import hashlib
 import logging
 import tempfile
+from enum import Enum
 from itertools import product
 from pathlib import Path
 from typing import Any, Dict, Optional
@@ -15,6 +16,11 @@ from .extensions import Extensions
 logger = logging.getLogger('harrier.config')
 CONFIG_FILE_TRIES = 'harrier', 'config', '_config'
 CONFIG_FILE_TRIES = [Path(f'{name}.{ext}') for name, ext in product(CONFIG_FILE_TRIES, ['yml', 'yaml'])]
+
+
+class Mode(str, Enum):
+    development = 'development'
+    production = 'production'
 
 
 class WebpackConfig(BaseModel):
@@ -32,6 +38,7 @@ class WebpackConfig(BaseModel):
 
 class Config(BaseModel):
     source_dir: Path
+    mode: Mode = Mode.production
     pages_dir: Path = 'pages'
     extensions: Extensions = 'extensions.py'
     theme_dir: Path = 'theme'

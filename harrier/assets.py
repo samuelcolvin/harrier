@@ -9,12 +9,12 @@ from grablib.build import Builder
 from grablib.download import Downloader
 
 from .common import HarrierProblem
-from .config import Config
+from .config import Config, Mode
 
 logger = logging.getLogger('harrier.assets')
 
 
-def run_grablib(config: Config, *, debug=False):
+def run_grablib(config: Config):
     download_root = config.theme_dir / 'libs'
     if config.download:
         logger.debug('running grablib download...')
@@ -37,7 +37,7 @@ def run_grablib(config: Config, *, debug=False):
                 }
             },
             download_root=download_root,
-            debug=debug,
+            debug=config.mode == Mode.development,
         )
         build()
 
@@ -54,12 +54,12 @@ def copy_assets(config: Config):
     shutil.copytree(in_dir, out_dir)
 
 
-def webpack_configuration(config: Config, mode: str, watch: bool):
+def webpack_configuration(config: Config, watch: bool):
     if not config.webpack or not config.webpack.run:
         return None, None
 
     wp = config.webpack
-    prod = mode == 'production'
+    prod = config.mode == Mode.production
     output_filename = wp.prod_output_filename if prod else wp.dev_output_filename
     # ./ is required to satisfy webpack when files are inside the "--context" directory
     args = (
@@ -69,21 +69,21 @@ def webpack_configuration(config: Config, mode: str, watch: bool):
         '--output-path', wp.output_path,
         output_filename and '--output-filename', output_filename,
         '--devtool', 'source-map',
-        '--mode', mode,
+        '--mode', config.mode.value,
         watch and '--watch',
         prod and '--optimize-minimize',
         wp.config and '--config',
         wp.config and f'./{wp.config.relative_to(config.source_dir)}',
     )
     env = dict(**os.environ, **{
-        'NODE_ENV': mode,
+        'NODE_ENV': config.mode.value,
         # 'HARRIER_CONFIG': json.dumps(config.dict())  # TODO
     })
     return [str(a) for a in args if a], env
 
 
-def run_webpack(config: Config, *, mode='production'):
-    args, env = webpack_configuration(config, mode, False)
+def run_webpack(config: Config):
+    args, env = webpack_configuration(config, False)
     if not args:
         return
     cmd = ' '.join(args)
@@ -103,8 +103,8 @@ def run_webpack(config: Config, *, mode='production'):
         logger.info('webpack completed successfully in %0.2fs', time() - start)
 
 
-async def start_webpack_watch(config: Config, *, mode='development'):
-    args, env = webpack_configuration(config, mode, True)
+async def start_webpack_watch(config: Config):
+    args, env = webpack_configuration(config, True)
     if args:
         cmd = ' '.join(args)
         logger.info('running webpack ...')

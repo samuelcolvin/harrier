@@ -5,7 +5,7 @@ from pytest_toolbox import gettree, mktree
 from pytest_toolbox.comparison import CloseToNow
 
 from harrier.build import build_som, render
-from harrier.config import Config
+from harrier.config import Config, Mode
 
 
 def test_simple_render(tmpdir):
@@ -118,6 +118,7 @@ def test_build_simple_som(tmpdir):
     # debug(som)
     assert {
         'source_dir': source_dir,
+        'mode': Mode.production,
         'pages_dir': source_dir / 'pages',
         'extensions': {
             'page_modifiers': [],

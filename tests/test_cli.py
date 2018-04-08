@@ -114,21 +114,69 @@ def test_steps_pages(tmpdir, mocker):
     assert mock_mod.call_count == 0
 
 
-def test_steps_sass(tmpdir, mocker):
+def test_steps_sass_dev(tmpdir, mocker):
     mktree(tmpdir, {
         'pages': {'foobar.md': '# hello'},
         'theme': {
             'templates': {
-                'main.jinja': 'main:\n {{ content }}'
+                'main.jinja': '{{ content }}'
+            },
+            'sass': {
+                'main.scss': 'body {width: 10px + 10px;}'
             }
         },
     })
     mock_mod = mocker.patch('harrier.main.apply_modifiers', side_effect=lambda obj, mod: obj)
 
-    result = CliRunner().invoke(cli, ['build', str(tmpdir), '-s', 'sass', '-s', 'extensions'])
+    result = CliRunner().invoke(cli, ['build', str(tmpdir), '-s', 'sass', '-s', 'extensions', '--dev'])
     assert result.exit_code == 0
     assert 'Built site object model with 1 files, 1 files to render' not in result.output
     assert 'Config:' not in result.output
-
-    assert tmpdir.join('dist').check()
+    assert gettree(tmpdir.join('dist')) == {
+        'theme': {
+            'main.css': (
+                'body {\n'
+                '  width: 20px; }\n'
+                '\n'
+                '/*# sourceMappingURL=main.map */'
+            ),
+            'main.map': (
+                '{\n'
+                '\t"version": 3,\n'
+                '\t"file": ".src/main.css",\n'
+                '\t"sources": [\n'
+                '\t\t".src/main.scss"\n'
+                '\t],\n'
+                '\t"names": [],\n'
+                '\t"mappings": "AAAA,AAAA...'
+            ),
+            '.src': {
+                'main.scss': 'body {width: 10px + 10px;}',
+            },
+        },
+    }
     assert mock_mod.call_count == 1
+
+
+def test_steps_sass_prod(tmpdir, mocker):
+    mktree(tmpdir, {
+        'pages': {'foobar.md': '# hello'},
+        'theme': {
+            'templates': {
+                'main.jinja': '{{ content }}'
+            },
+            'sass': {
+                'main.scss': 'body {width: 10px + 10px;}'
+            }
+        },
+    })
+
+    result = CliRunner().invoke(cli, ['build', str(tmpdir), '-s', 'sass'])
+    assert result.exit_code == 0
+    assert 'Built site object model with 1 files, 1 files to render' not in result.output
+    assert 'Config:' not in result.output
+    assert gettree(tmpdir.join('dist')) == {
+        'theme': {
+            'main.css': 'body{width:20px}\n',
+        },
+    }

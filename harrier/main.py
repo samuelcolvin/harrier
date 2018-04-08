@@ -3,13 +3,13 @@ import logging
 import shutil
 from enum import Enum
 from pathlib import Path
-from typing import Set, Union
+from typing import Optional, Set, Union
 
 import devtools
 
 from .assets import copy_assets, run_grablib, run_webpack
 from .build import build_som, render
-from .config import get_config
+from .config import Mode, get_config
 from .dev import adev
 from .extensions import apply_modifiers
 
@@ -29,8 +29,10 @@ class BuildSteps(str, Enum):
 ALL_STEPS = [m.value for m in BuildSteps.__members__.values()]
 
 
-def build(path: StrPath, steps: Set[BuildSteps]=None):
+def build(path: StrPath, steps: Set[BuildSteps]=None, mode: Optional[Mode]=None):
     config = get_config(path)
+    if mode:
+        config.mode = mode
     logger.debug('Config: %s', devtools.pformat(config.dict()))
 
     steps = steps or ALL_STEPS
@@ -57,6 +59,7 @@ def build(path: StrPath, steps: Set[BuildSteps]=None):
 
 def dev(path: StrPath, port: int):
     config = get_config(path)
+    config.mode = Mode.development
     logger.debug('Config:\n%s', devtools.pformat(config.dict()))
 
     _empty_dir(config.dist_dir)
