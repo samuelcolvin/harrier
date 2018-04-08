@@ -44,6 +44,8 @@ def build(path: StrPath, steps: Set[BuildSteps]=None, mode: Optional[Mode]=None)
     _empty_dir(config.get_tmp_dir(), clean)
 
     BuildSteps.copy_assets in steps and copy_assets(config)
+    BuildSteps.sass in steps and run_grablib(config)
+    BuildSteps.webpack in steps and run_webpack(config)
 
     if BuildSteps.pages in steps:
         som = build_som(config)
@@ -52,9 +54,7 @@ def build(path: StrPath, steps: Set[BuildSteps]=None, mode: Optional[Mode]=None)
             som = apply_modifiers(som, config.extensions.post_modifiers)
 
         render(config, som)
-
-    BuildSteps.sass in steps and run_grablib(config)
-    BuildSteps.webpack in steps and run_webpack(config)
+        return som
 
 
 def dev(path: StrPath, port: int):

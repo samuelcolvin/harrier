@@ -6,6 +6,7 @@ from pytest_toolbox.comparison import CloseToNow
 
 from harrier.build import build_som, render
 from harrier.config import Config, Mode
+from harrier.main import build
 
 
 def test_simple_render(tmpdir):
@@ -57,7 +58,7 @@ def test_simple_render(tmpdir):
             '<p>this is a test foo: </p>\n'
         ),
         'favicon.ico': '*',
-        'spam.html': '# SPAM'
+        'spam.html': '# SPAM\n'
     }
     assert not tmpdir.join('dist').check()
 
@@ -80,10 +81,11 @@ def test_simple_render(tmpdir):
 
 def test_build_simple_som(tmpdir):
     mktree(tmpdir, {
+        'dist/theme/assets/whatever.1234567.png': '**',
         'pages': {
             'foobar.md': '# hello\n\nthis is a test foo: {{ foo }}',
             'posts/2032-06-01-testing.html': '# testing',
-            'static/image.png': '*'
+            'static/image.png': '*',
         },
         'theme/templates/main.jinja': 'main, content:\n\n {{ content }}',
     })
@@ -99,7 +101,7 @@ def test_build_simple_som(tmpdir):
     )
     som = build_som(config)
     source_dir = Path(tmpdir)
-    # debug(som)
+    debug(som)
     assert {
         'source_dir': source_dir,
         'mode': Mode.production,
@@ -134,6 +136,9 @@ def test_build_simple_som(tmpdir):
             'run': False,
         },
         'foo': 'bar',
+        'theme_files': {
+            'theme/assets/whatever.png': 'theme/assets/whatever.1234567.png',
+        },
         'pages': {
             'foobar.md': {
                 'infile': source_dir / 'pages/foobar.md',
@@ -176,3 +181,29 @@ def test_build_simple_som(tmpdir):
         },
         'data': {},
     } == som
+
+
+def test_build_render(tmpdir, mocker):
+    mktree(tmpdir, {
+        'pages/foobar.html': '{{ url("theme/assets/foobar.png") }}\n{{ url("theme/main.css") }}',
+        'theme': {
+            'templates/main.jinja': '{{ content }}',
+            'sass/main.scss': 'body {width: 10px + 10px;}',
+            'assets/foobar.png': '*',
+        },
+    })
+    build(tmpdir, mode=Mode.production)
+    assert gettree(tmpdir.join('dist')) == {
+        'foobar': {
+            'index.html': (
+                'theme/assets/foobar.3389dae361af79b04c9c.png\n'
+                'theme/main.a1ac3a79fd3d75163382.css\n'
+            ),
+        },
+        'theme': {
+            'main.a1ac3a79fd3d75163382.css': 'body{width:20px}\n',
+            'assets': {
+                'foobar.3389dae361af79b04c9c.png': '*',
+            },
+        },
+    }

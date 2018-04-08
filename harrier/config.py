@@ -112,23 +112,23 @@ class Config(BaseModel):
             return webpack
 
         if not webpack.cli.is_absolute():
-            webpack.cli = (values['source_dir'] / webpack.cli).resolve()
+            webpack.cli = values['source_dir'] / webpack.cli
 
         if not webpack.cli.exists():
             logger.warning('webpack cli path "%s" does not exist, not running webpack', webpack.cli)
             webpack.run = False
 
-        webpack.entry = (values['theme_dir'] / webpack.entry).resolve()
+        webpack.entry = values['theme_dir'] / webpack.entry
         if not webpack.entry.exists() and webpack.run:
             logger.warning('webpack entry point "%s" does not exist, not running webpack', webpack.entry)
             webpack.run = False
 
         if webpack.config:
-            webpack.config = (values['source_dir'] / webpack.config).resolve()
+            webpack.config = values['source_dir'] / webpack.config
             if not webpack.config.exists():
                 raise ValueError(f'webpack config set but does not exist "{webpack.config}", not running webpack')
 
-        webpack.output_path = (values['dist_dir'] / webpack.output_path).resolve()
+        webpack.output_path = values['dist_dir'] / webpack.output_path
         return webpack
 
     def get_tmp_dir(self) -> Path:

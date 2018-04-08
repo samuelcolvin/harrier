@@ -1,27 +1,10 @@
 import logging.config
-from pathlib import Path
-from typing import Callable, Iterable
 
 import click
 
 
 class HarrierProblem(RuntimeError):
     pass
-
-
-def walk(path: Path):
-    for p in sorted(path.iterdir(), key=lambda p_: (p_.is_dir(), p_.name)):
-        yield p.name, walk(p) if p.is_dir() else p.resolve()
-
-
-def flatten(iterable: Iterable, test: Callable):
-    if isinstance(iterable, dict):
-        iterable = iterable.values()
-    for v in iterable:
-        if test(v):
-            yield v
-        else:
-            yield from flatten(v, test)
 
 
 class GrablibHandler(logging.Handler):

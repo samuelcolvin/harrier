@@ -37,7 +37,7 @@ def add_one(v):
             'index.html': '<h1>foo changed by extension</h1>\n',
         },
         'bar': {
-            'index.html': '5 42',
+            'index.html': '5 42\n',
         },
     }
 

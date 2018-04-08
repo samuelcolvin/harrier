@@ -8,11 +8,12 @@ from time import time
 from typing import Optional
 
 import yaml
-from jinja2 import Environment, FileSystemLoader
+from jinja2 import Environment, FileSystemLoader, contextfunction
 from misaka import HtmlRenderer, Markdown
 from pydantic import BaseModel, validator
 
-from .common import HarrierProblem, flatten, walk
+from .assets import find_theme_files
+from .common import HarrierProblem
 from .config import Config
 
 FRONT_MATTER_REGEX = re.compile(r'^---[ \t]*(.*)\n---[ \t]*\n', re.S)
@@ -44,11 +45,12 @@ def render(config: Config, som: dict, build_cache=None):
 
     env = Environment(loader=FileSystemLoader(template_dirs))
     env.filters.update(config.extensions.template_filters)
+    env.globals['url'] = resolve_url
     env.globals.update(config.extensions.template_functions)
 
     checked_dirs = set()
     gen, copy = 0, 0
-    for p in flatten(som['pages'], lambda v: '__file__' in v):
+    for p in page_gen(som['pages']):
         if not p.get('outfile'):
             continue
         outfile: Path = p['outfile'].resolve()
@@ -77,6 +79,7 @@ def render(config: Config, som: dict, build_cache=None):
                     rendered = template.render(content=content, page=p, site=som)
                 else:
                     rendered = content
+                rendered = rendered.rstrip(' \t\r\n') + '\n'
             except Exception as e:
                 logger.exception('%s: %s %s', infile, e.__class__.__name__, e)
                 raise
@@ -130,6 +133,7 @@ class BuildSOM:
         return {
             'pages': pages,
             'data': data,
+            'theme_files': find_theme_files(self.config),
             **self.config.dict(),
         }
 
@@ -234,6 +238,11 @@ class BuildSOM:
             data['outfile'] = outfile
 
 
+def walk(path: Path):
+    for p in sorted(path.iterdir(), key=lambda p_: (p_.is_dir(), p_.name)):
+        yield p.name, walk(p) if p.is_dir() else p.resolve()
+
+
 def parse_front_matter(s):
     m = re.match(FRONT_MATTER_REGEX, s)
     if not m:
@@ -272,3 +281,19 @@ def slugify(title):
     name = URI_NOT_ALLOWED.sub('', name)
     name = re.sub('-{2,}', '-', name)
     return name.strip('_-')
+
+
+def page_gen(d: dict):
+    for v in d.values():
+        if '__file__' in v:
+            if v.get('outfile'):
+                yield v
+        else:
+            yield from page_gen(v)
+
+
+@contextfunction
+def resolve_url(ctx, path):
+    # TODO try more things, raise error on failure
+    theme_files = ctx['site']['theme_files']
+    return theme_files.get(path) or path

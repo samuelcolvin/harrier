@@ -1,22 +1,22 @@
 import asyncio
 import logging
 import os
+import re
 import shutil
 import subprocess
-from pathlib import Path
 from time import time
 
 from grablib.build import SassGenerator, insert_hash
 from grablib.download import Downloader
 
-from .common import HarrierProblem, walk, flatten
+from .common import HarrierProblem
 from .config import Config, Mode
 
 logger = logging.getLogger('harrier.assets')
 
 
 def run_grablib(config: Config):
-    download_root = (config.theme_dir / 'libs').resolve()
+    download_root = config.theme_dir / 'libs'
     if config.download:
         logger.debug('running grablib download...')
         download = Downloader(
@@ -27,11 +27,11 @@ def run_grablib(config: Config):
         )
         download()
 
-    sass_dir = (config.theme_dir / 'sass').resolve()
+    sass_dir = config.theme_dir / 'sass'
     if sass_dir.is_dir():
         logger.info('running sass build...')
 
-        output_dir = (config.dist_dir / config.dist_dir_sass).resolve()
+        output_dir = config.dist_dir / config.dist_dir_sass
         output_dir.relative_to(config.dist_dir)
         sass_gen = SassGenerator(
             input_dir=sass_dir,
@@ -51,12 +51,13 @@ def copy_assets(config: Config):
     out_dir.relative_to(config.dist_dir)
     logger.info('copying theme assets from "%s" to "%s"',
                 in_dir.relative_to(config.source_dir), out_dir.relative_to(config.dist_dir))
-    for name, in_path in flatten(walk(in_dir), test=lambda v: isinstance(v[1], Path)):
-        out_path = out_dir / in_path.relative_to(in_dir)
-        if config.mode == Mode.production:
-            out_path = insert_hash(out_path, in_path.read_bytes())
-        out_path.parent.mkdir(parents=True, exist_ok=True)
-        shutil.copy(in_path, out_path)
+    for in_path in in_dir.glob('**/*'):
+        if in_path.is_file():
+            out_path = out_dir / in_path.relative_to(in_dir)
+            if config.mode == Mode.production:
+                out_path = insert_hash(out_path, in_path.read_bytes())
+            out_path.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy(in_path, out_path)
 
 
 def webpack_configuration(config: Config, watch: bool):
@@ -115,3 +116,23 @@ async def start_webpack_watch(config: Config):
         logger.info('running webpack ...')
         logger.debug('webpack command "%s"', cmd)
         return await asyncio.create_subprocess_exec(*args, cwd=config.source_dir, env=env)
+
+
+def find_theme_files(config: Config):
+    check_dirs = (
+        config.dist_dir / config.dist_dir_sass,
+        config.dist_dir / config.dist_dir_assets,
+        config.webpack.output_path
+    )
+    d = {}
+    for dir in check_dirs:
+        if dir.is_dir():
+            for p in dir.glob('**/*'):
+                if p.is_file():
+                    rel_path = str(p.relative_to(config.dist_dir))
+                    path_name = rel_path
+                    if config.mode == Mode.production:
+                        path_name = re.sub('\.[a-f0-9]{7,20}\.', '.', rel_path)
+                        path_name = re.sub('\.[a-f0-9]{7,20}$', '', path_name)
+                    d[path_name] = rel_path
+    return d
