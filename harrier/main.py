@@ -5,6 +5,8 @@ from enum import Enum
 from pathlib import Path
 from typing import Set, Union
 
+import devtools
+
 from .assets import copy_assets, run_grablib, run_webpack
 from .build import build_som, render
 from .config import get_config
@@ -28,8 +30,7 @@ ALL_STEPS = [m.value for m in BuildSteps.__members__.values()]
 
 def build(path: StrPath, steps: Set[BuildSteps]=None):
     config = get_config(path)
-    if logger.isEnabledFor(logging.DEBUG):
-        logger.debug('Config:\n%s', '\n'.join([f'  {k}: {v}' for k, v in config.dict().items()]))
+    logger.debug('Config: %s', devtools.pformat(config.dict()))
 
     steps = steps or ALL_STEPS
     if BuildSteps.extensions in steps:
@@ -54,6 +55,7 @@ def build(path: StrPath, steps: Set[BuildSteps]=None):
 
 def dev(path: StrPath, port: int):
     config = get_config(path)
+    logger.debug('Config:\n%s', devtools.pformat(config.dict()))
 
     _empty_dir(config.dist_dir)
     _empty_dir(config.get_tmp_dir())

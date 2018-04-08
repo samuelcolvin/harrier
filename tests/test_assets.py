@@ -11,12 +11,12 @@ from harrier.config import get_config
 
 MOCK_WEBPACK = f"""\
 #!{sys.executable}
-import json
-import sys
+import json, os, sys
 from pathlib import Path
 
-save_to = Path(__file__).parent.resolve() / 'webpack_args.json'
-save_to.write_text(json.dumps(sys.argv))
+this_dir = Path(__file__).parent.resolve()
+(this_dir / 'webpack_args.json').write_text(json.dumps(sys.argv))
+(this_dir / 'webpack_env.json').write_text(json.dumps(dict(os.environ)))
 if 'error' in ' '.join(sys.argv):
     sys.exit(2)
 """
@@ -48,11 +48,13 @@ def test_run_webpack(tmpdir):
         '--context', f'{tmpdir}',
         '--entry', './theme/js/index.js',
         '--output-path', f'{tmpdir}/dist/theme',
-        '--output-filename', 'main.js',
+        '--output-filename', 'main.[hash].js',
         '--devtool', 'source-map',
         '--mode', 'production',
         '--optimize-minimize',
     ] == args
+    webpack_env = json.loads(tmpdir.join('webpack_env.json').read_text('utf8'))
+    assert webpack_env['NODE_ENV'] == 'production'
 
 
 def test_run_webpack_error(tmpdir):
@@ -90,6 +92,8 @@ def test_run_webpack_error(tmpdir):
         '--mode', 'development',
         '--config', './webpack_config.js'
     ] == args
+    webpack_env = json.loads(tmpdir.join('webpack_env.json').read_text('utf8'))
+    assert webpack_env['NODE_ENV'] == 'development'
 
 
 async def test_start_webpack_watch(tmpdir, loop):
@@ -126,6 +130,8 @@ async def test_start_webpack_watch(tmpdir, loop):
         '--mode', 'development',
         '--watch',
     ] == json.loads(tmpdir.join('webpack_args.json').read_text('utf8'))
+    webpack_env = json.loads(tmpdir.join('webpack_env.json').read_text('utf8'))
+    assert webpack_env['NODE_ENV'] == 'development'
 
 
 def test_grablib(tmpdir):

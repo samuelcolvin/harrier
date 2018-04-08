@@ -3,7 +3,7 @@ import logging
 import tempfile
 from itertools import product
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 
 import yaml
 from pydantic import BaseModel, validator
@@ -21,7 +21,8 @@ class WebpackConfig(BaseModel):
     cli: Path = 'node_modules/.bin/webpack-cli'
     entry: Path = 'js/index.js'
     output_path: Path = 'theme'
-    output_filename = 'main.js'
+    dev_output_filename: Optional[str] = 'main.js'
+    prod_output_filename: Optional[str] = 'main.[hash].js'
     config: Path = None
     run: bool = True
 

@@ -48,6 +48,7 @@ setup(
         'PyYAML>=3.11',
         'aiohttp-devtools>=0.9',
         'click>=6.2',
+        'devtools>=0.3',
         'grablib>=0.6.1',
         'libsass>=0.10.1',
         'misaka>=2.1.0',
