@@ -34,7 +34,6 @@ def test_run_webpack(tmpdir):
         },
         'mock_webpack': MOCK_WEBPACK,
         'harrier.yml': (
-            f'dist_dir: {tmpdir.join("dist")}\n'
             f'webpack:\n'
             f'  cli: {webpack_path}'
         )
@@ -69,7 +68,6 @@ def test_run_webpack_error(tmpdir):
         'webpack_config.js': '*',
         'mock_webpack': MOCK_WEBPACK,
         'harrier.yml': (
-            f'dist_dir: {tmpdir.join("dist")}\n'
             f'webpack:\n'
             f'  cli: {webpack_path}\n'
             f'  entry: js/error.js\n'
@@ -106,7 +104,6 @@ async def test_start_webpack_watch(tmpdir, loop):
         },
         'mock_webpack': MOCK_WEBPACK,
         'harrier.yml': (
-            f'dist_dir: {tmpdir.join("dist")}\n'
             f'webpack:\n'
             f'  cli: {webpack_path}'
         )
@@ -144,7 +141,6 @@ def test_grablib(tmpdir):
             }
         },
         'harrier.yml': (
-            f'dist_dir: {tmpdir.join("dist")}\n'
             f'download:\n'
             f"  'https://cdn.rawgit.com/samuelcolvin/ae6d04dadbb4d552d365f440d3ac8015/raw/"
             f"cda04f66c71e4a5f418e78d111d651ae3a2e3784/demo.scss': '_demo.scss'"
@@ -169,9 +165,6 @@ def test_copy_assets(tmpdir):
                 'image.png': '*'
             }
         },
-        'harrier.yml': (
-            f'dist_dir: {tmpdir.join("dist")}\n'
-        )
     })
 
     config = get_config(str(tmpdir))

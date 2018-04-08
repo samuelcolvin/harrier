@@ -14,9 +14,6 @@ def test_copy_assets(tmpdir):
         'theme': {
             'templates': {'main.jinja': '{{ content }}'},
         },
-        'harrier.yml': (
-            f'dist_dir: {tmpdir.join("dist")}\n'
-        ),
         'extensions.py': """
 from harrier.extensions import modify, template
 
@@ -55,9 +52,6 @@ def test_broken_ext(tmpdir):
         'theme': {
             'templates': {'main.jinja': '{{ content }}'},
         },
-        'harrier.yml': (
-            f'dist_dir: {tmpdir.join("dist")}\n'
-        ),
         'extensions.py': """
 from harrier.extensions import modify
 
@@ -80,9 +74,6 @@ def test_bad_python(tmpdir):
         'theme': {
             'templates': {'main.jinja': '{{ content }}'},
         },
-        'harrier.yml': (
-            f'dist_dir: {tmpdir.join("dist")}\n'
-        ),
         'extensions.py': 'xxx'
     })
 

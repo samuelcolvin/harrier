@@ -6,9 +6,9 @@ import click
 from grablib.common import GrablibError
 from pydantic import ValidationError
 
+from harrier import main
+
 from .common import HarrierProblem, setup_logging
-from .main import build as _build
-from .main import dev as _dev
 from .version import VERSION
 
 target_help = 'choice from targets in harrier.yml, defaults to same value as action eg. build or serve.'
@@ -27,14 +27,15 @@ def cli():
 
 @cli.command()
 @click.argument('path', type=click.Path(exists=True), required=False, default='.')
+@click.option('--steps', '-s', multiple=True, type=click.Choice(main.ALL_STEPS))
 @click.option('-v/-q', '--verbose/--quiet', 'verbose', default=None)
-def build(path, verbose):
+def build(path, steps, verbose):
     """
     build the site
     """
     setup_logging(verbose)
     try:
-        _build(path)
+        main.build(path, set(steps))
     except (HarrierProblem, ValidationError, GrablibError) as e:
         msg = 'Error: {}'
         if not verbose:
@@ -54,7 +55,7 @@ def dev(path, port, verbose):
     """
     setup_logging(verbose, dev=True)
     try:
-        _dev(path, port)
+        main.dev(path, port)
     except (HarrierProblem, ValidationError, GrablibError) as e:
         msg = 'Error: {}'
         if not verbose:

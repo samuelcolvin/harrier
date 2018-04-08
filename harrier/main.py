@@ -1,8 +1,9 @@
 import asyncio
 import logging
 import shutil
+from enum import Enum
 from pathlib import Path
-from typing import Union
+from typing import Set, Union
 
 from .assets import copy_assets, run_grablib, run_webpack
 from .build import build_som, render
@@ -14,24 +15,41 @@ logger = logging.getLogger('harrier.main')
 StrPath = Union[str, Path]
 
 
-def build(path: StrPath):
+class BuildSteps(str, Enum):
+    extensions = 'extensions'
+    copy_assets = 'copy_assets'
+    pages = 'pages'
+    sass = 'sass'
+    webpack = 'webpack'
+
+
+ALL_STEPS = [m.value for m in BuildSteps.__members__.values()]
+
+
+def build(path: StrPath, steps: Set[BuildSteps]=None):
     config = get_config(path)
     if logger.isEnabledFor(logging.DEBUG):
         logger.debug('Config:\n%s', '\n'.join([f'  {k}: {v}' for k, v in config.dict().items()]))
 
-    config = apply_modifiers(config, config.extensions.pre_modifiers)
+    steps = steps or ALL_STEPS
+    if BuildSteps.extensions in steps:
+        config = apply_modifiers(config, config.extensions.pre_modifiers)
 
     _empty_dir(config.dist_dir)
     _empty_dir(config.get_tmp_dir())
 
-    copy_assets(config)
-    som = build_som(config)
+    BuildSteps.copy_assets in steps and copy_assets(config)
 
-    som = apply_modifiers(som, config.extensions.post_modifiers)
+    if BuildSteps.pages in steps:
+        som = build_som(config)
 
-    render(config, som)
-    run_grablib(config)
-    run_webpack(config)
+        if BuildSteps.extensions in steps:
+            som = apply_modifiers(som, config.extensions.post_modifiers)
+
+        render(config, som)
+
+    BuildSteps.sass in steps and run_grablib(config)
+    BuildSteps.webpack in steps and run_webpack(config)
 
 
 def dev(path: StrPath, port: int):

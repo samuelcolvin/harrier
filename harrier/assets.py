@@ -16,7 +16,7 @@ logger = logging.getLogger('harrier.assets')
 def run_grablib(config: Config, *, debug=False):
     download_root = config.theme_dir / 'libs'
     if config.download:
-        logger.info('running grablib download...')
+        logger.debug('running grablib download...')
         download = Downloader(
             download_root=download_root,
             download=config.download,

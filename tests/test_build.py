@@ -29,7 +29,6 @@ def test_simple_render(tmpdir):
     })
     config = Config(
         source_dir=str(tmpdir),
-        dist_dir=str(tmpdir.join('dist')),
         tmp_dir=str(tmpdir.join('tmp')),
         foo='bar',
     )
@@ -106,7 +105,6 @@ def test_build_simple_som(tmpdir):
     })
     config = Config(
         source_dir=str(tmpdir),
-        dist_dir=str(tmpdir.join('dist')),
         tmp_dir=str(tmpdir.join('tmp')),
         foo='bar',
         defaults={

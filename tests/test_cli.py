@@ -24,7 +24,6 @@ def test_build(tmpdir):
             }
         },
         'harrier.yml': (
-            f'dist_dir: {tmpdir.join("dist")}\n'
             'webpack: {run: false}\n'
         )
     })
@@ -56,7 +55,7 @@ def test_build_bad(tmpdir):
 
 
 def test_dev(mocker):
-    mock_dev = mocker.patch('harrier.cli._dev')
+    mock_dev = mocker.patch('harrier.cli.main.dev')
 
     result = CliRunner().invoke(cli, ['dev'])
     assert result.exit_code == 0
@@ -64,7 +63,7 @@ def test_dev(mocker):
 
 
 def test_dev_bad(mocker):
-    mocker.patch('harrier.cli._dev', side_effect=HarrierProblem())
+    mocker.patch('harrier.cli.main.dev', side_effect=HarrierProblem())
 
     result = CliRunner().invoke(cli, ['dev'])
     assert result.exit_code == 2

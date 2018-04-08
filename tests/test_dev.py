@@ -29,7 +29,6 @@ def test_dev_simple(tmpdir, mocker, loop):
                 'main.jinja': 'main:\n {{ content }}'
             }
         },
-        'harrier.yml': f'dist_dir: {tmpdir.join("dist")}'
     })
     mocker.patch('harrier.dev.awatch', side_effect=awatch_alt)
 
@@ -67,7 +66,6 @@ def test_dev_delete(tmpdir, mocker, loop):
                 'main.jinja': 'main:\n {{ content }}'
             }
         },
-        'harrier.yml': f'dist_dir: {tmpdir.join("dist")}'
     })
     mocker.patch('harrier.dev.awatch', side_effect=awatch_alt)
 
@@ -116,7 +114,6 @@ def test_mock_executor(tmpdir, mocker):
                 'main.jinja': 'main:\n {{ content }}'
             }
         },
-        'harrier.yml': f'dist_dir: {tmpdir.join("dist")}'
     })
     mocker.patch('harrier.dev.awatch', side_effect=awatch_alt)
     mocker.patch('harrier.dev.Server', return_value=MockServer())
@@ -155,7 +152,6 @@ def test_webpack_terminate(tmpdir, mocker, caplog):
                 'main.jinja': 'main:\n {{ content }}'
             }
         },
-        'harrier.yml': f'dist_dir: {tmpdir.join("dist")}'
     })
     mocker.patch('harrier.dev.awatch', side_effect=awatch_alt)
     mocker.patch('harrier.dev.Server', return_value=MockServer())

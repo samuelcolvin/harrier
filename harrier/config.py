@@ -66,8 +66,9 @@ class Config(BaseModel):
             return v
 
     @validator('dist_dir')
-    def check_dist_dir(cls, v):
-        p = Path(v).resolve()
+    def check_dist_dir(cls, p, values, **kwargs):
+        if not p.is_absolute():
+            p = (values['source_dir'] / p).resolve()
         if not p.parent.exists():
             raise ValueError(f'dist_dir "{p}" parent directory does not exist')
         elif p.exists() and not p.is_dir():
