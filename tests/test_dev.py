@@ -1,5 +1,4 @@
 import asyncio
-import logging
 from pathlib import Path
 
 from pytest_toolbox import gettree, mktree
@@ -7,6 +6,17 @@ from watchgod import Change
 
 from harrier.dev import update_site
 from harrier.main import dev
+
+
+class MockServer:
+    def __init__(self, *args, **kwargs):
+        pass
+
+    async def start(self):
+        pass
+
+    async def shutdown(self):
+        pass
 
 
 def test_dev_simple(tmpdir, mocker, loop):
@@ -68,6 +78,7 @@ def test_dev_delete(tmpdir, mocker, loop):
         },
     })
     mocker.patch('harrier.dev.awatch', side_effect=awatch_alt)
+    mocker.patch('harrier.dev.Server', return_value=MockServer())
 
     assert not tmpdir.join('dist').check()
 
@@ -82,17 +93,6 @@ def test_dev_delete(tmpdir, mocker, loop):
             'whatever': {},
         },
     }
-
-
-class MockServer:
-    def __init__(self, *args, **kwargs):
-        pass
-
-    async def start(self):
-        pass
-
-    async def shutdown(self):
-        pass
 
 
 def test_mock_executor(tmpdir, mocker):
@@ -164,20 +164,19 @@ def test_webpack_terminate(tmpdir, mocker, caplog):
 
     assert not tmpdir.join('dist').check()
 
-    with caplog.at_level(logging.DEBUG, logger='harrier.dev'):
-        dev(str(tmpdir), 8000)
-        assert tmpdir.join('dist').check()
-        assert mock_webpack.send_signal.call_count == 1
-        assert 'webpack existed badly' not in caplog.text
+    dev(str(tmpdir), 8000)
+    assert tmpdir.join('dist').check()
+    assert mock_webpack.send_signal.call_count == 1
+    assert 'webpack existed badly' not in caplog.text
 
-        mock_webpack.returncode = 0
+    mock_webpack.returncode = 0
 
-        dev(str(tmpdir), 8000)
-        assert mock_webpack.send_signal.call_count == 1
-        assert 'webpack existed badly' not in caplog.text
+    dev(str(tmpdir), 8000)
+    assert mock_webpack.send_signal.call_count == 1
+    assert 'webpack existed badly' not in caplog.text
 
-        mock_webpack.returncode = 1
+    mock_webpack.returncode = 1
 
-        dev(str(tmpdir), 8000)
-        assert mock_webpack.send_signal.call_count == 1
-        assert 'webpack existed badly' in caplog.text
+    dev(str(tmpdir), 8000)
+    assert mock_webpack.send_signal.call_count == 1
+    assert 'webpack existed badly' in caplog.text

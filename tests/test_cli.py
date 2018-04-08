@@ -13,7 +13,7 @@ def test_blank():
     assert 'build the site' in result.output
 
 
-def test_build(tmpdir):
+def test_build(tmpdir, mocker):
     mktree(tmpdir, {
         'pages': {
             'foobar.md': '# hello',
@@ -27,11 +27,13 @@ def test_build(tmpdir):
             'webpack: {run: false}\n'
         )
     })
+    mock_mod = mocker.patch('harrier.main.apply_modifiers', side_effect=lambda obj, mod: obj)
 
     assert not tmpdir.join('dist').check()
     result = CliRunner().invoke(cli, ['build', str(tmpdir)])
     assert result.exit_code == 0
     assert 'Built site object model with 1 files, 1 files to render' in result.output
+    assert 'Config:' not in result.output
 
     assert tmpdir.join('dist').check()
     assert gettree(tmpdir.join('dist')) == {
@@ -39,6 +41,7 @@ def test_build(tmpdir):
             'index.html': 'main:\n <h1>hello</h1>\n',
         },
     }
+    assert mock_mod.call_count == 2
 
 
 def test_build_bad(tmpdir):
@@ -51,7 +54,20 @@ def test_build_bad(tmpdir):
     result = CliRunner().invoke(cli, ['build', str(tmpdir)])
     assert result.exit_code == 2
     assert 'error loading' in result.output
+    assert 'for more details' in result.output
     assert not tmpdir.join('dist').check()
+
+
+def test_build_bad_verbose(tmpdir):
+    mktree(tmpdir, {
+        'harrier.yml': (
+            f'whatever: whenver:\n'
+        )
+    })
+    result = CliRunner().invoke(cli, ['build', str(tmpdir), '-v'])
+    assert result.exit_code == 2
+    assert 'error loading' in result.output
+    assert 'for more details' not in result.output
 
 
 def test_dev(mocker):
@@ -67,3 +83,52 @@ def test_dev_bad(mocker):
 
     result = CliRunner().invoke(cli, ['dev'])
     assert result.exit_code == 2
+    assert 'for more details' in result.output
+
+
+def test_dev_bad_verbose(mocker):
+    mocker.patch('harrier.cli.main.dev', side_effect=HarrierProblem())
+
+    result = CliRunner().invoke(cli, ['dev', '--verbose'])
+    assert result.exit_code == 2
+    assert 'for more details' not in result.output
+
+
+def test_steps_pages(tmpdir, mocker):
+    mktree(tmpdir, {
+        'pages': {'foobar.md': '# hello'},
+        'theme': {
+            'templates': {
+                'main.jinja': 'main:\n {{ content }}'
+            }
+        },
+    })
+    mock_mod = mocker.patch('harrier.main.apply_modifiers', side_effect=lambda obj, mod: obj)
+
+    result = CliRunner().invoke(cli, ['build', str(tmpdir), '-v', '-s', 'pages'])
+    assert result.exit_code == 0
+    assert 'Built site object model with 1 files, 1 files to render' in result.output
+    assert 'Config:' in result.output
+
+    assert tmpdir.join('dist').check()
+    assert mock_mod.call_count == 0
+
+
+def test_steps_sass(tmpdir, mocker):
+    mktree(tmpdir, {
+        'pages': {'foobar.md': '# hello'},
+        'theme': {
+            'templates': {
+                'main.jinja': 'main:\n {{ content }}'
+            }
+        },
+    })
+    mock_mod = mocker.patch('harrier.main.apply_modifiers', side_effect=lambda obj, mod: obj)
+
+    result = CliRunner().invoke(cli, ['build', str(tmpdir), '-s', 'sass', '-s', 'extensions'])
+    assert result.exit_code == 0
+    assert 'Built site object model with 1 files, 1 files to render' not in result.output
+    assert 'Config:' not in result.output
+
+    assert tmpdir.join('dist').check()
+    assert mock_mod.call_count == 1

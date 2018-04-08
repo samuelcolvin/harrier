@@ -58,10 +58,10 @@ class Config(BaseModel):
 
     @validator('pages_dir', 'theme_dir')
     def is_dir(cls, v, field, **kwargs):
-        if not v.is_dir():
-            raise ValueError(f'{field.name} "{v}" is not a directory')
-        elif not v.exists():
+        if not v.exists():
             raise ValueError(f'{field.name} directory "{v}" does not exist')
+        elif not v.is_dir():
+            raise ValueError(f'{field.name} "{v}" is not a directory')
         else:
             return v
 
@@ -111,7 +111,7 @@ class Config(BaseModel):
             webpack.run = False
 
         webpack.entry = (values['theme_dir'] / webpack.entry).resolve()
-        if not webpack.entry.exists():
+        if not webpack.entry.exists() and webpack.run:
             logger.warning('webpack entry point "%s" does not exist, not running webpack', webpack.entry)
             webpack.run = False
 
