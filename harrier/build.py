@@ -7,10 +7,10 @@ from pathlib import Path
 from time import time
 from typing import Optional
 
-import yaml
 from jinja2 import Environment, FileSystemLoader, contextfunction
 from misaka import HtmlRenderer, Markdown
 from pydantic import BaseModel, validator
+from ruamel.yaml import YAML
 
 from .assets import find_theme_files
 from .common import HarrierProblem
@@ -122,6 +122,7 @@ class BuildSOM:
         ]
         self.files = 0
         self.template_files = 0
+        self.yaml = YAML(typ='safe')
 
     def __call__(self):
         logger.info('Building "%s"...', self.config.pages_dir)
@@ -156,7 +157,7 @@ class BuildSOM:
         maybe_render = p.suffix in MAYBE_RENDER
         apply_jinja = False
         if html_output or maybe_render:
-            fm_data, content = parse_front_matter(p.read_text())
+            fm_data, content = self.parse_front_matter(p.read_text())
             if html_output or fm_data:
                 data['content'] = content
                 fm_data and data.update(fm_data)
@@ -235,13 +236,12 @@ class BuildSOM:
                 outfile /= 'index.html'
             data['outfile'] = outfile
 
-
-def parse_front_matter(s):
-    m = re.match(FRONT_MATTER_REGEX, s)
-    if not m:
-        return None, s.strip('\r\n')
-    data = yaml.load(m.groups()[0]) or {}
-    return data, s[m.end():].strip('\r\n')
+    def parse_front_matter(self, s):
+        m = re.match(FRONT_MATTER_REGEX, s)
+        if not m:
+            return None, s.strip('\r\n')
+        data = self.yaml.load(m.groups()[0]) or {}
+        return data, s[m.end():].strip('\r\n')
 
 
 class FileData(BaseModel):

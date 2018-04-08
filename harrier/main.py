@@ -43,6 +43,7 @@ def build(path: StrPath, steps: Set[BuildSteps]=None, mode: Optional[Mode]=None)
     _empty_dir(config.dist_dir, clean)
     _empty_dir(config.get_tmp_dir(), clean)
 
+    # TODO for large webpack and sass probjects, these could be done in parallel
     BuildSteps.copy_assets in steps and copy_assets(config)
     BuildSteps.sass in steps and run_grablib(config)
     BuildSteps.webpack in steps and run_webpack(config)
