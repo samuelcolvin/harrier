@@ -12,7 +12,7 @@ from jinja2 import Environment, FileSystemLoader
 from misaka import HtmlRenderer, Markdown
 from pydantic import BaseModel, validator
 
-from .common import HarrierProblem
+from .common import HarrierProblem, flatten, walk
 from .config import Config
 
 FRONT_MATTER_REGEX = re.compile(r'^---[ \t]*(.*)\n---[ \t]*\n', re.S)
@@ -48,7 +48,9 @@ def render(config: Config, som: dict, build_cache=None):
 
     checked_dirs = set()
     gen, copy = 0, 0
-    for p in page_gen(som['pages']):
+    for p in flatten(som['pages'], lambda v: '__file__' in v):
+        if not p.get('outfile'):
+            continue
         outfile: Path = p['outfile'].resolve()
         out_dir = outfile.parent
         if out_dir not in checked_dirs:
@@ -232,11 +234,6 @@ class BuildSOM:
             data['outfile'] = outfile
 
 
-def walk(path: Path):
-    for p in sorted(path.iterdir(), key=lambda p_: (p_.is_dir(), p_.name)):
-        yield p.name, walk(p) if p.is_dir() else p.resolve()
-
-
 def parse_front_matter(s):
     m = re.match(FRONT_MATTER_REGEX, s)
     if not m:
@@ -275,12 +272,3 @@ def slugify(title):
     name = URI_NOT_ALLOWED.sub('', name)
     name = re.sub('-{2,}', '-', name)
     return name.strip('_-')
-
-
-def page_gen(d: dict):
-    for v in d.values():
-        if '__file__' in v:
-            if v.get('outfile'):
-                yield v
-        else:
-            yield from page_gen(v)

@@ -1,5 +1,6 @@
 from click.testing import CliRunner
 from pytest_toolbox import gettree, mktree
+from pytest_toolbox.comparison import RegexStr
 
 from harrier.cli import cli
 from harrier.common import HarrierProblem
@@ -120,18 +121,9 @@ def test_steps_sass_dev(tmpdir, mocker):
                 'body {\n'
                 '  width: 20px; }\n'
                 '\n'
-                '/*# sourceMappingURL=main.map */'
+                '/*# sourceMappingURL=main.css.map */'
             ),
-            'main.map': (
-                '{\n'
-                '\t"version": 3,\n'
-                '\t"file": ".src/main.css",\n'
-                '\t"sources": [\n'
-                '\t\t".src/main.scss"\n'
-                '\t],\n'
-                '\t"names": [],\n'
-                '\t"mappings": "AAAA,AAAA...'
-            ),
+            'main.css.map': RegexStr('{.*'),
             '.src': {
                 'main.scss': 'body {width: 10px + 10px;}',
             },
@@ -155,6 +147,6 @@ def test_steps_sass_prod(tmpdir, mocker):
     assert 'Config:' not in result.output
     assert gettree(tmpdir.join('dist')) == {
         'theme': {
-            'main.css': 'body{width:20px}\n',
+            'main.a1ac3a79fd3d75163382.css': 'body{width:20px}\n',
         },
     }

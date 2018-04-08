@@ -151,12 +151,12 @@ def test_grablib(tmpdir):
     run_grablib(config)
     assert gettree(tmpdir.join('dist')) == {
         'theme': {
-            'main.css': 'body{background:#BAD}\n',
+            'main.7cc3e19adf74a4d9238b.css': 'body{background:#BAD}\n',
         },
     }
 
 
-def test_copy_assets(tmpdir):
+def test_copy_assets_dev(tmpdir):
     mktree(tmpdir, {
         'pages/foobar.md': '# hello',
         'theme': {
@@ -166,11 +166,33 @@ def test_copy_assets(tmpdir):
     })
 
     config = get_config(str(tmpdir))
+    config.mode = Mode.development
     copy_assets(config)
     assert gettree(tmpdir.join('dist')) == {
         'theme': {
             'assets': {
                 'image.png': '*'
+            },
+        },
+    }
+
+
+def test_copy_assets_prod(tmpdir):
+    mktree(tmpdir, {
+        'pages/foobar.md': '# hello',
+        'theme': {
+            'templates': {'main.jinja': 'main:\n {{ content }}'},
+            'assets/image.png': '*',
+        },
+    })
+
+    config = get_config(str(tmpdir))
+    config.mode = Mode.production
+    copy_assets(config)
+    assert gettree(tmpdir.join('dist')) == {
+        'theme': {
+            'assets': {
+                'image.3389dae361af79b04c9c.png': '*'
             },
         },
     }

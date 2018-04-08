@@ -43,7 +43,7 @@ class Server:
         logger.debug('shutdown took %0.2fs', self.loop.time() - start)
 
 
-# CONFIG will bet set before the fork so it can be used by the child process
+# CONFIG will be set before the fork so it can be used by the child process
 CONFIG: Config = None
 # SOM and BUILD_CACHE will only be set after the fork in the child process created by ProcessPoolExecutor
 SOM = None

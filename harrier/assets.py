@@ -3,12 +3,13 @@ import logging
 import os
 import shutil
 import subprocess
+from pathlib import Path
 from time import time
 
-from grablib.build import SassGenerator
+from grablib.build import SassGenerator, insert_hash
 from grablib.download import Downloader
 
-from .common import HarrierProblem
+from .common import HarrierProblem, walk, flatten
 from .config import Config, Mode
 
 logger = logging.getLogger('harrier.assets')
@@ -36,7 +37,8 @@ def run_grablib(config: Config):
             input_dir=sass_dir,
             output_dir=output_dir,
             download_root=download_root,
-            debug=config.mode == Mode.development
+            debug=config.mode == Mode.development,
+            apply_hash=config.mode == Mode.production,
         )
         sass_gen()
 
@@ -49,8 +51,12 @@ def copy_assets(config: Config):
     out_dir.relative_to(config.dist_dir)
     logger.info('copying theme assets from "%s" to "%s"',
                 in_dir.relative_to(config.source_dir), out_dir.relative_to(config.dist_dir))
-    out_dir.parent.mkdir(parents=True, exist_ok=True)
-    shutil.copytree(in_dir, out_dir)
+    for name, in_path in flatten(walk(in_dir), test=lambda v: isinstance(v[1], Path)):
+        out_path = out_dir / in_path.relative_to(in_dir)
+        if config.mode == Mode.production:
+            out_path = insert_hash(out_path, in_path.read_bytes())
+        out_path.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy(in_path, out_path)
 
 
 def webpack_configuration(config: Config, watch: bool):
