@@ -73,9 +73,10 @@ default webpack config with no need to setup?
 * multipart front-matter
 * `--mode dev` option on build - applies to js, sass and set in som
 * ignored directories, eg. can be set with a pre modifier based on mode to ignore a directory.
-* local config - easily done with extension
 * process data
 * extra extensions:
   * Could also do on_save modifiers which run before files are saved
   * also override_copy which modify the copy command both in render and copy_assets
   * override_webpack to modify webpack args/env
+
+* local config - easily done with extension

@@ -20,6 +20,7 @@ StrPath = Union[str, Path]
 class BuildSteps(str, Enum):
     extensions = 'extensions'
     copy_assets = 'copy_assets'
+    clean = 'clean'
     pages = 'pages'
     sass = 'sass'
     webpack = 'webpack'
@@ -36,8 +37,9 @@ def build(path: StrPath, steps: Set[BuildSteps]=None):
     if BuildSteps.extensions in steps:
         config = apply_modifiers(config, config.extensions.pre_modifiers)
 
-    _empty_dir(config.dist_dir)
-    _empty_dir(config.get_tmp_dir())
+    clean = BuildSteps.clean in steps
+    _empty_dir(config.dist_dir, clean)
+    _empty_dir(config.get_tmp_dir(), clean)
 
     BuildSteps.copy_assets in steps and copy_assets(config)
 
@@ -64,7 +66,7 @@ def dev(path: StrPath, port: int):
     loop.run_until_complete(adev(config, port))
 
 
-def _empty_dir(d: Path):
-    if d.exists():
+def _empty_dir(d: Path, clean: bool=True):
+    if clean and d.exists():
         shutil.rmtree(d)
-    d.mkdir(parents=True)
+    d.mkdir(exist_ok=True, parents=True)
