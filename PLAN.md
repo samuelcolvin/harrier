@@ -69,10 +69,11 @@ default webpack config with no need to setup?
 
 # TODO
 
-* tests
-* features:
-  * extensions
-  * multipart front-matter
-  * sass/js files available in som
-  * ignored directories
-  * local config file
+* multipart front-matter
+* ignored directories, eg. can be set with a pre modifier based on mode to ignore a directory.
+* process data
+* extra extensions:
+  * Could also do on_save modifiers which run before files are saved
+  * also override_copy which modify the copy command both in render and copy_assets
+  * override_webpack to modify webpack args/env
+

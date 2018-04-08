@@ -8,10 +8,11 @@ from time import time
 from typing import Optional
 
 import yaml
-from jinja2 import Environment, FileSystemLoader
+from jinja2 import Environment, FileSystemLoader, contextfunction
 from misaka import HtmlRenderer, Markdown
 from pydantic import BaseModel, validator
 
+from .assets import find_theme_files
 from .common import HarrierProblem
 from .config import Config
 
@@ -43,9 +44,15 @@ def render(config: Config, som: dict, build_cache=None):
     logger.debug('template directories: %s', ', '.join(template_dirs))
 
     env = Environment(loader=FileSystemLoader(template_dirs))
+    env.filters.update(config.extensions.template_filters)
+    env.globals['url'] = resolve_url
+    env.globals.update(config.extensions.template_functions)
+
     checked_dirs = set()
     gen, copy = 0, 0
-    for p in page_gen(som['pages']):
+    for p in som['pages'].values():
+        if not p.get('outfile'):
+            continue
         outfile: Path = p['outfile'].resolve()
         out_dir = outfile.parent
         if out_dir not in checked_dirs:
@@ -72,6 +79,7 @@ def render(config: Config, som: dict, build_cache=None):
                     rendered = template.render(content=content, page=p, site=som)
                 else:
                     rendered = content
+                rendered = rendered.rstrip(' \t\r\n') + '\n'
             except Exception as e:
                 logger.exception('%s: %s %s', infile, e.__class__.__name__, e)
                 raise
@@ -118,31 +126,32 @@ class BuildSOM:
     def __call__(self):
         logger.info('Building "%s"...', self.config.pages_dir)
         start = time()
-        pages = self.build_dir(walk(self.config.pages_dir))
+        pages = self.build_pages()
         logger.info('Built site object model with %d files, %d files to render in %0.2fs',
                     self.files, self.template_files, time() - start)
         data = {}
         return {
+            'pages': pages,
+            'data': data,
+            'theme_files': find_theme_files(self.config),
             **self.config.dict(),
-            **dict(pages=pages, data=data)
         }
 
-    def build_dir(self, paths):
+    def build_pages(self):
+        paths = sorted(self.config.pages_dir.glob('**/*'), key=lambda p_: (len(p_.parents), str(p_)))
         d = {}
-        for name, p in paths:
-            if not isinstance(p, Path):
-                d[name] = self.build_dir(p)
-                continue
-            try:
-                d[name] = self.prep_file(p)
-            except Exception as e:
-                raise HarrierProblem(f'{p}: {e.__class__.__name__} {e}') from e
-
+        for p in paths:
+            if p.is_file():
+                try:
+                    d[str(p.relative_to(self.config.pages_dir))] = self.prep_file(p)
+                except Exception as e:
+                    raise HarrierProblem(f'{p}: {e.__class__.__name__} {e}') from e
         return d
 
     def prep_file(self, p):
         html_output = p.suffix in OUTPUT_HTML
-        data = self.get_page_data(p, html_output)
+        rel_path = str(p.relative_to(self.config.pages_dir))
+        data = self.get_page_data(p, html_output, rel_path)
 
         maybe_render = p.suffix in MAYBE_RENDER
         apply_jinja = False
@@ -154,6 +163,12 @@ class BuildSOM:
                 apply_jinja = True
 
         self.set_page_uri_outfile(p, data, html_output)
+
+        for regex, f in self.config.extensions.page_modifiers:
+            if regex.match(rel_path):
+                data = f(data, config=self.config)
+                if not isinstance(data, dict):
+                    raise HarrierProblem(f'extension "{f.__name__}" did not return a dict')
 
         fd = FileData(**data)
         final_data = fd.dict(exclude=set() if apply_jinja else {'template', 'render'})
@@ -174,7 +189,7 @@ class BuildSOM:
 
         return final_data
 
-    def get_page_data(self, p, html_output):
+    def get_page_data(self, p, html_output, rel_path):
         data = {
             'infile': p,
             'content_template': self.tmp_dir / 'content' / p.relative_to(self.config.pages_dir)
@@ -196,7 +211,7 @@ class BuildSOM:
 
         data.update(self.all_defaults)
         for regex, defaults in self.path_defaults:
-            if regex.match(str(p.relative_to(self.config.pages_dir))):
+            if regex.match(rel_path):
                 data.update(defaults)
         return data
 
@@ -219,11 +234,6 @@ class BuildSOM:
             if html_output and outfile.suffix != '.html':
                 outfile /= 'index.html'
             data['outfile'] = outfile
-
-
-def walk(path: Path):
-    for p in sorted(path.iterdir(), key=lambda p_: (p_.is_dir(), p_.name)):
-        yield p.name, walk(p) if p.is_dir() else p.resolve()
 
 
 def parse_front_matter(s):
@@ -266,10 +276,8 @@ def slugify(title):
     return name.strip('_-')
 
 
-def page_gen(d: dict):
-    for v in d.values():
-        if '__file__' in v:
-            if v.get('outfile'):
-                yield v
-        else:
-            yield from page_gen(v)
+@contextfunction
+def resolve_url(ctx, path):
+    # TODO try more things, raise error on failure
+    theme_files = ctx['site']['theme_files']
+    return theme_files.get(path) or path

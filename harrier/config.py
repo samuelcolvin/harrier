@@ -1,26 +1,34 @@
 import hashlib
 import logging
 import tempfile
+from enum import Enum
 from itertools import product
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 
 import yaml
 from pydantic import BaseModel, validator
 from yaml.error import YAMLError
 
 from .common import HarrierProblem
+from .extensions import Extensions
 
 logger = logging.getLogger('harrier.config')
 CONFIG_FILE_TRIES = 'harrier', 'config', '_config'
 CONFIG_FILE_TRIES = [Path(f'{name}.{ext}') for name, ext in product(CONFIG_FILE_TRIES, ['yml', 'yaml'])]
 
 
+class Mode(str, Enum):
+    development = 'development'
+    production = 'production'
+
+
 class WebpackConfig(BaseModel):
     cli: Path = 'node_modules/.bin/webpack-cli'
     entry: Path = 'js/index.js'
     output_path: Path = 'theme'
-    output_filename = 'main.js'
+    dev_output_filename: Optional[str] = 'main.js'
+    prod_output_filename: Optional[str] = 'main.[hash].js'
     config: Path = None
     run: bool = True
 
@@ -30,9 +38,12 @@ class WebpackConfig(BaseModel):
 
 class Config(BaseModel):
     source_dir: Path
+    mode: Mode = Mode.production
     pages_dir: Path = 'pages'
+    extensions: Extensions = 'extensions.py'
     theme_dir: Path = 'theme'
     data_dir: Path = 'data'
+
     dist_dir: Path = 'dist'
     dist_dir_sass: Path = 'theme'
     dist_dir_assets: Path = 'theme/assets'
@@ -55,16 +66,17 @@ class Config(BaseModel):
 
     @validator('pages_dir', 'theme_dir')
     def is_dir(cls, v, field, **kwargs):
-        if not v.is_dir():
-            raise ValueError(f'{field.name} "{v}" is not a directory')
-        elif not v.exists():
+        if not v.exists():
             raise ValueError(f'{field.name} directory "{v}" does not exist')
+        elif not v.is_dir():
+            raise ValueError(f'{field.name} "{v}" is not a directory')
         else:
             return v
 
     @validator('dist_dir')
-    def check_dist_dir(cls, v):
-        p = Path(v).resolve()
+    def check_dist_dir(cls, p, values, **kwargs):
+        if not p.is_absolute():
+            p = (values['source_dir'] / p).resolve()
         if not p.parent.exists():
             raise ValueError(f'dist_dir "{p}" parent directory does not exist')
         elif p.exists() and not p.is_dir():
@@ -79,6 +91,16 @@ class Config(BaseModel):
         else:
             raise ValueError(f'theme directory "{v}" does not contain a "templates" directory')
 
+    @validator('extensions', pre=True)
+    def validate_extensions(cls, v, values, **kwargs):
+        p = values['source_dir'] / v
+        if not p.exists():
+            return None
+        elif not p.is_file():
+            raise ValueError(f'"extensions" should be a python file, not directory')
+        else:
+            return p
+
     @validator('webpack')
     def validate_webpack(cls, v, *, values, **kwargs):
         webpack: WebpackConfig = v
@@ -90,23 +112,23 @@ class Config(BaseModel):
             return webpack
 
         if not webpack.cli.is_absolute():
-            webpack.cli = (values['source_dir'] / webpack.cli).resolve()
+            webpack.cli = values['source_dir'] / webpack.cli
 
         if not webpack.cli.exists():
             logger.warning('webpack cli path "%s" does not exist, not running webpack', webpack.cli)
             webpack.run = False
 
-        webpack.entry = (values['theme_dir'] / webpack.entry).resolve()
-        if not webpack.entry.exists():
+        webpack.entry = values['theme_dir'] / webpack.entry
+        if not webpack.entry.exists() and webpack.run:
             logger.warning('webpack entry point "%s" does not exist, not running webpack', webpack.entry)
             webpack.run = False
 
         if webpack.config:
-            webpack.config = (values['source_dir'] / webpack.config).resolve()
+            webpack.config = values['source_dir'] / webpack.config
             if not webpack.config.exists():
                 raise ValueError(f'webpack config set but does not exist "{webpack.config}", not running webpack')
 
-        webpack.output_path = (values['dist_dir'] / webpack.output_path).resolve()
+        webpack.output_path = values['dist_dir'] / webpack.output_path
         return webpack
 
     def get_tmp_dir(self) -> Path:

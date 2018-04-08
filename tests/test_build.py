@@ -5,7 +5,8 @@ from pytest_toolbox import gettree, mktree
 from pytest_toolbox.comparison import CloseToNow
 
 from harrier.build import build_som, render
-from harrier.config import Config
+from harrier.config import Config, Mode
+from harrier.main import build
 
 
 def test_simple_render(tmpdir):
@@ -16,20 +17,11 @@ def test_simple_render(tmpdir):
             'spam.html': '# SPAM',
             'favicon.ico': '*',
         },
-        'theme': {
-            'templates': {
-                'main.jinja': 'main, content:\n\n{{ content }}'
-            }
-        },
-        'tmp': {
-            'content': {
-                'foobar.md': foo_page,
-            }
-        }
+        'theme/templates/main.jinja': 'main, content:\n\n{{ content }}',
+        'tmp/content/foobar.md': foo_page,
     })
     config = Config(
         source_dir=str(tmpdir),
-        dist_dir=str(tmpdir.join('dist')),
         tmp_dir=str(tmpdir.join('tmp')),
         foo='bar',
     )
@@ -66,7 +58,7 @@ def test_simple_render(tmpdir):
             '<p>this is a test foo: </p>\n'
         ),
         'favicon.ico': '*',
-        'spam.html': '# SPAM'
+        'spam.html': '# SPAM\n'
     }
     assert not tmpdir.join('dist').check()
 
@@ -83,30 +75,22 @@ def test_simple_render(tmpdir):
     tmpdir.join('dist').remove(rec=1)
     assert not tmpdir.join('dist').check()
 
-    cache = render(config, som, cache)
+    render(config, som, cache)
     assert gettree(tmpdir.join('dist')) != expected_tree
 
 
 def test_build_simple_som(tmpdir):
     mktree(tmpdir, {
+        'dist/theme/assets/whatever.1234567.png': '**',
         'pages': {
             'foobar.md': '# hello\n\nthis is a test foo: {{ foo }}',
-            'posts': {
-                '2032-06-01-testing.html': '# testing'
-            },
-            'static': {
-                'image.png': '*'
-            }
+            'posts/2032-06-01-testing.html': '# testing',
+            'static/image.png': '*',
         },
-        'theme': {
-            'templates': {
-                'main.jinja': 'main, content:\n\n {{ content }}'
-            }
-        },
+        'theme/templates/main.jinja': 'main, content:\n\n {{ content }}',
     })
     config = Config(
         source_dir=str(tmpdir),
-        dist_dir=str(tmpdir.join('dist')),
         tmp_dir=str(tmpdir.join('tmp')),
         foo='bar',
         defaults={
@@ -120,7 +104,15 @@ def test_build_simple_som(tmpdir):
     # debug(som)
     assert {
         'source_dir': source_dir,
+        'mode': Mode.production,
         'pages_dir': source_dir / 'pages',
+        'extensions': {
+            'page_modifiers': [],
+            'post_modifiers': [],
+            'pre_modifiers': [],
+            'template_filters': {},
+            'template_functions': {},
+        },
         'theme_dir': source_dir / 'theme',
         'data_dir': source_dir / 'data',
         'dist_dir': source_dir / 'dist',
@@ -138,11 +130,15 @@ def test_build_simple_som(tmpdir):
             'cli': source_dir / 'node_modules/.bin/webpack-cli',
             'entry': source_dir / 'theme/js/index.js',
             'output_path': source_dir / 'dist/theme',
-            'output_filename': 'main.js',
+            'dev_output_filename': 'main.js',
+            'prod_output_filename': 'main.[hash].js',
             'config': None,
             'run': False,
         },
         'foo': 'bar',
+        'theme_files': {
+            'theme/assets/whatever.png': 'theme/assets/whatever.1234567.png',
+        },
         'pages': {
             'foobar.md': {
                 'infile': source_dir / 'pages/foobar.md',
@@ -156,32 +152,54 @@ def test_build_simple_som(tmpdir):
                 'outfile': source_dir / 'dist/foobar/index.html',
                 '__file__': 1,
             },
-            'posts': {
-                '2032-06-01-testing.html': {
-                    'infile': source_dir / 'pages/posts/2032-06-01-testing.html',
-                    'content_template': 'content/posts/2032-06-01-testing.html',
-                    'title': 'testing',
-                    'slug': 'testing',
-                    'created': datetime(2032, 6, 1, 0, 0),
-                    'uri': '/foobar/testing.html',
-                    'template': 'main.jinja',
-                    'render': True,
-                    'outfile': source_dir / 'dist/foobar/testing.html',
-                    '__file__': 1,
-                },
+            'posts/2032-06-01-testing.html': {
+                'infile': source_dir / 'pages/posts/2032-06-01-testing.html',
+                'content_template': 'content/posts/2032-06-01-testing.html',
+                'title': 'testing',
+                'slug': 'testing',
+                'created': datetime(2032, 6, 1, 0, 0),
+                'uri': '/foobar/testing.html',
+                'template': 'main.jinja',
+                'render': True,
+                'outfile': source_dir / 'dist/foobar/testing.html',
+                '__file__': 1,
             },
-            'static': {
-                'image.png': {
-                    'infile': source_dir / 'pages/static/image.png',
-                    'title': 'image.png',
-                    'slug': 'image.png',
-                    'created': CloseToNow(),
-                    'uri': '/static/image.png',
-                    'outfile': source_dir / 'dist/static/image.png',
-                    '__file__': 1,
-                },
+            'static/image.png': {
+                'infile': source_dir / 'pages/static/image.png',
+                'title': 'image.png',
+                'slug': 'image.png',
+                'created': CloseToNow(),
+                'uri': '/static/image.png',
+                'outfile': source_dir / 'dist/static/image.png',
+                '__file__': 1,
             }
 
         },
         'data': {},
     } == som
+
+
+def test_build_render(tmpdir, mocker):
+    mktree(tmpdir, {
+        'pages/foobar.html': '{{ url("theme/assets/foobar.png") }}\n{{ url("theme/main.css") }}',
+        'theme': {
+            'templates/main.jinja': '{{ content }}',
+            'sass/main.scss': 'body {width: 10px + 10px;}',
+            'assets/foobar.png': '*',
+        },
+    })
+    build(tmpdir, mode=Mode.production)
+    assert gettree(tmpdir.join('dist')) == {
+        'foobar': {
+            'index.html': (
+                'theme/assets/foobar.3389dae.png\n'
+                'theme/main.a1ac3a7.css\n'
+            ),
+        },
+        'theme': {
+            'main.a1ac3a7.css': 'body{width:20px}\n',
+            'assets': {
+                'foobar.3389dae.png': '*',
+            },
+        },
+    }

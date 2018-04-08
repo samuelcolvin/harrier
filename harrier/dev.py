@@ -10,9 +10,10 @@ from aiohttp.web_runner import AppRunner, TCPSite
 from aiohttp_devtools.runserver import serve_static
 from watchgod import Change, awatch
 
-from .assets import copy_assets, run_grablib, start_webpack_watch
+from .assets import copy_assets, find_theme_files, run_grablib, start_webpack_watch
 from .build import BuildSOM, build_som, render
 from .config import Config
+from .extensions import apply_modifiers
 
 HOST = '0.0.0.0'
 FIRST_BUILD = '__FB__'
@@ -42,7 +43,7 @@ class Server:
         logger.debug('shutdown took %0.2fs', self.loop.time() - start)
 
 
-# CONFIG will bet set before the fork so it can be used by the child process
+# CONFIG will be set before the fork so it can be used by the child process
 CONFIG: Config = None
 # SOM and BUILD_CACHE will only be set after the fork in the child process created by ProcessPoolExecutor
 SOM = None
@@ -66,28 +67,29 @@ def update_site(pages, assets, sass, templates):
 
     if assets:
         copy_assets(CONFIG)
+    if sass:
+        run_grablib(CONFIG)
 
     global SOM
     if first_build or not SOM:
         SOM = build_som(CONFIG)
+        SOM = apply_modifiers(SOM, CONFIG.extensions.post_modifiers)
     elif pages:
         som_builder = BuildSOM(CONFIG)
         for change, path in pages:
-            obj = SOM['pages']
-            for item in str(path.relative_to(CONFIG.pages_dir)).split('/')[:-1]:
-                obj = obj[item]
+            rel_path = str(path.relative_to(CONFIG.pages_dir))
             if change == Change.deleted:
-                obj[path.name]['outfile'].unlink()
-                obj.pop(path.name)
+                SOM['pages'][rel_path]['outfile'].unlink()
+                SOM['pages'].pop(rel_path)
             else:
-                obj[path.name] = som_builder.prep_file(path)
+                SOM['pages'][rel_path] = som_builder.prep_file(path)
+        SOM['theme_files'] = find_theme_files(CONFIG)
+        SOM = apply_modifiers(SOM, CONFIG.extensions.post_modifiers)
 
     if templates or first_build or any(change != Change.deleted for change, _ in pages):
         global BUILD_CACHE
         BUILD_CACHE = render(CONFIG, SOM, BUILD_CACHE)
 
-    if sass:
-        run_grablib(CONFIG)
     logger.info('%sbuild completed in %0.3fs', '' if first_build else 're', time() - start_time)
 
 
@@ -101,6 +103,7 @@ def is_within(location: Path, directory: Path):
 
 
 async def adev(config: Config, port: int):
+    config = apply_modifiers(config, config.extensions.pre_modifiers)
     global CONFIG
     CONFIG = config
     stop_event = asyncio.Event()
