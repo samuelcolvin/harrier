@@ -50,7 +50,7 @@ def render(config: Config, som: dict, build_cache=None):
 
     checked_dirs = set()
     gen, copy = 0, 0
-    for p in page_gen(som['pages']):
+    for p in som['pages'].values():
         if not p.get('outfile'):
             continue
         outfile: Path = p['outfile'].resolve()
@@ -126,7 +126,7 @@ class BuildSOM:
     def __call__(self):
         logger.info('Building "%s"...', self.config.pages_dir)
         start = time()
-        pages = self.build_dir(walk(self.config.pages_dir))
+        pages = self.build_pages()
         logger.info('Built site object model with %d files, %d files to render in %0.2fs',
                     self.files, self.template_files, time() - start)
         data = {}
@@ -137,17 +137,15 @@ class BuildSOM:
             **self.config.dict(),
         }
 
-    def build_dir(self, paths):
+    def build_pages(self):
+        paths = sorted(self.config.pages_dir.glob('**/*'), key=lambda p_: (len(p_.parents), str(p_)))
         d = {}
-        for name, p in paths:
-            if not isinstance(p, Path):
-                d[name] = self.build_dir(p)
-                continue
-            try:
-                d[name] = self.prep_file(p)
-            except Exception as e:
-                raise HarrierProblem(f'{p}: {e.__class__.__name__} {e}') from e
-
+        for p in paths:
+            if p.is_file():
+                try:
+                    d[str(p.relative_to(self.config.pages_dir))] = self.prep_file(p)
+                except Exception as e:
+                    raise HarrierProblem(f'{p}: {e.__class__.__name__} {e}') from e
         return d
 
     def prep_file(self, p):
@@ -238,11 +236,6 @@ class BuildSOM:
             data['outfile'] = outfile
 
 
-def walk(path: Path):
-    for p in sorted(path.iterdir(), key=lambda p_: (p_.is_dir(), p_.name)):
-        yield p.name, walk(p) if p.is_dir() else p.resolve()
-
-
 def parse_front_matter(s):
     m = re.match(FRONT_MATTER_REGEX, s)
     if not m:
@@ -281,15 +274,6 @@ def slugify(title):
     name = URI_NOT_ALLOWED.sub('', name)
     name = re.sub('-{2,}', '-', name)
     return name.strip('_-')
-
-
-def page_gen(d: dict):
-    for v in d.values():
-        if '__file__' in v:
-            if v.get('outfile'):
-                yield v
-        else:
-            yield from page_gen(v)
 
 
 @contextfunction

@@ -101,7 +101,7 @@ def test_build_simple_som(tmpdir):
     )
     som = build_som(config)
     source_dir = Path(tmpdir)
-    debug(som)
+    # debug(som)
     assert {
         'source_dir': source_dir,
         'mode': Mode.production,
@@ -152,30 +152,26 @@ def test_build_simple_som(tmpdir):
                 'outfile': source_dir / 'dist/foobar/index.html',
                 '__file__': 1,
             },
-            'posts': {
-                '2032-06-01-testing.html': {
-                    'infile': source_dir / 'pages/posts/2032-06-01-testing.html',
-                    'content_template': 'content/posts/2032-06-01-testing.html',
-                    'title': 'testing',
-                    'slug': 'testing',
-                    'created': datetime(2032, 6, 1, 0, 0),
-                    'uri': '/foobar/testing.html',
-                    'template': 'main.jinja',
-                    'render': True,
-                    'outfile': source_dir / 'dist/foobar/testing.html',
-                    '__file__': 1,
-                },
+            'posts/2032-06-01-testing.html': {
+                'infile': source_dir / 'pages/posts/2032-06-01-testing.html',
+                'content_template': 'content/posts/2032-06-01-testing.html',
+                'title': 'testing',
+                'slug': 'testing',
+                'created': datetime(2032, 6, 1, 0, 0),
+                'uri': '/foobar/testing.html',
+                'template': 'main.jinja',
+                'render': True,
+                'outfile': source_dir / 'dist/foobar/testing.html',
+                '__file__': 1,
             },
-            'static': {
-                'image.png': {
-                    'infile': source_dir / 'pages/static/image.png',
-                    'title': 'image.png',
-                    'slug': 'image.png',
-                    'created': CloseToNow(),
-                    'uri': '/static/image.png',
-                    'outfile': source_dir / 'dist/static/image.png',
-                    '__file__': 1,
-                },
+            'static/image.png': {
+                'infile': source_dir / 'pages/static/image.png',
+                'title': 'image.png',
+                'slug': 'image.png',
+                'created': CloseToNow(),
+                'uri': '/static/image.png',
+                'outfile': source_dir / 'dist/static/image.png',
+                '__file__': 1,
             }
 
         },

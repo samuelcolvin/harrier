@@ -77,14 +77,12 @@ def update_site(pages, assets, sass, templates):
     elif pages:
         som_builder = BuildSOM(CONFIG)
         for change, path in pages:
-            obj = SOM['pages']
-            for item in str(path.relative_to(CONFIG.pages_dir)).split('/')[:-1]:
-                obj = obj[item]
+            rel_path = str(path.relative_to(CONFIG.pages_dir))
             if change == Change.deleted:
-                obj[path.name]['outfile'].unlink()
-                obj.pop(path.name)
+                SOM['pages'][rel_path]['outfile'].unlink()
+                SOM['pages'].pop(rel_path)
             else:
-                obj[path.name] = som_builder.prep_file(path)
+                SOM['pages'][rel_path] = som_builder.prep_file(path)
         SOM['theme_files'] = find_theme_files(CONFIG)
         SOM = apply_modifiers(SOM, CONFIG.extensions.post_modifiers)
 

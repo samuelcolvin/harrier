@@ -69,7 +69,6 @@ default webpack config with no need to setup?
 
 # TODO
 
-* sass/js files available in som and as jinja filter also hashes in sass/asset file names
 * multipart front-matter
 * ignored directories, eg. can be set with a pre modifier based on mode to ignore a directory.
 * process data
