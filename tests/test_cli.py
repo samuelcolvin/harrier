@@ -147,6 +147,6 @@ def test_steps_sass_prod(tmpdir, mocker):
     assert 'Config:' not in result.output
     assert gettree(tmpdir.join('dist')) == {
         'theme': {
-            'main.a1ac3a79fd3d75163382.css': 'body{width:20px}\n',
+            'main.a1ac3a7.css': 'body{width:20px}\n',
         },
     }

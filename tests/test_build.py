@@ -196,14 +196,14 @@ def test_build_render(tmpdir, mocker):
     assert gettree(tmpdir.join('dist')) == {
         'foobar': {
             'index.html': (
-                'theme/assets/foobar.3389dae361af79b04c9c.png\n'
-                'theme/main.a1ac3a79fd3d75163382.css\n'
+                'theme/assets/foobar.3389dae.png\n'
+                'theme/main.a1ac3a7.css\n'
             ),
         },
         'theme': {
-            'main.a1ac3a79fd3d75163382.css': 'body{width:20px}\n',
+            'main.a1ac3a7.css': 'body{width:20px}\n',
             'assets': {
-                'foobar.3389dae361af79b04c9c.png': '*',
+                'foobar.3389dae.png': '*',
             },
         },
     }

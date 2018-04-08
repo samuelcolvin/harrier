@@ -151,7 +151,7 @@ def test_grablib(tmpdir):
     run_grablib(config)
     assert gettree(tmpdir.join('dist')) == {
         'theme': {
-            'main.7cc3e19adf74a4d9238b.css': 'body{background:#BAD}\n',
+            'main.7cc3e19.css': 'body{background:#BAD}\n',
         },
     }
 
@@ -192,7 +192,7 @@ def test_copy_assets_prod(tmpdir):
     assert gettree(tmpdir.join('dist')) == {
         'theme': {
             'assets': {
-                'image.3389dae361af79b04c9c.png': '*'
+                'image.3389dae.png': '*'
             },
         },
     }
