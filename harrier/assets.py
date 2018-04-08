@@ -5,7 +5,7 @@ import shutil
 import subprocess
 from time import time
 
-from grablib.build import Builder
+from grablib.build import SassGenerator
 from grablib.download import Downloader
 
 from .common import HarrierProblem
@@ -15,7 +15,7 @@ logger = logging.getLogger('harrier.assets')
 
 
 def run_grablib(config: Config):
-    download_root = config.theme_dir / 'libs'
+    download_root = (config.theme_dir / 'libs').resolve()
     if config.download:
         logger.debug('running grablib download...')
         download = Downloader(
@@ -26,20 +26,19 @@ def run_grablib(config: Config):
         )
         download()
 
-    sass_dir = config.theme_dir / 'sass'
+    sass_dir = (config.theme_dir / 'sass').resolve()
     if sass_dir.is_dir():
         logger.info('running sass build...')
-        build = Builder(
-            build_root=config.dist_dir,
-            build={
-                'sass': {
-                    str(config.dist_dir_sass): str(sass_dir)
-                }
-            },
+
+        output_dir = (config.dist_dir / config.dist_dir_sass).resolve()
+        output_dir.relative_to(config.dist_dir)
+        sass_gen = SassGenerator(
+            input_dir=sass_dir,
+            output_dir=output_dir,
             download_root=download_root,
-            debug=config.mode == Mode.development,
+            debug=config.mode == Mode.development
         )
-        build()
+        sass_gen()
 
 
 def copy_assets(config: Config):

@@ -30,15 +30,9 @@ def test_dev_simple(tmpdir, mocker, loop):
     mktree(tmpdir, {
         'pages': {
             'foobar.md': '# hello',
-            'features': {
-                'whatever.md': '## Foo'
-            }
+            'features/whatever.md': '## Foo',
         },
-        'theme': {
-            'templates': {
-                'main.jinja': 'main:\n {{ content }}'
-            }
-        },
+        'theme/templates/main.jinja': 'main:\n {{ content }}',
     })
     mocker.patch('harrier.dev.awatch', side_effect=awatch_alt)
 
@@ -67,15 +61,9 @@ def test_dev_delete(tmpdir, mocker, loop):
     mktree(tmpdir, {
         'pages': {
             'foobar.md': '# hello',
-            'features': {
-                'whatever.md': '## Foo'
-            }
+            'features/whatever.md': '## Foo',
         },
-        'theme': {
-            'templates': {
-                'main.jinja': 'main:\n {{ content }}'
-            }
-        },
+        'theme/templates/main.jinja': 'main:\n {{ content }}',
     })
     mocker.patch('harrier.dev.awatch', side_effect=awatch_alt)
     mocker.patch('harrier.dev.Server', return_value=MockServer())
@@ -106,14 +94,8 @@ def test_mock_executor(tmpdir, mocker):
         yield {(Change.modified, str(tmpdir.join('theme/templates/main.jinja')))}
 
     mktree(tmpdir, {
-        'pages': {
-            'foobar.md': '# hello',
-        },
-        'theme': {
-            'templates': {
-                'main.jinja': 'main:\n {{ content }}'
-            }
-        },
+        'pages/foobar.md': '# hello',
+        'theme/templates/main.jinja': 'main:\n {{ content }}',
     })
     mocker.patch('harrier.dev.awatch', side_effect=awatch_alt)
     mocker.patch('harrier.dev.Server', return_value=MockServer())
@@ -144,14 +126,8 @@ def test_webpack_terminate(tmpdir, mocker, caplog):
         yield {(Change.modified, str(tmpdir.join('harrier.yml')))}
 
     mktree(tmpdir, {
-        'pages': {
-            'foobar.md': '# hello',
-        },
-        'theme': {
-            'templates': {
-                'main.jinja': 'main:\n {{ content }}'
-            }
-        },
+        'pages/foobar.md': '# hello',
+        'theme/templates/main.jinja': 'main:\n {{ content }}',
     })
     mocker.patch('harrier.dev.awatch', side_effect=awatch_alt)
     mocker.patch('harrier.dev.Server', return_value=MockServer())

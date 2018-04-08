@@ -25,12 +25,10 @@ if 'error' in ' '.join(sys.argv):
 def test_run_webpack(tmpdir):
     webpack_path = tmpdir.join('mock_webpack')
     mktree(tmpdir, {
-        'pages': {'foobar.md': '# hello'},
+        'pages/foobar.md': '# hello',
         'theme': {
             'templates': {'main.jinja': 'main:\n {{ content }}'},
-            'js': {
-                'index.js': '*'
-            }
+            'js/index.js': '*',
         },
         'mock_webpack': MOCK_WEBPACK,
         'harrier.yml': (
@@ -60,12 +58,10 @@ def test_run_webpack(tmpdir):
 def test_run_webpack_error(tmpdir):
     webpack_path = tmpdir.join('mock_webpack')
     mktree(tmpdir, {
-        'pages': {'foobar.md': '# hello'},
+        'pages/foobar.md': '# hello',
         'theme': {
             'templates': {'main.jinja': 'main:\n {{ content }}'},
-            'js': {
-                'error.js': '*'
-            },
+            'js/error.js': '*',
         },
         'webpack_config.js': '*',
         'mock_webpack': MOCK_WEBPACK,
@@ -100,12 +96,10 @@ def test_run_webpack_error(tmpdir):
 async def test_start_webpack_watch(tmpdir, loop):
     webpack_path = tmpdir.join('mock_webpack')
     mktree(tmpdir, {
-        'pages': {'foobar.md': '# hello'},
+        'pages/foobar.md': '# hello',
         'theme': {
             'templates': {'main.jinja': 'main:\n {{ content }}'},
-            'js': {
-                'index.js': '*'
-            }
+            'js/index.js': '*',
         },
         'mock_webpack': MOCK_WEBPACK,
         'harrier.yml': (
@@ -138,15 +132,13 @@ async def test_start_webpack_watch(tmpdir, loop):
 
 def test_grablib(tmpdir):
     mktree(tmpdir, {
-        'pages': {'foobar.md': '# hello'},
+        'pages/foobar.md': '# hello',
         'theme': {
             'templates': {'main.jinja': 'main:\n {{ content }}'},
-            'sass': {
-                'main.scss': (
-                    '@import "DL/demo";'
-                    'body {background: $foo}'
-                )
-            }
+            'sass/main.scss': (
+                '@import "DL/demo";'
+                'body {background: $foo}'
+            ),
         },
         'harrier.yml': (
             f'download:\n'
@@ -166,12 +158,10 @@ def test_grablib(tmpdir):
 
 def test_copy_assets(tmpdir):
     mktree(tmpdir, {
-        'pages': {'foobar.md': '# hello'},
+        'pages/foobar.md': '# hello',
         'theme': {
             'templates': {'main.jinja': 'main:\n {{ content }}'},
-            'assets': {
-                'image.png': '*'
-            }
+            'assets/image.png': '*',
         },
     })
 

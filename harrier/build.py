@@ -126,8 +126,9 @@ class BuildSOM:
                     self.files, self.template_files, time() - start)
         data = {}
         return {
+            'pages': pages,
+            'data': data,
             **self.config.dict(),
-            **dict(pages=pages, data=data)
         }
 
     def build_dir(self, paths):

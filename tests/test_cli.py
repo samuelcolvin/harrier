@@ -15,14 +15,8 @@ def test_blank():
 
 def test_build(tmpdir, mocker):
     mktree(tmpdir, {
-        'pages': {
-            'foobar.md': '# hello',
-        },
-        'theme': {
-            'templates': {
-                'main.jinja': 'main:\n {{ content }}'
-            }
-        },
+        'pages/foobar.md': '# hello',
+        'theme/templates/main.jinja': 'main:\n {{ content }}',
         'harrier.yml': (
             'webpack: {run: false}\n'
         )
@@ -46,9 +40,7 @@ def test_build(tmpdir, mocker):
 
 def test_build_bad(tmpdir):
     mktree(tmpdir, {
-        'harrier.yml': (
-            f'whatever: whenver:\n'
-        )
+        'harrier.yml': 'whatever: whatever:\n'
     })
     assert not tmpdir.join('dist').check()
     result = CliRunner().invoke(cli, ['build', str(tmpdir)])
@@ -60,9 +52,7 @@ def test_build_bad(tmpdir):
 
 def test_build_bad_verbose(tmpdir):
     mktree(tmpdir, {
-        'harrier.yml': (
-            f'whatever: whenver:\n'
-        )
+        'harrier.yml': 'whatever: whatever:\n'
     })
     result = CliRunner().invoke(cli, ['build', str(tmpdir), '-v'])
     assert result.exit_code == 2
@@ -96,12 +86,8 @@ def test_dev_bad_verbose(mocker):
 
 def test_steps_pages(tmpdir, mocker):
     mktree(tmpdir, {
-        'pages': {'foobar.md': '# hello'},
-        'theme': {
-            'templates': {
-                'main.jinja': 'main:\n {{ content }}'
-            }
-        },
+        'pages/foobar.md': '# hello',
+        'theme/templates/main.jinja': 'main:\n {{ content }}',
     })
     mock_mod = mocker.patch('harrier.main.apply_modifiers', side_effect=lambda obj, mod: obj)
 
@@ -116,14 +102,10 @@ def test_steps_pages(tmpdir, mocker):
 
 def test_steps_sass_dev(tmpdir, mocker):
     mktree(tmpdir, {
-        'pages': {'foobar.md': '# hello'},
+        'pages/foobar.md': '# hello',
         'theme': {
-            'templates': {
-                'main.jinja': '{{ content }}'
-            },
-            'sass': {
-                'main.scss': 'body {width: 10px + 10px;}'
-            }
+            'templates/main.jinja': '{{ content }}',
+            'sass/main.scss': 'body {width: 10px + 10px;}',
         },
     })
     mock_mod = mocker.patch('harrier.main.apply_modifiers', side_effect=lambda obj, mod: obj)
@@ -160,14 +142,10 @@ def test_steps_sass_dev(tmpdir, mocker):
 
 def test_steps_sass_prod(tmpdir, mocker):
     mktree(tmpdir, {
-        'pages': {'foobar.md': '# hello'},
+        'pages/foobar.md': '# hello',
         'theme': {
-            'templates': {
-                'main.jinja': '{{ content }}'
-            },
-            'sass': {
-                'main.scss': 'body {width: 10px + 10px;}'
-            }
+            'templates/main.jinja': '{{ content }}',
+            'sass/main.scss': 'body {width: 10px + 10px;}',
         },
     })
 

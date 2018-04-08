@@ -11,9 +11,7 @@ def test_copy_assets(tmpdir):
             'foo.md': '# foo',
             'bar.html': '{{ 4|add_one }} {{ site.dynamic }}',
         },
-        'theme': {
-            'templates': {'main.jinja': '{{ content }}'},
-        },
+        'theme/templates/main.jinja': '{{ content }}',
         'extensions.py': """
 from harrier.extensions import modify, template
 
@@ -49,9 +47,7 @@ def test_broken_ext(tmpdir):
         'pages': {
             'foo.md': '# foo',
         },
-        'theme': {
-            'templates': {'main.jinja': '{{ content }}'},
-        },
+        'theme/templates/main.jinja': '{{ content }}',
         'extensions.py': """
 from harrier.extensions import modify
 
@@ -71,9 +67,7 @@ def test_bad_python(tmpdir):
         'pages': {
             'foo.md': '# foo',
         },
-        'theme': {
-            'templates': {'main.jinja': '{{ content }}'},
-        },
+        'theme/templates/main.jinja': '{{ content }}',
         'extensions.py': 'xxx'
     })
 

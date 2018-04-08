@@ -78,4 +78,3 @@ default webpack config with no need to setup?
   * also override_copy which modify the copy command both in render and copy_assets
   * override_webpack to modify webpack args/env
 
-* local config - easily done with extension

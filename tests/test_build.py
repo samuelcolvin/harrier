@@ -16,16 +16,8 @@ def test_simple_render(tmpdir):
             'spam.html': '# SPAM',
             'favicon.ico': '*',
         },
-        'theme': {
-            'templates': {
-                'main.jinja': 'main, content:\n\n{{ content }}'
-            }
-        },
-        'tmp': {
-            'content': {
-                'foobar.md': foo_page,
-            }
-        }
+        'theme/templates/main.jinja': 'main, content:\n\n{{ content }}',
+        'tmp/content/foobar.md': foo_page,
     })
     config = Config(
         source_dir=str(tmpdir),
@@ -82,7 +74,7 @@ def test_simple_render(tmpdir):
     tmpdir.join('dist').remove(rec=1)
     assert not tmpdir.join('dist').check()
 
-    cache = render(config, som, cache)
+    render(config, som, cache)
     assert gettree(tmpdir.join('dist')) != expected_tree
 
 
@@ -90,18 +82,10 @@ def test_build_simple_som(tmpdir):
     mktree(tmpdir, {
         'pages': {
             'foobar.md': '# hello\n\nthis is a test foo: {{ foo }}',
-            'posts': {
-                '2032-06-01-testing.html': '# testing'
-            },
-            'static': {
-                'image.png': '*'
-            }
+            'posts/2032-06-01-testing.html': '# testing',
+            'static/image.png': '*'
         },
-        'theme': {
-            'templates': {
-                'main.jinja': 'main, content:\n\n {{ content }}'
-            }
-        },
+        'theme/templates/main.jinja': 'main, content:\n\n {{ content }}',
     })
     config = Config(
         source_dir=str(tmpdir),
