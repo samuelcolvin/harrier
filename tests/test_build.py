@@ -181,7 +181,12 @@ def test_build_simple_som(tmpdir):
 
 def test_build_render(tmpdir, mocker):
     mktree(tmpdir, {
-        'pages/foobar.html': '{{ url("theme/assets/foobar.png") }}\n{{ url("theme/main.css") }}',
+        'pages': {
+            'foobar.html': (
+                '{{url("theme/assets/foobar.png")}}\n'
+                '{{url("theme/main.css")}}'
+            ),
+        },
         'theme': {
             'templates/main.jinja': '{{ content }}',
             'sass/main.scss': 'body {width: 10px + 10px;}',
@@ -202,4 +207,92 @@ def test_build_render(tmpdir, mocker):
                 'foobar.3389dae.png': '*',
             },
         },
+    }
+
+
+def test_build_multi_part(tmpdir, mocker):
+    mktree(tmpdir, {
+        'pages': {
+            'multipart_list.md': (
+                '---\n'
+                'uri: /list_md.html\n'
+                'template: list.jinja\n'
+                '---\n'
+                'part 1\n'
+                '--- . ---\n'
+                'part **2**\n'
+                '---.---\n'
+                'this is part *3*\n'
+            ),
+            'multipart_dict.md': (
+                '---\n'
+                'uri: /dict_md.html\n'
+                'template: dict.jinja\n'
+                '---\n'
+                'the main **section**\n'
+                '--- other ---\n'
+                'part *2*\n'
+            ),
+            'multipart_list.html': (
+                '---\n'
+                'uri: /list_html.html\n'
+                'template: list.jinja\n'
+                '---\n'
+                'part 1\n'
+                '--- . ---\n'
+                'part 2\n'
+                '---.---\n'
+                'this is part 3\n'
+            ),
+            'multipart_dict.html': (
+                '---\n'
+                'uri: /dict_html.html\n'
+                'template: dict.jinja\n'
+                '---\n'
+                'the main section\n'
+                '--- other ---\n'
+                'part 2\n'
+            ),
+        },
+        'theme': {
+            'templates/': {
+                'list.jinja': (
+                    '{% for v in content %}\n'
+                    '  {{ v}}\n'
+                    '{% endfor %}\n'
+                ),
+                'dict.jinja': (
+                    '{{ content.main }}\n'
+                    '{{ content.other }}\n'
+                ),
+            },
+        },
+    })
+    build(tmpdir, mode=Mode.production)
+    assert gettree(tmpdir.join('dist')) == {
+        'list_md.html': (
+            '\n'
+            '  <p>part 1</p>\n'
+            '\n\n'
+            '  <p>part <strong>2</strong></p>\n'
+            '\n\n'
+            '  <p>this is part <em>3</em></p>\n'
+        ),
+        'dict_md.html': (
+            '<p>the main <strong>section</strong></p>\n'
+            '\n'
+            '<p>part <em>2</em></p>\n'
+        ),
+        'list_html.html': (
+            '\n'
+            '  part 1\n'
+            '\n'
+            '  part 2\n'
+            '\n'
+            '  this is part 3\n'
+        ),
+        'dict_html.html': (
+            'the main section\n'
+            'part 2\n'
+        ),
     }
