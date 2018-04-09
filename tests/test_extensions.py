@@ -15,7 +15,7 @@ def test_copy_assets(tmpdir):
         'extensions.py': """
 from harrier.extensions import modify, template
 
-@modify.pages('foo.*')
+@modify.pages('/foo.*')
 def modify_foo(page, config):
     page['content'] += ' changed by extension'
     return page

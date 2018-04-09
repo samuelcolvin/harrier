@@ -54,7 +54,6 @@ class Config(BaseModel):
     default_template = 'main.jinja'
     defaults: Dict[PathMatch, Dict[str, Any]] = {}
     ignore: List[PathMatch] = []
-    unaltered: List[PathMatch] = []
 
     webpack: WebpackConfig = WebpackConfig()
 

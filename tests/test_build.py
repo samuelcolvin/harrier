@@ -95,7 +95,7 @@ def test_build_simple_som(tmpdir):
         tmp_dir=str(tmpdir.join('tmp')),
         foo='bar',
         defaults={
-            'posts/*': {
+            '/posts/*': {
                 'uri': '/foobar/{slug}.html'
             }
         }
@@ -124,11 +124,10 @@ def test_build_simple_som(tmpdir):
         'download_aliases': {},
         'default_template': 'main.jinja',
         'defaults': {
-            PathMatch('posts/*'): {
+            PathMatch('/posts/*'): {
                 'uri': '/foobar/{slug}.html',
             },
         },
-        'copy_unaltered': [],
         'ignore': [],
         'webpack': {
             'cli': source_dir / 'node_modules/.bin/webpack-cli',
@@ -183,7 +182,7 @@ def test_build_simple_som(tmpdir):
     } == som
 
 
-def test_build_render(tmpdir, mocker):
+def test_build_render(tmpdir):
     mktree(tmpdir, {
         'pages': {
             'foobar.html': (
@@ -214,7 +213,7 @@ def test_build_render(tmpdir, mocker):
     }
 
 
-def test_build_multi_part(tmpdir, mocker):
+def test_build_multi_part(tmpdir):
     mktree(tmpdir, {
         'pages': {
             'multipart_list.md': (
@@ -299,4 +298,41 @@ def test_build_multi_part(tmpdir, mocker):
             'the main section\n'
             'part 2\n'
         ),
+    }
+
+
+def test_ignore_no_template(tmpdir):
+    mktree(tmpdir, {
+        'pages': {
+            'ignore_this.md': 'this file is ignored',
+            'normal.md': 'hello this is normal',
+            'no_template.md': 'this should be rendered as-is',
+            'normal_but_no_output.md': (
+                '---\n'
+                'output: false\n'
+                '---\n'
+                'hello this is normal\n'
+            )
+        },
+        'theme': {
+            'templates/foobar.jinja': 'rendered {{ content }}',
+        },
+        'harrier.yml': (
+            'default_template: "foobar.jinja"\n'
+            'ignore:\n'
+            '- "**/ignore*"\n'
+            'defaults:\n'
+            '  "/no_temp*":\n'
+            '    apply_template: false\n'
+        )
+    })
+    build(tmpdir, mode=Mode.production)
+    assert gettree(tmpdir.join('dist')) == {
+        'no_template': {
+            'index.html': 'this should be rendered as-is',
+        },
+        'normal': {
+            'index.html': 'rendered <p>hello this is normal</p>\n',
+        },
+
     }

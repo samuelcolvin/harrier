@@ -41,7 +41,6 @@ class BuildSOM:
     def __init__(self, config: Config):
         self.config = config
         self.tmp_dir = config.get_tmp_dir()
-        self.path_defaults = [(k, v) for k, v in config.defaults.items() if v]
         self.files = 0
         self.template_files = 0
         self.yaml = YAML(typ='safe')
@@ -66,28 +65,32 @@ class BuildSOM:
         for p in paths:
             if p.is_file():
                 try:
-                    d[str(p.relative_to(self.config.pages_dir))] = self.prep_file(p)
+                    v = self.prep_file(p)
+                    if v:
+                        d[str(p.relative_to(self.config.pages_dir))] = v
                 except Exception as e:
                     raise HarrierProblem(f'{p}: {e.__class__.__name__} {e}') from e
         return d
 
     def prep_file(self, p):
+        path_ref = '/' + os.path.normcase(str(p.relative_to(self.config.pages_dir)))
+        if any(path_match(path_ref) for path_match in self.config.ignore):
+            return
         html_output = p.suffix in OUTPUT_HTML
-        rel_path = os.path.normcase(str(p.relative_to(self.config.pages_dir)))
 
-        data, apply_jinja = self.get_page_data(p, html_output, rel_path)
+        data, apple_template = self.get_page_data(p, html_output, path_ref)
 
         for path_match, f in self.config.extensions.page_modifiers:
-            if path_match(rel_path):
+            if path_match(path_ref):
                 data = f(data, config=self.config)
                 if not isinstance(data, dict):
                     raise HarrierProblem(f'extension "{f.__name__}" did not return a dict')
 
         fd = FileData(**data)
-        final_data = fd.dict(exclude=set() if apply_jinja else {'template', 'render'})
+        final_data = fd.dict(exclude=set() if apple_template else {'template', 'render'})
         final_data['__file__'] = 1
 
-        if apply_jinja and fd.render:
+        if apple_template and fd.render:
             if not fd.content_template.parent.exists():
                 fd.content_template.parent.mkdir(parents=True)
             fd.content_template.write_text(final_data.pop('content'))
@@ -95,14 +98,14 @@ class BuildSOM:
         else:
             final_data.pop('content_template')
 
-        # logger.debug('added %s apply_jinja: %s, outfile %s', p, apply_jinja, fd.outfile)
+        # logger.debug('added %s apple_template: %s, outfile %s', p, apple_template, fd.outfile)
         self.files += 1
-        if apply_jinja:
+        if apple_template:
             self.template_files += 1
 
         return final_data
 
-    def get_page_data(self, p, html_output, rel_path):
+    def get_page_data(self, p, html_output, path_ref):
         name = p.stem if html_output else p.name
 
         date_match = DATE_REGEX.match(name)
@@ -123,17 +126,17 @@ class BuildSOM:
         }
 
         for path_match, defaults in self.config.defaults.items():
-            if path_match(rel_path):
+            if path_match(path_ref):
                 data.update(defaults)
 
         maybe_render = p.suffix in MAYBE_RENDER
-        apply_jinja = False
-        if html_output or maybe_render:
+        apple_template = data.get('apply_template', None)
+        if apple_template is not False and html_output or maybe_render:
             fm_data, content = self.parse_front_matter(p.read_text())
             if html_output or fm_data:
                 data['content'] = content
                 fm_data and data.update(fm_data)
-                apply_jinja = True
+                apple_template = True
 
         uri = data.get('uri')
         if not uri:
@@ -153,7 +156,7 @@ class BuildSOM:
             if html_output and outfile.suffix != '.html':
                 outfile /= 'index.html'
             data['outfile'] = outfile
-        return data, apply_jinja
+        return data, apple_template
 
     def parse_front_matter(self, s):
         m = FRONT_MATTER_START_REGEX.match(s)

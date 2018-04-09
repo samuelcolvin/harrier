@@ -28,7 +28,7 @@ class PathMatch:
         return hash(self.raw)
 
     def __repr__(self):
-        return f'<GlobMatch {self.raw!r}>'
+        return f'<PathMatch {self.raw!r}>'
 
     @classmethod
     def get_validators(cls):
