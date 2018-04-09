@@ -1,7 +1,7 @@
 import pytest
 from pytest_toolbox import mktree
 
-from harrier.build import BuildSOM
+from harrier.build import BuildSOM, split_content
 from harrier.common import HarrierProblem
 from harrier.config import Config
 
@@ -75,51 +75,31 @@ def test_no_starting_front_matter(tmpdir):
     assert content == s
 
 
-def test_multi_list(tmpdir):
-    mktree(tmpdir, basic_files)
-    s = """\
----
----
+@pytest.mark.parametrize('s,result', [
+    ("""\
 main content
 --- . ---
 another
 
 ---.---
-the third"""
-    obj, content = BuildSOM(Config(source_dir=tmpdir)).parse_front_matter(s)
-    assert obj == {}
-    assert content == ['main content', 'another\n', 'the third']
-
-
-def test_multi_dict(tmpdir):
-    mktree(tmpdir, basic_files)
-    s = """\
----
-abc: def
----
+the third""", ['main content', 'another\n', 'the third']),
+    ("""\
 main content
 --- foo ---
 another
 
 ---bar---
-the third"""
-    obj, content = BuildSOM(Config(source_dir=tmpdir)).parse_front_matter(s)
-    assert obj == {'abc': 'def'}
-    assert content == {'main': 'main content', 'foo': 'another\n', 'bar': 'the third'}
-
-
-def test_multi_dict_empty(tmpdir):
-    mktree(tmpdir, basic_files)
-    s = """\
----
----
+the third""",
+     {'main': 'main content', 'foo': 'another\n', 'bar': 'the third'}),
+    ("""\
 --- foo ---
 another
 --- bar ---
-the third"""
-    obj, content = BuildSOM(Config(source_dir=tmpdir)).parse_front_matter(s)
-    assert obj == {}
-    assert content == {'foo': 'another', 'bar': 'the third'}
+the third""", {'foo': 'another', 'bar': 'the third'}),
+])
+def test_multi_part_good(s, result, tmpdir):
+    mktree(tmpdir, basic_files)
+    assert split_content(s) == result
 
 
 def test_multi_mixed(tmpdir):
@@ -132,4 +112,4 @@ another
 --- bar ---
 the third"""
     with pytest.raises(HarrierProblem):
-        BuildSOM(Config(source_dir=tmpdir)).parse_front_matter(s)
+        split_content(s)

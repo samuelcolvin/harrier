@@ -30,83 +30,11 @@ logger = logging.getLogger('harrier.build')
 
 
 def build_som(config: Config):
-    som_builder = BuildSOM(config)
-    return som_builder()
+    return BuildSOM(config).run()
 
 
 def render(config: Config, som: dict, build_cache=None):
-    start = time()
-    dist_dir: Path = config.dist_dir
-
-    rndr = HtmlRenderer()
-    md = Markdown(rndr)
-
-    template_dirs = [str(config.get_tmp_dir()), str(config.theme_dir / 'templates')]
-    logger.debug('template directories: %s', ', '.join(template_dirs))
-
-    env = Environment(loader=FileSystemLoader(template_dirs))
-    env.filters.update(config.extensions.template_filters)
-    env.globals['url'] = resolve_url
-    env.globals.update(config.extensions.template_functions)
-
-    checked_dirs = set()
-    gen, copy = 0, 0
-    for p in som['pages'].values():
-        if not p.get('outfile'):
-            continue
-        outfile: Path = p['outfile'].resolve()
-        out_dir = outfile.parent
-        if out_dir not in checked_dirs:
-            # this will raise an exception if somehow outfile is outside dis_dir
-            out_dir.relative_to(dist_dir)
-            out_dir.mkdir(exist_ok=True, parents=True)
-            checked_dirs.add(out_dir)
-
-        infile: Path = p['infile']
-        if 'template' in p:
-            template_file = p['template']
-            try:
-                if p['render']:
-                    content_template = env.get_template(str(p['content_template']))
-                    content = content_template.render(page=p, site=som)
-                else:
-                    content = p['content']
-
-                if infile.suffix == '.md':
-                    content = md(content)
-
-                if template_file:
-                    template = env.get_template(template_file)
-                    rendered = template.render(content=content, page=p, site=som)
-                else:
-                    rendered = content
-                rendered = rendered.rstrip(' \t\r\n') + '\n'
-            except Exception as e:
-                logger.exception('%s: %s %s', infile, e.__class__.__name__, e)
-                raise
-            else:
-                rendered_b = rendered.encode()
-                if build_cache is not None:
-                    out_hash = hashlib.md5(rendered_b).digest()
-                    if build_cache.get(infile) == out_hash:
-                        # file hasn't changed
-                        continue
-                    else:
-                        build_cache[infile] = out_hash
-                gen += 1
-                outfile.write_bytes(rendered_b)
-        else:
-            if build_cache is not None:
-                mtime = infile.stat().st_mtime
-                if build_cache.get(infile) == mtime:
-                    # file hasn't changed
-                    continue
-                else:
-                    build_cache[infile] = mtime
-            copy += 1
-            shutil.copy(infile, outfile)
-    logger.info('generated %d files, copied %d files in %0.2fs', gen, copy, time() - start)
-    return build_cache
+    return Renderer(config, som, build_cache).run()
 
 
 class BuildSOM:
@@ -125,7 +53,7 @@ class BuildSOM:
         self.template_files = 0
         self.yaml = YAML(typ='safe')
 
-    def __call__(self):
+    def run(self):
         logger.info('Building "%s"...', self.config.pages_dir)
         start = time()
         pages = self.build_pages()
@@ -245,33 +173,140 @@ class BuildSOM:
             data = self.yaml.load(m.groups()[0]) or {}
         except YAMLError as e:
             raise HarrierProblem(f'error parsing YAML: {e}') from e
-        s = s[m.end():]
+        content = s[m.end():]
+        return data, content
+
+
+class Renderer:
+    __slots__ = 'start', 'config', 'som', 'build_cache', 'md', 'env', 'checked_dirs'
+
+    def __init__(self, config: Config, som: dict, build_cache: dict=None):
+        self.start = time()
+        self.config = config
+        self.som = som
+        self.build_cache = build_cache
+
+        rndr = HtmlRenderer()
+        self.md = Markdown(rndr)
+
+        template_dirs = [str(self.config.get_tmp_dir()), str(self.config.theme_dir / 'templates')]
+        logger.debug('template directories: %s', ', '.join(template_dirs))
+
+        self.env = Environment(loader=FileSystemLoader(template_dirs))
+        self.env.filters.update(self.config.extensions.template_filters)
+        self.env.globals['url'] = resolve_url
+        self.env.globals.update(self.config.extensions.template_functions)
+
+        self.checked_dirs = set()
+
+    def run(self):
+        gen, copy = 0, 0
+        for p in self.som['pages'].values():
+            action = self.render_file(p)
+            if action == 1:
+                gen += 1
+            elif action == 2:
+                copy += 1
+        logger.info('generated %d files, copied %d files in %0.2fs', gen, copy, time() - self.start)
+        return self.build_cache
+
+    def render_file(self, p):
+        if not p.get('outfile'):
+            return
+        outfile: Path = p['outfile'].resolve()
+        out_dir = outfile.parent
+        if out_dir not in self.checked_dirs:
+            # this will raise an exception if somehow outfile is outside dis_dir
+            out_dir.relative_to(self.config.dist_dir)
+            out_dir.mkdir(exist_ok=True, parents=True)
+            self.checked_dirs.add(out_dir)
+
+        infile: Path = p['infile']
+        if 'template' in p:
+            return self.render_template(p, infile, outfile)
+        else:
+            return self.copy_file(p, infile, outfile)
+
+    def render_template(self, p: dict, infile: Path, outfile: Path):
+        template_file = p['template']
+        try:
+            if p['render']:
+                content_template = self.env.get_template(str(p['content_template']))
+                content = content_template.render(page=p, site=self.som)
+            else:
+                content = p['content']
+
+            content = split_content(content)
+
+            if infile.suffix == '.md':
+                if isinstance(content, dict):
+                    content = {k: self.md(v) for k, v in content.items()}
+                elif isinstance(content, list):
+                    content = [self.md(v) for v in content]
+                else:
+                    # assumes content is a str
+                    content = self.md(content)
+
+            if template_file:
+                template = self.env.get_template(template_file)
+                rendered = template.render(content=content, page=p, site=self.som)
+            else:
+                rendered = content
+            rendered = rendered.rstrip(' \t\r\n') + '\n'
+        except Exception as e:
+            logger.exception('%s: %s %s', infile, e.__class__.__name__, e)
+            raise
+        else:
+            rendered_b = rendered.encode()
+            if self.build_cache is not None:
+                out_hash = hashlib.md5(rendered_b).digest()
+                if self.build_cache.get(infile) == out_hash:
+                    # file hasn't changed
+                    return
+                else:
+                    self.build_cache[infile] = out_hash
+            outfile.write_bytes(rendered_b)
+            return 1
+
+    def copy_file(self, p: dict, infile: Path, outfile: Path):
+        if self.build_cache is not None:
+            mtime = infile.stat().st_mtime
+            if self.build_cache.get(infile) == mtime:
+                # file hasn't changed
+                return
+            else:
+                self.build_cache[infile] = mtime
+        shutil.copy(infile, outfile)
+        return 2
+
+
+def split_content(s):
+    m = FRONT_MATTER_DIVIDER_REGEX.search(s)
+    if not m:
+        return s
+    content = []
+    name = 'main'
+    while True:
+        start, end = m.span()
+        content.append(
+            (name, s[:start])
+        )
+        name = m.groups()[0]
+        s = s[end:]
         m = FRONT_MATTER_DIVIDER_REGEX.search(s)
         if not m:
-            return data, s
-        content = []
-        name = 'main'
-        while True:
-            start, end = m.span()
-            content.append(
-                (name, s[:start])
-            )
-            name = m.groups()[0]
-            s = s[end:]
-            m = FRONT_MATTER_DIVIDER_REGEX.search(s)
-            if not m:
-                break
-        content.append(
-            (name, s)
-        )
-        names, values = zip(*content)
-        names = set(names[1:])
-        if names == {'.'}:
-            return data, list(values)
-        elif '.' in names:
-            raise HarrierProblem(f'badly constructed multi-part frontmatter, not list or dict')
-        else:
-            return data, {k: v for k, v in content if v}
+            break
+    content.append(
+        (name, s)
+    )
+    names, values = zip(*content)
+    names = set(names[1:])
+    if names == {'.'}:
+        return list(values)
+    elif '.' in names:
+        raise HarrierProblem(f'badly constructed multi-part front matter, dividers indicate a mix of list and dict')
+    else:
+        return {k: v for k, v in content if v}
 
 
 class FileData(BaseModel):
