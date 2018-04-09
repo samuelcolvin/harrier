@@ -5,6 +5,7 @@ from pytest_toolbox import gettree, mktree
 from pytest_toolbox.comparison import CloseToNow
 
 from harrier.build import build_som, render
+from harrier.common import PathMatch
 from harrier.config import Config, Mode
 from harrier.main import build
 
@@ -121,11 +122,14 @@ def test_build_simple_som(tmpdir):
         'tmp_dir': source_dir / 'tmp',
         'download': {},
         'download_aliases': {},
+        'default_template': 'main.jinja',
         'defaults': {
-            'posts/*': {
+            PathMatch('posts/*'): {
                 'uri': '/foobar/{slug}.html',
             },
         },
+        'copy_unaltered': [],
+        'ignore': [],
         'webpack': {
             'cli': source_dir / 'node_modules/.bin/webpack-cli',
             'entry': source_dir / 'theme/js/index.js',

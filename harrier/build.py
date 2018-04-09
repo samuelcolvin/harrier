@@ -14,7 +14,7 @@ from pydantic import BaseModel, validator
 from ruamel.yaml import YAML, YAMLError
 
 from .assets import find_theme_files
-from .common import HarrierProblem, compile_glob
+from .common import HarrierProblem
 from .config import Config
 
 FRONT_MATTER_START_REGEX = re.compile(r'---[ \t]*(.*)\n---[ \t]*\n', re.S)
@@ -25,7 +25,6 @@ MAYBE_RENDER = {'.xml'}
 URI_NOT_ALLOWED = re.compile(r'[^a-zA-Z0-9_\-/.]')
 DATE_REGEX = re.compile(r'(\d{4})-(\d{2})-(\d{2})-?(.*)')
 URI_IS_TEMPLATE = re.compile('[{}]')
-DEFAULT_TEMPLATE = 'main.jinja'
 
 logger = logging.getLogger('harrier.build')
 
@@ -42,11 +41,7 @@ class BuildSOM:
     def __init__(self, config: Config):
         self.config = config
         self.tmp_dir = config.get_tmp_dir()
-        self.all_defaults = {
-            'template': DEFAULT_TEMPLATE,
-            **config.defaults.pop('all', {})
-        }
-        self.path_defaults = [(compile_glob(k), v) for k, v in config.defaults.items() if v]
+        self.path_defaults = [(k, v) for k, v in config.defaults.items() if v]
         self.files = 0
         self.template_files = 0
         self.yaml = YAML(typ='safe')
@@ -79,21 +74,11 @@ class BuildSOM:
     def prep_file(self, p):
         html_output = p.suffix in OUTPUT_HTML
         rel_path = os.path.normcase(str(p.relative_to(self.config.pages_dir)))
-        data = self.get_page_data(p, html_output, rel_path)
 
-        maybe_render = p.suffix in MAYBE_RENDER
-        apply_jinja = False
-        if html_output or maybe_render:
-            fm_data, content = self.parse_front_matter(p.read_text())
-            if html_output or fm_data:
-                data['content'] = content
-                fm_data and data.update(fm_data)
-                apply_jinja = True
+        data, apply_jinja = self.get_page_data(p, html_output, rel_path)
 
-        self.set_page_uri_outfile(p, data, html_output)
-
-        for regex, f in self.config.extensions.page_modifiers:
-            if regex.match(rel_path):
+        for path_match, f in self.config.extensions.page_modifiers:
+            if path_match(rel_path):
                 data = f(data, config=self.config)
                 if not isinstance(data, dict):
                     raise HarrierProblem(f'extension "{f.__name__}" did not return a dict')
@@ -118,10 +103,6 @@ class BuildSOM:
         return final_data
 
     def get_page_data(self, p, html_output, rel_path):
-        data = {
-            'infile': p,
-            'content_template': self.tmp_dir / 'content' / p.relative_to(self.config.pages_dir)
-        }
         name = p.stem if html_output else p.name
 
         date_match = DATE_REGEX.match(name)
@@ -131,19 +112,29 @@ class BuildSOM:
             name = new_name or name
         else:
             created = p.stat().st_mtime
-        data.update(
-            title=name,
-            slug='' if html_output and p.stem == 'index' else slugify(name),
-            created=created
-        )
 
-        data.update(self.all_defaults)
-        for regex, defaults in self.path_defaults:
-            if regex.match(rel_path):
+        data = {
+            'infile': p,
+            'content_template': self.tmp_dir / 'content' / p.relative_to(self.config.pages_dir),
+            'template': self.config.default_template,
+            'title': name,
+            'slug': '' if html_output and p.stem == 'index' else slugify(name),
+            'created': created,
+        }
+
+        for path_match, defaults in self.config.defaults.items():
+            if path_match(rel_path):
                 data.update(defaults)
-        return data
 
-    def set_page_uri_outfile(self, p, data, html_output):
+        maybe_render = p.suffix in MAYBE_RENDER
+        apply_jinja = False
+        if html_output or maybe_render:
+            fm_data, content = self.parse_front_matter(p.read_text())
+            if html_output or fm_data:
+                data['content'] = content
+                fm_data and data.update(fm_data)
+                apply_jinja = True
+
         uri = data.get('uri')
         if not uri:
             parents = str(p.parent.relative_to(self.config.pages_dir)).split('/')
@@ -162,6 +153,7 @@ class BuildSOM:
             if html_output and outfile.suffix != '.html':
                 outfile /= 'index.html'
             data['outfile'] = outfile
+        return data, apply_jinja
 
     def parse_front_matter(self, s):
         m = FRONT_MATTER_START_REGEX.match(s)

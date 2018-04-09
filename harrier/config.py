@@ -4,12 +4,12 @@ import tempfile
 from enum import Enum
 from itertools import product
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional
 
 from pydantic import BaseModel, validator
 from ruamel.yaml import YAML, YAMLError
 
-from .common import HarrierProblem
+from .common import HarrierProblem, PathMatch
 from .extensions import Extensions
 
 logger = logging.getLogger('harrier.config')
@@ -51,7 +51,10 @@ class Config(BaseModel):
     download: Dict[str, Any] = {}
     download_aliases: Dict[str, str] = {}
 
-    defaults: Dict[str, Dict[str, Any]] = {}
+    default_template = 'main.jinja'
+    defaults: Dict[PathMatch, Dict[str, Any]] = {}
+    ignore: List[PathMatch] = []
+    unaltered: List[PathMatch] = []
 
     webpack: WebpackConfig = WebpackConfig()
 

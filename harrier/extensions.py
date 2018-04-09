@@ -5,7 +5,7 @@ from types import FunctionType
 from jinja2 import (contextfilter, contextfunction, environmentfilter, environmentfunction, evalcontextfilter,
                     evalcontextfunction)
 
-from .common import HarrierProblem, compile_glob
+from .common import HarrierProblem, PathMatch
 
 __all__ = (
     'modify',
@@ -57,7 +57,7 @@ class Extensions(dict):
             attr = getattr(module, attr_name)
             ext_type = getattr(attr, '__extension__', None)
             if ext_type == ExtType.page_modifiers:
-                extensions[ext_type].extend([(regex, attr) for regex in attr.regexes])
+                extensions[ext_type].extend([(path_match, attr) for path_match in attr.path_matches])
             elif ext_type:
                 extensions[ext_type].append(attr)
             elif any(getattr(attr, n, False) for n in filter_attrs):
@@ -98,7 +98,7 @@ class modify:
 
         def dec(f):
             f.__extension__ = ExtType.page_modifiers
-            f.regexes = [compile_glob(glob) for glob in globs]
+            f.path_matches = [PathMatch(glob) for glob in globs]
             return f
         return dec
 

@@ -4,15 +4,40 @@ from fnmatch import translate
 from os.path import normcase
 
 import click
+from pydantic.validators import str_validator
 
 
 class HarrierProblem(RuntimeError):
     pass
 
 
-def compile_glob(glob):
-    # this is basically the same as what fnmatch does on every call.
-    return re.compile(translate(normcase(glob)))
+class PathMatch:
+    __slots__ = 'raw', '_regex'
+
+    def __init__(self, s):
+        self.raw = s
+        self._regex = re.compile(translate(normcase(s)))
+
+    def __call__(self, path: str):
+        return self._regex.match(path)
+
+    def __eq__(self, other):
+        return self.raw == getattr(other, 'raw', None)
+
+    def __hash__(self):
+        return hash(self.raw)
+
+    def __repr__(self):
+        return f'<GlobMatch {self.raw!r}>'
+
+    @classmethod
+    def get_validators(cls):
+        yield str_validator
+        yield cls.validate
+
+    @classmethod
+    def validate(cls, value):
+        return cls(value)
 
 
 class GrablibHandler(logging.Handler):
