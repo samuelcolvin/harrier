@@ -94,7 +94,7 @@ def test_build_simple_som(tmpdir):
         tmp_dir=str(tmpdir.join('tmp')),
         foo='bar',
         defaults={
-            'posts': {
+            'posts/*': {
                 'uri': '/foobar/{slug}.html'
             }
         }
@@ -122,7 +122,7 @@ def test_build_simple_som(tmpdir):
         'download': {},
         'download_aliases': {},
         'defaults': {
-            'posts': {
+            'posts/*': {
                 'uri': '/foobar/{slug}.html',
             },
         },

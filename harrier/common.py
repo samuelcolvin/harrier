@@ -1,10 +1,18 @@
 import logging.config
+import re
+from fnmatch import translate
+from os.path import normcase
 
 import click
 
 
 class HarrierProblem(RuntimeError):
     pass
+
+
+def compile_glob(glob):
+    # this is basically the same as what fnmatch does on every call.
+    return re.compile(translate(normcase(glob)))
 
 
 class GrablibHandler(logging.Handler):

@@ -1,4 +1,3 @@
-import re
 from enum import Enum
 from importlib.util import module_from_spec, spec_from_file_location
 from types import FunctionType
@@ -6,7 +5,7 @@ from types import FunctionType
 from jinja2 import (contextfilter, contextfunction, environmentfilter, environmentfunction, evalcontextfilter,
                     evalcontextfunction)
 
-from .common import HarrierProblem
+from .common import HarrierProblem, compile_glob
 
 __all__ = (
     'modify',
@@ -58,8 +57,7 @@ class Extensions(dict):
             attr = getattr(module, attr_name)
             ext_type = getattr(attr, '__extension__', None)
             if ext_type == ExtType.page_modifiers:
-                for regex in attr.regexes:
-                    extensions[ext_type].append((re.compile(regex), attr))
+                extensions[ext_type].extend([(regex, attr) for regex in attr.regexes])
             elif ext_type:
                 extensions[ext_type].append(attr)
             elif any(getattr(attr, n, False) for n in filter_attrs):
@@ -91,16 +89,16 @@ class modify:
         return f
 
     @staticmethod
-    def pages(*regexes):
-        if not regexes:
-            raise HarrierProblem('validator with no page regexes specified')
-        elif isinstance(regexes[0], FunctionType):
-            raise HarrierProblem("modify_pages should be used with page regexes as arguments, not bare. "
-                                 "E.g. usage should be `@modify_pages('<page_regex>', ...)`")
+    def pages(*globs):
+        if not globs:
+            raise HarrierProblem('validator with no page globs specified')
+        elif isinstance(globs[0], FunctionType):
+            raise HarrierProblem("modify_pages should be used with page globs as arguments, not bare. "
+                                 "E.g. usage should be `@modify_pages('<page_glob>', ...)`")
 
         def dec(f):
             f.__extension__ = ExtType.page_modifiers
-            f.regexes = regexes
+            f.regexes = [compile_glob(glob) for glob in globs]
             return f
         return dec
 

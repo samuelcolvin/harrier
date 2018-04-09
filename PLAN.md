@@ -69,7 +69,6 @@ default webpack config with no need to setup?
 
 # TODO
 
-* multipart front-matter
 * ignored directories, eg. can be set with a pre modifier based on mode to ignore a directory.
 * process data
 * extra extensions:

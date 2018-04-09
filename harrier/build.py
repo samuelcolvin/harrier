@@ -1,5 +1,6 @@
 import hashlib
 import logging
+import os
 import re
 import shutil
 from datetime import datetime
@@ -13,7 +14,7 @@ from pydantic import BaseModel, validator
 from ruamel.yaml import YAML, YAMLError
 
 from .assets import find_theme_files
-from .common import HarrierProblem
+from .common import HarrierProblem, compile_glob
 from .config import Config
 
 FRONT_MATTER_START_REGEX = re.compile(r'---[ \t]*(.*)\n---[ \t]*\n', re.S)
@@ -45,10 +46,7 @@ class BuildSOM:
             'template': DEFAULT_TEMPLATE,
             **config.defaults.pop('all', {})
         }
-        self.path_defaults = [
-            (re.compile(k), v)
-            for k, v in config.defaults.items() if v
-        ]
+        self.path_defaults = [(compile_glob(k), v) for k, v in config.defaults.items() if v]
         self.files = 0
         self.template_files = 0
         self.yaml = YAML(typ='safe')
@@ -80,7 +78,7 @@ class BuildSOM:
 
     def prep_file(self, p):
         html_output = p.suffix in OUTPUT_HTML
-        rel_path = str(p.relative_to(self.config.pages_dir))
+        rel_path = os.path.normcase(str(p.relative_to(self.config.pages_dir)))
         data = self.get_page_data(p, html_output, rel_path)
 
         maybe_render = p.suffix in MAYBE_RENDER
