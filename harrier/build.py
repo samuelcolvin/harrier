@@ -10,13 +10,14 @@ from typing import Optional
 from jinja2 import Environment, FileSystemLoader, contextfunction
 from misaka import HtmlRenderer, Markdown
 from pydantic import BaseModel, validator
-from ruamel.yaml import YAML
+from ruamel.yaml import YAML, YAMLError
 
 from .assets import find_theme_files
 from .common import HarrierProblem
 from .config import Config
 
-FRONT_MATTER_REGEX = re.compile(r'^---[ \t]*(.*)\n---[ \t]*\n', re.S)
+FRONT_MATTER_START_REGEX = re.compile(r'---[ \t]*(.*)\n---[ \t]*\n', re.S)
+FRONT_MATTER_DIVIDER_REGEX = re.compile(r'\n?^--- ?([.\w_-]+) ?---[ \t]*\n', re.S | re.M)
 # extensions where we want to do anything except just copy the file to the output dir
 OUTPUT_HTML = {'.html', '.md'}
 MAYBE_RENDER = {'.xml'}
@@ -237,11 +238,40 @@ class BuildSOM:
             data['outfile'] = outfile
 
     def parse_front_matter(self, s):
-        m = re.match(FRONT_MATTER_REGEX, s)
+        m = FRONT_MATTER_START_REGEX.match(s)
         if not m:
-            return None, s.strip('\r\n')
-        data = self.yaml.load(m.groups()[0]) or {}
-        return data, s[m.end():].strip('\r\n')
+            return None, s
+        try:
+            data = self.yaml.load(m.groups()[0]) or {}
+        except YAMLError as e:
+            raise HarrierProblem(f'error parsing YAML: {e}') from e
+        s = s[m.end():]
+        m = FRONT_MATTER_DIVIDER_REGEX.search(s)
+        if not m:
+            return data, s
+        content = []
+        name = 'main'
+        while True:
+            start, end = m.span()
+            content.append(
+                (name, s[:start])
+            )
+            name = m.groups()[0]
+            s = s[end:]
+            m = FRONT_MATTER_DIVIDER_REGEX.search(s)
+            if not m:
+                break
+        content.append(
+            (name, s)
+        )
+        names, values = zip(*content)
+        names = set(names[1:])
+        if names == {'.'}:
+            return data, list(values)
+        elif '.' in names:
+            raise HarrierProblem(f'badly constructed multi-part frontmatter, not list or dict')
+        else:
+            return data, {k: v for k, v in content if v}
 
 
 class FileData(BaseModel):

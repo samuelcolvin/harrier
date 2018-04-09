@@ -181,7 +181,12 @@ def test_build_simple_som(tmpdir):
 
 def test_build_render(tmpdir, mocker):
     mktree(tmpdir, {
-        'pages/foobar.html': '{{ url("theme/assets/foobar.png") }}\n{{ url("theme/main.css") }}',
+        'pages': {
+            'foobar.html': (
+                '{{url("theme/assets/foobar.png")}}\n'
+                '{{url("theme/main.css")}}'
+            ),
+        },
         'theme': {
             'templates/main.jinja': '{{ content }}',
             'sass/main.scss': 'body {width: 10px + 10px;}',
