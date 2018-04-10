@@ -189,7 +189,7 @@ class Renderer:
     def render_file(self, p):
         if not p.get('outfile'):
             return
-        outfile: Path = p['outfile'].resolve()
+        outfile: Path = p['outfile']
         out_dir = outfile.parent
         if out_dir not in self.checked_dirs:
             # this will raise an exception if somehow outfile is outside dis_dir
