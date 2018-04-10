@@ -10,6 +10,7 @@ import devtools
 from .assets import copy_assets, run_grablib, run_webpack
 from .build import build_som, render
 from .config import Mode, get_config
+from .data import load_data
 from .dev import adev
 from .extensions import apply_modifiers
 
@@ -43,13 +44,14 @@ def build(path: StrPath, steps: Set[BuildSteps]=None, mode: Optional[Mode]=None)
     _empty_dir(config.dist_dir, clean)
     _empty_dir(config.get_tmp_dir(), clean)
 
-    # TODO for large webpack and sass probjects, these could be done in parallel
+    # TODO for large webpack and sass projects, these could be done in parallel
     BuildSteps.copy_assets in steps and copy_assets(config)
     BuildSteps.sass in steps and run_grablib(config)
     BuildSteps.webpack in steps and run_webpack(config)
 
     if BuildSteps.pages in steps:
         som = build_som(config)
+        som['data'] = load_data(config)
 
         if BuildSteps.extensions in steps:
             som = apply_modifiers(som, config.extensions.post_modifiers)

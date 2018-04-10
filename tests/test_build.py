@@ -178,7 +178,6 @@ def test_build_simple_som(tmpdir):
             }
 
         },
-        'data': {},
     } == som
 
 

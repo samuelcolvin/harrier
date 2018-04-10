@@ -5,6 +5,9 @@ from os.path import normcase
 
 import click
 from pydantic.validators import str_validator
+from ruamel.yaml import YAML
+
+yaml = YAML(typ='safe')
 
 
 class HarrierProblem(RuntimeError):

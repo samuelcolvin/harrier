@@ -11,10 +11,10 @@ from typing import Optional
 from jinja2 import Environment, FileSystemLoader, contextfunction
 from misaka import HtmlRenderer, Markdown
 from pydantic import BaseModel, validator
-from ruamel.yaml import YAML, YAMLError
+from ruamel.yaml import YAMLError
 
 from .assets import find_theme_files
-from .common import HarrierProblem
+from .common import HarrierProblem, yaml
 from .config import Config
 
 FRONT_MATTER_START_REGEX = re.compile(r'---[ \t]*(.*)\n---[ \t]*\n', re.S)
@@ -43,7 +43,6 @@ class BuildSOM:
         self.tmp_dir = config.get_tmp_dir()
         self.files = 0
         self.template_files = 0
-        self.yaml = YAML(typ='safe')
 
     def run(self):
         logger.info('Building "%s"...', self.config.pages_dir)
@@ -51,10 +50,8 @@ class BuildSOM:
         pages = self.build_pages()
         logger.info('Built site object model with %d files, %d files to render in %0.2fs',
                     self.files, self.template_files, time() - start)
-        data = {}
         return {
             'pages': pages,
-            'data': data,
             'theme_files': find_theme_files(self.config),
             **self.config.dict(),
         }
@@ -132,7 +129,7 @@ class BuildSOM:
         maybe_render = p.suffix in MAYBE_RENDER
         apple_template = data.get('apply_template', None)
         if apple_template is not False and html_output or maybe_render:
-            fm_data, content = self.parse_front_matter(p.read_text())
+            fm_data, content = parse_front_matter(p.read_text())
             if html_output or fm_data:
                 data['content'] = content
                 fm_data and data.update(fm_data)
@@ -157,17 +154,6 @@ class BuildSOM:
                 outfile /= 'index.html'
             data['outfile'] = outfile
         return data, apple_template
-
-    def parse_front_matter(self, s):
-        m = FRONT_MATTER_START_REGEX.match(s)
-        if not m:
-            return None, s
-        try:
-            data = self.yaml.load(m.groups()[0]) or {}
-        except YAMLError as e:
-            raise HarrierProblem(f'error parsing YAML: {e}') from e
-        content = s[m.end():]
-        return data, content
 
 
 class Renderer:
@@ -271,6 +257,18 @@ class Renderer:
                 self.build_cache[infile] = mtime
         shutil.copy(infile, outfile)
         return 2
+
+
+def parse_front_matter(s):
+    m = FRONT_MATTER_START_REGEX.match(s)
+    if not m:
+        return None, s
+    try:
+        data = yaml.load(m.groups()[0]) or {}
+    except YAMLError as e:
+        raise HarrierProblem(f'error parsing YAML: {e}') from e
+    content = s[m.end():]
+    return data, content
 
 
 def split_content(s):

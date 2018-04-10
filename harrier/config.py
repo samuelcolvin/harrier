@@ -7,9 +7,9 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from pydantic import BaseModel, validator
-from ruamel.yaml import YAML, YAMLError
+from ruamel.yaml import YAMLError
 
-from .common import HarrierProblem, PathMatch
+from .common import HarrierProblem, PathMatch, yaml
 from .extensions import Extensions
 
 logger = logging.getLogger('harrier.config')
@@ -145,7 +145,6 @@ class Config(BaseModel):
 
 
 def load_config_file(config_path: Path):
-    yaml = YAML(typ='safe')
     try:
         raw_config = yaml.load(config_path.read_text()) or {}
     except YAMLError as e:
