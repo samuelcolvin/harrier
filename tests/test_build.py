@@ -1,10 +1,12 @@
 from datetime import datetime
 from pathlib import Path
 
+import pytest
+from pydantic import ValidationError
 from pytest_toolbox import gettree, mktree
 from pytest_toolbox.comparison import CloseToNow
 
-from harrier.build import build_pages, render_pages
+from harrier.build import FileData, build_pages, render_pages
 from harrier.common import PathMatch
 from harrier.config import Config, Mode
 from harrier.main import build
@@ -205,6 +207,39 @@ def test_build_render(tmpdir):
     }
 
 
+def test_render_error(tmpdir, caplog):
+    mktree(tmpdir, {
+        'pages': {
+            'foobar.html': '{{ 1/0 }}',
+        },
+        'theme': {
+            'templates/main.jinja': '{{ content }}',
+        },
+    })
+    with pytest.raises(ZeroDivisionError):
+        build(tmpdir, mode=Mode.production)
+    assert 'foobar.html: ZeroDivisionError division by zero' in caplog.text
+
+
+def test_uri_key_error(tmpdir, caplog):
+    mktree(tmpdir, {
+        'pages': {
+            'foobar.html': (
+                '---\n'
+                'uri: "{foo}/whatever"\n'
+                '---\n'
+                'hello'
+            ),
+        },
+        'theme': {
+            'templates/main.jinja': '{{ content }}',
+        },
+    })
+    with pytest.raises(KeyError):
+        build(tmpdir, mode=Mode.production)
+    assert 'missing format variable "foo" for "{foo}/whatever"' in caplog.text
+
+
 def test_build_multi_part(tmpdir):
     mktree(tmpdir, {
         'pages': {
@@ -328,3 +363,42 @@ def test_ignore_no_template(tmpdir):
         },
 
     }
+
+
+def test_file_data_ok():
+    fd = FileData(
+        infile='foo/bar.md',
+        content_template='/tmp/x/bar.md',
+        title='Bar',
+        slug='bar',
+        created=123,
+        uri='/bar',
+        template=None,
+    )
+    assert fd.infile == Path('foo/bar.md')
+
+
+def test_file_data_no_slash():
+    with pytest.raises(ValidationError):
+        FileData(
+            infile='foo/bar.md',
+            content_template='/tmp/x/bar.md',
+            title='Bar',
+            slug='bar',
+            created=123,
+            uri='bar',
+            template=None,
+        )
+
+
+def test_file_data_illegal_char():
+    with pytest.raises(ValidationError):
+        FileData(
+            infile='foo/bar.md',
+            content_template='/tmp/x/bar.md',
+            title='Bar',
+            slug='bar',
+            created=123,
+            uri='/bar more',
+            template=None,
+        )

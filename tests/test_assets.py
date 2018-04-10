@@ -1,5 +1,6 @@
 import asyncio
 import json
+import logging
 import sys
 
 import pytest
@@ -17,8 +18,12 @@ from pathlib import Path
 this_dir = Path(__file__).parent.resolve()
 (this_dir / 'webpack_args.json').write_text(json.dumps(sys.argv))
 (this_dir / 'webpack_env.json').write_text(json.dumps(dict(os.environ)))
-if 'error' in ' '.join(sys.argv):
+args = ' '.join(sys.argv)
+print('foobar')
+if 'js/error.js' in args:
     sys.exit(2)
+elif 'js/nojson.js' not in args:
+    print(json.dumps(dict(assets=[1, 2, 3])))
 """
 
 
@@ -39,7 +44,8 @@ def test_run_webpack(tmpdir):
     webpack_path.chmod(0o777)
 
     config = get_config(str(tmpdir))
-    run_webpack(config)
+    count = run_webpack(config)
+    assert count == 3
     args = json.loads(tmpdir.join('webpack_args.json').read_text('utf8'))
     assert [
         f'{tmpdir}/mock_webpack',
@@ -93,6 +99,51 @@ def test_run_webpack_error(tmpdir):
     ] == args
     webpack_env = json.loads(tmpdir.join('webpack_env.json').read_text('utf8'))
     assert webpack_env['NODE_ENV'] == 'development'
+
+
+def test_run_webpack_json_error(tmpdir):
+    webpack_path = tmpdir.join('mock_webpack')
+    mktree(tmpdir, {
+        'pages/foobar.md': '# hello',
+        'theme': {
+            'templates': {'main.jinja': 'main:\n {{ content }}'},
+            'js/nojson.js': '*',
+        },
+        'mock_webpack': MOCK_WEBPACK,
+        'harrier.yml': (
+            f'webpack:\n'
+            f'  entry: js/nojson.js\n'
+            f'  cli: {webpack_path}'
+        )
+    })
+    webpack_path.chmod(0o777)
+
+    config = get_config(str(tmpdir))
+    count = run_webpack(config)
+    assert count == 1
+
+
+def test_run_webpack_no_capture(tmpdir, caplog):
+    webpack_path = tmpdir.join('mock_webpack')
+    mktree(tmpdir, {
+        'pages/foobar.md': '# hello',
+        'theme': {
+            'templates': {'main.jinja': 'main:\n {{ content }}'},
+            'js/index.js': '*',
+        },
+        'mock_webpack': MOCK_WEBPACK,
+        'harrier.yml': (
+            f'webpack:\n'
+            f'  cli: {webpack_path}'
+        )
+    })
+    webpack_path.chmod(0o777)
+
+    caplog.set_level(logging.DEBUG)
+    config = get_config(str(tmpdir))
+    count = run_webpack(config)
+    # 1 because capture_output is false so no json is loaded
+    assert count == 1
 
 
 async def test_start_webpack_watch(tmpdir, loop):

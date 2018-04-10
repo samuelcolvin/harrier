@@ -48,6 +48,7 @@ def run_grablib(config: Config):
         count = sass_gen._files_generated
 
     log_msg and log_complete(start, 'sass built', count)
+    return count
 
 
 def copy_assets(config: Config):
@@ -70,6 +71,7 @@ def copy_assets(config: Config):
                  copied, in_dir.relative_to(config.source_dir), out_dir.relative_to(config.dist_dir))
 
     copied and log_complete(start, 'theme assets copied', copied)
+    return copied
 
 
 def webpack_configuration(config: Config, watch: bool):
@@ -130,6 +132,7 @@ def run_webpack(config: Config):
             else:
                 count = len(output['assets'])
         log_complete(start, 'webpack built', count)
+        return count
 
 
 async def start_webpack_watch(config: Config):

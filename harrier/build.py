@@ -56,10 +56,11 @@ class BuildPages:
             if p.is_file():
                 try:
                     v = self.prep_file(p)
-                    if v:
-                        pages[str(p.relative_to(self.config.pages_dir))] = v
                 except Exception as e:
-                    raise HarrierProblem(f'{p}: {e.__class__.__name__} {e}') from e
+                    logger.exception('%s: %s %s', p, e.__class__.__name__, e)
+                    raise
+                if v:
+                    pages[str(p.relative_to(self.config.pages_dir))] = v
         logger.debug('Built site object model with %d files, %d files to render', self.files, self.template_files)
         return pages, self.files
 
@@ -140,7 +141,7 @@ class BuildPages:
             try:
                 data['uri'] = slugify(uri.format(**data))
             except KeyError as e:
-                raise KeyError(f'missing format variable "{e}" for "{uri}"')
+                raise KeyError(f'missing format variable "{e.args[0]}" for "{uri}"')
 
         if data.get('output', True):
             outfile = self.config.dist_dir / data['uri'][1:]
