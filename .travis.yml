@@ -22,3 +22,14 @@ script:
 after_success:
 - ls -lha
 - bash <(curl -s https://codecov.io/bash)
+
+deploy:
+- provider: pypi
+  user: samuelcolvin
+  password:
+    secure: "f6lJpcMSM+x0/RUS4rEYqcADnbIfzsvViCaZjtrumgrlTwQq48irtkGj7+BoLmuLHtVZ+TcDc4UgSNvMjUShSX2+RNv8UexZXIgHQHn3qq5G3Kvp30ndNqAh7/ZzJUWrE8zp+VW/bxolW0cBwmdkxHmM3yZMpwfCy/bxOqkiv7MAz7cQxqpcdURjOFAQvEXZ8XPSaYnq9oTnIpcxOV2E9RIhMf7bzXkLLLdQDQSLCCBknoBwo2BQpBgsVBz2EFk250aPx2Qa15p9XbLCgZLmvQ6FOKJ6SfEFkXT3enZ2UxGLWLW5FgOO5jr/ozLD2xEmhKTJ+/tuznoVI5q+AcVaXGlXStxmv/idwv89nmzpy6OANi/qVxNA7pJjWjU6CGa0b9XF8gqWJrAOfWToNFOKTIKxIRt9fIoPpg9QV4l8YmVapfGH3b9GoTSJO8XsE0Gy44CJZBOGRENqcim5FOkiQDvoD6WrbXWBc0W6pWouHzg4lnACFgH6zzfaAEH80VqUUPBwXVGjHgUSpGO8yL7Dz+df5Xq/8KZu36PsPETSYgVUr3OdXIo+BomxxsgveOHfbrv8P5nyZfXviVdvYQZaTAhvHt2qTyjcGaTj84HjC6ubsDHJAoLCr+6Zxe19pL5ItCnCPg6MyQqtoxExaAo86Q5biM80Z8rgr9vo1z4Sabo="
+  distributions: sdist bdist_wheel
+  skip_upload_docs: true
+  on:
+    tags: true
+    python: 3.6
