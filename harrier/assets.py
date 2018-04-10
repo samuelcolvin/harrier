@@ -9,14 +9,16 @@ from time import time
 from grablib.build import SassGenerator, insert_hash
 from grablib.download import Downloader
 
-from .common import HarrierProblem
+from .common import HarrierProblem, log_complete
 from .config import Config, Mode
 
 logger = logging.getLogger('harrier.assets')
 
 
 def run_grablib(config: Config):
+    start = time()
     download_root = config.theme_dir / 'libs'
+    log_msg = False
     if config.download:
         logger.debug('running grablib download...')
         download = Downloader(
@@ -26,11 +28,11 @@ def run_grablib(config: Config):
             lock=config.theme_dir / '.grablib.lock',
         )
         download()
+        log_msg = True
 
     sass_dir = config.theme_dir / 'sass'
+    count = 0
     if sass_dir.is_dir():
-        logger.info('running sass build...')
-
         output_dir = config.dist_dir / config.dist_dir_sass
         output_dir.relative_to(config.dist_dir)
         sass_gen = SassGenerator(
@@ -41,16 +43,20 @@ def run_grablib(config: Config):
             apply_hash=config.mode == Mode.production,
         )
         sass_gen()
+        log_msg = True
+        count = sass_gen._files_generated
+
+    log_msg and log_complete(start, 'sass built', count)
 
 
 def copy_assets(config: Config):
+    start = time()
     in_dir = config.theme_dir / 'assets'
     if not in_dir.is_dir():
         return
     out_dir = config.dist_dir / config.dist_dir_assets
     out_dir.relative_to(config.dist_dir)
-    logger.info('copying theme assets from "%s" to "%s"',
-                in_dir.relative_to(config.source_dir), out_dir.relative_to(config.dist_dir))
+    copied = 0
     for in_path in in_dir.glob('**/*'):
         if in_path.is_file():
             out_path = out_dir / in_path.relative_to(in_dir)
@@ -58,6 +64,11 @@ def copy_assets(config: Config):
                 out_path = insert_hash(out_path, in_path.read_bytes())
             out_path.parent.mkdir(parents=True, exist_ok=True)
             shutil.copy(in_path, out_path)
+            copied += 1
+    logger.debug('copied %d theme assets from "%s" to "%s"',
+                 copied, in_dir.relative_to(config.source_dir), out_dir.relative_to(config.dist_dir))
+
+    copied and log_complete(start, 'theme assets copied', copied)
 
 
 def webpack_configuration(config: Config, watch: bool):
@@ -89,16 +100,16 @@ def webpack_configuration(config: Config, watch: bool):
 
 
 def run_webpack(config: Config):
+    start = time()
     args, env = webpack_configuration(config, False)
     if not args:
         return
+
     cmd = ' '.join(args)
     kwargs = dict(check=True, cwd=config.source_dir, env=env)
-    logger.info('running webpack...')
     logger.debug('webpack command "%s"', cmd)
     if not logger.isEnabledFor(logging.DEBUG):
         kwargs.update(stdout=subprocess.PIPE, stderr=subprocess.PIPE, encoding='utf8')
-    start = time()
     try:
         subprocess.run(args, **kwargs)
     except subprocess.CalledProcessError as e:
@@ -106,7 +117,7 @@ def run_webpack(config: Config):
                        cmd, e.returncode, e.output, e.stderr)
         raise HarrierProblem('error running webpack') from e
     else:
-        logger.info('webpack completed successfully in %0.2fs', time() - start)
+        log_complete(start, 'webpack built')
 
 
 async def start_webpack_watch(config: Config):

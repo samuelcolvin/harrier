@@ -3,10 +3,11 @@ import json
 import logging
 import re
 from pathlib import Path
+from time import time
 
 from ruamel.yaml import YAMLError
 
-from .common import HarrierProblem, yaml
+from .common import HarrierProblem, log_complete, yaml
 from .config import Config
 
 logger = logging.getLogger('harrier.data')
@@ -15,6 +16,7 @@ csv_dialect.skipinitialspace = True
 
 
 def load_data(config: Config):
+    start = time()
     d = config.data_dir
     if not d.is_dir():
         return None
@@ -25,6 +27,7 @@ def load_data(config: Config):
         '.yml': read_yaml,
     }
     data = {}
+    count = 0
     for ext in ext_lookup:
         for p in d.glob(f'**/*{ext}'):
             key = re.sub('[-/ ]', '_', str(p.relative_to(d).with_suffix('')))
@@ -37,6 +40,8 @@ def load_data(config: Config):
                 data[key] = ext_lookup[p.suffix](p)
             except (ValueError, YAMLError) as e:
                 raise HarrierProblem(f'error reading {p} {e.__class__.__name__}: {e}') from e
+            count += 1
+    log_complete(start, 'data loaded', count)
     return data
 
 

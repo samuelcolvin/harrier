@@ -21,14 +21,17 @@ class ExtType(str, Enum):
     template_functions = 'template_functions'
 
 
-class Extensions(dict):
+class Extensions:
     def __init__(self, extensions):
-        super().__init__(extensions)
         self.pre_modifiers = extensions[ExtType.pre_modifiers]
         self.post_modifiers = extensions[ExtType.post_modifiers]
         self.page_modifiers = extensions[ExtType.page_modifiers]
         self.template_filters = extensions[ExtType.template_filters]
         self.template_functions = extensions[ExtType.template_functions]
+
+    def __getstate__(self):
+        # extensions can't be pickled
+        pass
 
     @classmethod
     def get_validators(cls):

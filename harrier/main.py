@@ -1,6 +1,7 @@
 import asyncio
 import logging
 import shutil
+from concurrent.futures import ProcessPoolExecutor
 from enum import Enum
 from pathlib import Path
 from typing import Optional, Set, Union
@@ -9,6 +10,7 @@ import devtools
 
 from .assets import copy_assets, find_theme_files, run_grablib, run_webpack
 from .build import build_pages, render_pages
+from .common import completed_logger
 from .config import Mode, get_config
 from .data import load_data
 from .dev import adev
@@ -32,6 +34,7 @@ ALL_STEPS = [m.value for m in BuildSteps.__members__.values()]
 
 
 def build(path: StrPath, steps: Set[BuildSteps]=None, mode: Optional[Mode]=None):
+    completed_logger.info('building site...')
     config = get_config(path)
     if mode:
         config.mode = mode
@@ -45,24 +48,30 @@ def build(path: StrPath, steps: Set[BuildSteps]=None, mode: Optional[Mode]=None)
     _empty_dir(config.dist_dir, clean)
     _empty_dir(config.get_tmp_dir(), clean)
 
-    # TODO for large webpack and sass projects, these could be done in parallel
-    BuildSteps.copy_assets in steps and copy_assets(config)
-    BuildSteps.sass in steps and run_grablib(config)
-    BuildSteps.webpack in steps and run_webpack(config)
+    pages = None
+    data_future = None
+    with ProcessPoolExecutor() as executor:
+        BuildSteps.copy_assets in steps and executor.submit(copy_assets, config)
+        BuildSteps.sass in steps and executor.submit(run_grablib, config)
+        BuildSteps.webpack in steps and executor.submit(run_webpack, config)
 
-    som = config.dict()
-    som['theme_files'] = find_theme_files(config)
+        if BuildSteps.data in steps:
+            data_future = executor.submit(load_data, config)
 
-    if BuildSteps.pages in steps:
-        som['pages'] = build_pages(config)
+        if BuildSteps.pages in steps:
+            pages = build_pages(config)
 
-    if BuildSteps.data in steps:
-        som['data'] = load_data(config)
+    som = dict(
+        theme_files=find_theme_files(config),
+        pages=pages,
+        data=data_future and data_future.result(),
+        **config.dict(),
+    )
 
     if BuildSteps.extensions in steps:
         som = apply_modifiers(som, config.extensions.post_modifiers)
 
-    if 'pages' in som:
+    if som['pages'] is not None:
         render_pages(config, som)
     return som
 

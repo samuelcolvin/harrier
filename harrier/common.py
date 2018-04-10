@@ -2,16 +2,22 @@ import logging.config
 import re
 from fnmatch import translate
 from os.path import normcase
+from time import time
 
 import click
 from pydantic.validators import str_validator
 from ruamel.yaml import YAML
 
 yaml = YAML(typ='safe')
+completed_logger = logging.getLogger('harrier.completed')
 
 
 class HarrierProblem(RuntimeError):
     pass
+
+
+def log_complete(start, description, items=1):
+    completed_logger.info('%6s %20s %0.3fs', items, description, time() - start)
 
 
 class PathMatch:

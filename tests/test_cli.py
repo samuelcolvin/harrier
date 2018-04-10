@@ -27,7 +27,7 @@ def test_build(tmpdir, mocker):
     assert not tmpdir.join('dist').check()
     result = CliRunner().invoke(cli, ['build', str(tmpdir)])
     assert result.exit_code == 0
-    assert 'Built site object model with 1 files, 1 files to render' in result.output
+    assert '1          pages built ' in result.output
     assert 'Config:' not in result.output
 
     assert tmpdir.join('dist').check()

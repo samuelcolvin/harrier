@@ -13,7 +13,7 @@ from misaka import HtmlRenderer, Markdown
 from pydantic import BaseModel, validator
 from ruamel.yaml import YAMLError
 
-from .common import HarrierProblem, yaml
+from .common import HarrierProblem, log_complete, yaml
 from .config import Config
 
 FRONT_MATTER_START_REGEX = re.compile(r'---[ \t]*(.*)\n---[ \t]*\n', re.S)
@@ -29,11 +29,17 @@ logger = logging.getLogger('harrier.build')
 
 
 def build_pages(config: Config):
-    return BuildPages(config).run()
+    start = time()
+    pages, files = BuildPages(config).run()
+    log_complete(start, 'pages built', files)
+    return pages
 
 
 def render_pages(config: Config, som: dict, build_cache=None):
-    return Renderer(config, som, build_cache).run()
+    start = time()
+    cache, files = Renderer(config, som, build_cache).run()
+    log_complete(start, 'pages rendered', files)
+    return cache
 
 
 class BuildPages:
@@ -44,25 +50,18 @@ class BuildPages:
         self.template_files = 0
 
     def run(self):
-        logger.info('Building "%s"...', self.config.pages_dir)
-        start = time()
-        pages = self.build_pages()
-        logger.info('Built site object model with %d files, %d files to render in %0.2fs',
-                    self.files, self.template_files, time() - start)
-        return pages
-
-    def build_pages(self):
         paths = sorted(self.config.pages_dir.glob('**/*'), key=lambda p_: (len(p_.parents), str(p_)))
-        d = {}
+        pages = {}
         for p in paths:
             if p.is_file():
                 try:
                     v = self.prep_file(p)
                     if v:
-                        d[str(p.relative_to(self.config.pages_dir))] = v
+                        pages[str(p.relative_to(self.config.pages_dir))] = v
                 except Exception as e:
                     raise HarrierProblem(f'{p}: {e.__class__.__name__} {e}') from e
-        return d
+        logger.debug('Built site object model with %d files, %d files to render', self.files, self.template_files)
+        return pages, self.files
 
     def prep_file(self, p):
         path_ref = '/' + os.path.normcase(str(p.relative_to(self.config.pages_dir)))
@@ -152,10 +151,9 @@ class BuildPages:
 
 
 class Renderer:
-    __slots__ = 'start', 'config', 'som', 'build_cache', 'md', 'env', 'checked_dirs'
+    __slots__ = 'config', 'som', 'build_cache', 'md', 'env', 'checked_dirs'
 
     def __init__(self, config: Config, som: dict, build_cache: dict=None):
-        self.start = time()
         self.config = config
         self.som = som
         self.build_cache = build_cache
@@ -168,6 +166,7 @@ class Renderer:
 
         self.env = Environment(loader=FileSystemLoader(template_dirs))
         self.env.filters.update(self.config.extensions.template_filters)
+
         self.env.globals['url'] = resolve_url
         self.env.globals.update(self.config.extensions.template_functions)
 
@@ -181,8 +180,8 @@ class Renderer:
                 gen += 1
             elif action == 2:
                 copy += 1
-        logger.info('generated %d files, copied %d files in %0.2fs', gen, copy, time() - self.start)
-        return self.build_cache
+        logger.debug('generated %d files, copied %d files', gen, copy)
+        return self.build_cache, gen + copy
 
     def render_file(self, p):
         if not p.get('outfile'):
