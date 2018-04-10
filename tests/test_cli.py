@@ -112,6 +112,7 @@ def test_steps_sass_dev(tmpdir, mocker):
     mock_mod = mocker.patch('harrier.main.apply_modifiers', side_effect=lambda obj, mod: obj)
 
     result = CliRunner().invoke(cli, ['build', str(tmpdir), '-s', 'sass', '-s', 'extensions', '--dev'])
+    print(result.output)
     assert result.exit_code == 0
     assert 'Built site object model with 1 files, 1 files to render' not in result.output
     assert 'Config:' not in result.output
@@ -129,7 +130,7 @@ def test_steps_sass_dev(tmpdir, mocker):
             },
         },
     }
-    assert mock_mod.call_count == 1
+    assert mock_mod.call_count == 2
 
 
 def test_steps_sass_prod(tmpdir, mocker):

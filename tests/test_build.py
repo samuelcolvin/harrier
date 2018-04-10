@@ -4,7 +4,7 @@ from pathlib import Path
 from pytest_toolbox import gettree, mktree
 from pytest_toolbox.comparison import CloseToNow
 
-from harrier.build import build_som, render
+from harrier.build import build_pages, render_pages
 from harrier.common import PathMatch
 from harrier.config import Config, Mode
 from harrier.main import build
@@ -63,20 +63,20 @@ def test_simple_render(tmpdir):
     }
     assert not tmpdir.join('dist').check()
 
-    assert render(config, som) is None
+    assert render_pages(config, som) is None
     assert gettree(tmpdir.join('dist')) == expected_tree
 
     tmpdir.join('dist').remove(rec=1)
     assert not tmpdir.join('dist').check()
 
-    cache = render(config, som, {})
+    cache = render_pages(config, som, {})
     assert gettree(tmpdir.join('dist')) == expected_tree
     assert len(cache) == 3
 
     tmpdir.join('dist').remove(rec=1)
     assert not tmpdir.join('dist').check()
 
-    render(config, som, cache)
+    render_pages(config, som, cache)
     assert gettree(tmpdir.join('dist')) != expected_tree
 
 
@@ -100,7 +100,9 @@ def test_build_simple_som(tmpdir):
             }
         }
     )
-    som = build_som(config)
+
+    som = config.dict()
+    som['pages'] = build_pages(config)
     source_dir = Path(tmpdir)
     # debug(som)
     assert {
@@ -139,9 +141,6 @@ def test_build_simple_som(tmpdir):
             'run': False,
         },
         'foo': 'bar',
-        'theme_files': {
-            'theme/assets/whatever.png': 'theme/assets/whatever.1234567.png',
-        },
         'pages': {
             'foobar.md': {
                 'infile': source_dir / 'pages/foobar.md',

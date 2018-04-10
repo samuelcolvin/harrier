@@ -7,8 +7,8 @@ from typing import Optional, Set, Union
 
 import devtools
 
-from .assets import copy_assets, run_grablib, run_webpack
-from .build import build_som, render
+from .assets import copy_assets, find_theme_files, run_grablib, run_webpack
+from .build import build_pages, render_pages
 from .config import Mode, get_config
 from .data import load_data
 from .dev import adev
@@ -19,10 +19,11 @@ StrPath = Union[str, Path]
 
 
 class BuildSteps(str, Enum):
+    clean = 'clean'
     extensions = 'extensions'
     copy_assets = 'copy_assets'
-    clean = 'clean'
     pages = 'pages'
+    data = 'data'
     sass = 'sass'
     webpack = 'webpack'
 
@@ -49,15 +50,21 @@ def build(path: StrPath, steps: Set[BuildSteps]=None, mode: Optional[Mode]=None)
     BuildSteps.sass in steps and run_grablib(config)
     BuildSteps.webpack in steps and run_webpack(config)
 
+    som = config.dict()
+    som['theme_files'] = find_theme_files(config)
+
     if BuildSteps.pages in steps:
-        som = build_som(config)
+        som['pages'] = build_pages(config)
+
+    if BuildSteps.data in steps:
         som['data'] = load_data(config)
 
-        if BuildSteps.extensions in steps:
-            som = apply_modifiers(som, config.extensions.post_modifiers)
+    if BuildSteps.extensions in steps:
+        som = apply_modifiers(som, config.extensions.post_modifiers)
 
-        render(config, som)
-        return som
+    if 'pages' in som:
+        render_pages(config, som)
+    return som
 
 
 def dev(path: StrPath, port: int):

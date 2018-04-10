@@ -13,7 +13,6 @@ from misaka import HtmlRenderer, Markdown
 from pydantic import BaseModel, validator
 from ruamel.yaml import YAMLError
 
-from .assets import find_theme_files
 from .common import HarrierProblem, yaml
 from .config import Config
 
@@ -29,15 +28,15 @@ URI_IS_TEMPLATE = re.compile('[{}]')
 logger = logging.getLogger('harrier.build')
 
 
-def build_som(config: Config):
-    return BuildSOM(config).run()
+def build_pages(config: Config):
+    return BuildPages(config).run()
 
 
-def render(config: Config, som: dict, build_cache=None):
+def render_pages(config: Config, som: dict, build_cache=None):
     return Renderer(config, som, build_cache).run()
 
 
-class BuildSOM:
+class BuildPages:
     def __init__(self, config: Config):
         self.config = config
         self.tmp_dir = config.get_tmp_dir()
@@ -50,11 +49,7 @@ class BuildSOM:
         pages = self.build_pages()
         logger.info('Built site object model with %d files, %d files to render in %0.2fs',
                     self.files, self.template_files, time() - start)
-        return {
-            'pages': pages,
-            'theme_files': find_theme_files(self.config),
-            **self.config.dict(),
-        }
+        return pages
 
     def build_pages(self):
         paths = sorted(self.config.pages_dir.glob('**/*'), key=lambda p_: (len(p_.parents), str(p_)))

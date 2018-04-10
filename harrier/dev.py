@@ -11,8 +11,9 @@ from aiohttp_devtools.runserver import serve_static
 from watchgod import Change, awatch
 
 from .assets import copy_assets, find_theme_files, run_grablib, start_webpack_watch
-from .build import BuildSOM, build_som, render
+from .build import BuildPages, build_pages, render_pages
 from .config import Config
+from .data import load_data
 from .extensions import apply_modifiers
 
 HOST = '0.0.0.0'
@@ -72,23 +73,30 @@ def update_site(pages, assets, sass, templates):
 
     global SOM
     if first_build or not SOM:
-        SOM = build_som(CONFIG)
+        SOM = CONFIG.dict()
+        SOM.update(
+            theme_files=find_theme_files(CONFIG),
+            pages=build_pages(CONFIG),
+            data=load_data(CONFIG),
+        )
         SOM = apply_modifiers(SOM, CONFIG.extensions.post_modifiers)
     elif pages:
-        som_builder = BuildSOM(CONFIG)
+        page_builder = BuildPages(CONFIG)
         for change, path in pages:
             rel_path = str(path.relative_to(CONFIG.pages_dir))
             if change == Change.deleted:
                 SOM['pages'][rel_path]['outfile'].unlink()
                 SOM['pages'].pop(rel_path)
             else:
-                SOM['pages'][rel_path] = som_builder.prep_file(path)
-        SOM['theme_files'] = find_theme_files(CONFIG)
+                SOM['pages'][rel_path] = page_builder.prep_file(path)
         SOM = apply_modifiers(SOM, CONFIG.extensions.post_modifiers)
+
+    if assets or sass:
+        SOM['theme_files'] = find_theme_files(CONFIG)
 
     if templates or first_build or any(change != Change.deleted for change, _ in pages):
         global BUILD_CACHE
-        BUILD_CACHE = render(CONFIG, SOM, BUILD_CACHE)
+        BUILD_CACHE = render_pages(CONFIG, SOM, BUILD_CACHE)
 
     logger.info('%sbuild completed in %0.3fs', '' if first_build else 're', time() - start_time)
 
