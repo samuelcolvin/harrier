@@ -43,6 +43,8 @@ def render_pages(config: Config, som: dict, build_cache=None):
 
 
 class BuildPages:
+    __slots__ = 'config', 'tmp_dir', 'files', 'template_files'
+
     def __init__(self, config: Config):
         self.config = config
         self.tmp_dir = config.get_tmp_dir()

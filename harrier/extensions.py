@@ -14,24 +14,31 @@ __all__ = (
 
 
 class ExtType(str, Enum):
-    pre_modifiers = 'pre_modifiers'
-    post_modifiers = 'post_modifiers'
+    config_modifiers = 'config_modifiers'
+    som_modifiers = 'som_modifiers'
     page_modifiers = 'page_modifiers'
     template_filters = 'template_filters'
     template_functions = 'template_functions'
 
 
 class Extensions:
-    def __init__(self, extensions):
-        self.pre_modifiers = extensions[ExtType.pre_modifiers]
-        self.post_modifiers = extensions[ExtType.post_modifiers]
-        self.page_modifiers = extensions[ExtType.page_modifiers]
-        self.template_filters = extensions[ExtType.template_filters]
-        self.template_functions = extensions[ExtType.template_functions]
+    def __init__(self, path):
+        self._path = path
+        self._extensions = {}
 
     def __getstate__(self):
-        # extensions can't be pickled
-        pass
+        return self._path
+
+    def __setstate__(self, state):
+        self._path = state
+        self._extensions = {}
+
+    def _set_extensions(self):
+        self.config_modifiers = self._extensions[ExtType.config_modifiers]
+        self.som_modifiers = self._extensions[ExtType.som_modifiers]
+        self.page_modifiers = self._extensions[ExtType.page_modifiers]
+        self.template_filters = self._extensions[ExtType.template_filters]
+        self.template_functions = self._extensions[ExtType.template_functions]
 
     @classmethod
     def get_validators(cls):
@@ -39,36 +46,44 @@ class Extensions:
 
     @classmethod
     def validate(cls, value):
-        extensions = {
-            ExtType.pre_modifiers: [],
-            ExtType.post_modifiers: [],
+        extensions = cls(value)
+        try:
+            extensions.load()
+        except ImportError as e:
+            raise ValueError(str(e)) from e
+        return extensions
+
+    def load(self):
+        self._extensions = {
+            ExtType.config_modifiers: [],
+            ExtType.som_modifiers: [],
             ExtType.page_modifiers: [],
             ExtType.template_filters: {},
             ExtType.template_functions: {},
         }
-        if not value:
-            return cls(extensions)
-
-        try:
-            spec = spec_from_file_location('extensions', value)
+        if self._path:
+            spec = spec_from_file_location('extensions', self._path)
             module = module_from_spec(spec)
             spec.loader.exec_module(module)
-        except ImportError as e:
-            raise ValueError(str(e)) from e
 
-        for attr_name in dir(module):
-            attr = getattr(module, attr_name)
-            ext_type = getattr(attr, '__extension__', None)
-            if ext_type == ExtType.page_modifiers:
-                extensions[ext_type].extend([(path_match, attr) for path_match in attr.path_matches])
-            elif ext_type:
-                extensions[ext_type].append(attr)
-            elif any(getattr(attr, n, False) for n in filter_attrs):
-                extensions[ExtType.template_filters][attr_name] = attr
-            elif any(getattr(attr, n, False) for n in function_attrs):
-                extensions[ExtType.template_functions][attr_name] = attr
+            for attr_name in dir(module):
+                attr = getattr(module, attr_name)
+                ext_type = getattr(attr, '__extension__', None)
+                if ext_type == ExtType.page_modifiers:
+                    self._extensions[ext_type].extend([(path_match, attr) for path_match in attr.path_matches])
+                elif ext_type:
+                    self._extensions[ext_type].append(attr)
+                elif any(getattr(attr, n, False) for n in filter_attrs):
+                    self._extensions[ExtType.template_filters][attr_name] = attr
+                elif any(getattr(attr, n, False) for n in function_attrs):
+                    self._extensions[ExtType.template_functions][attr_name] = attr
+        self._set_extensions()
 
-        return cls(extensions)
+    def __repr__(self):
+        return f'<Extensions {repr(self._extensions) if self._extensions else "not loaded"}>'
+
+    def __eq__(self, other):
+        return self._extensions == getattr(other, '_extensions', other)
 
 
 def apply_modifiers(obj, ext):
@@ -83,12 +98,12 @@ def apply_modifiers(obj, ext):
 class modify:
     @staticmethod
     def pre(f):
-        f.__extension__ = ExtType.pre_modifiers
+        f.__extension__ = ExtType.config_modifiers
         return f
 
     @staticmethod
     def post(f):
-        f.__extension__ = ExtType.post_modifiers
+        f.__extension__ = ExtType.som_modifiers
         return f
 
     @staticmethod

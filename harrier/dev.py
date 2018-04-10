@@ -79,7 +79,7 @@ def update_site(pages, assets, sass, templates):
             pages=build_pages(CONFIG),
             data=load_data(CONFIG),
         )
-        SOM = apply_modifiers(SOM, CONFIG.extensions.post_modifiers)
+        SOM = apply_modifiers(SOM, CONFIG.extensions.som_modifiers)
     elif pages:
         page_builder = BuildPages(CONFIG)
         for change, path in pages:
@@ -89,7 +89,7 @@ def update_site(pages, assets, sass, templates):
                 SOM['pages'].pop(rel_path)
             else:
                 SOM['pages'][rel_path] = page_builder.prep_file(path)
-        SOM = apply_modifiers(SOM, CONFIG.extensions.post_modifiers)
+        SOM = apply_modifiers(SOM, CONFIG.extensions.som_modifiers)
 
     if assets or sass:
         SOM['theme_files'] = find_theme_files(CONFIG)
@@ -111,7 +111,7 @@ def is_within(location: Path, directory: Path):
 
 
 async def adev(config: Config, port: int):
-    config = apply_modifiers(config, config.extensions.pre_modifiers)
+    config = apply_modifiers(config, config.extensions.config_modifiers)
     global CONFIG
     CONFIG = config
     stop_event = asyncio.Event()

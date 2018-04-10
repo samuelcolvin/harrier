@@ -4,12 +4,11 @@ cache: pip
 
 python:
 - '3.6'
-# currently breaking do to pyyaml
-#- 'nightly'  # currently 3.7
+- 'nightly'  # currently 3.7
 
-#matrix:
-#  allow_failures:
-#  - python: 'nightly'
+matrix:
+  allow_failures:
+  - python: 'nightly'
 
 install:
 - make install

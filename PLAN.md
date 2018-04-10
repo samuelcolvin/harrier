@@ -69,12 +69,10 @@ default webpack config with no need to setup?
 
 # TODO
 
-* rewrite extensions to use a class where methods can be overridden, including a property `extra_filters` which sets
-  jinja filters etc.
 * extra extensions:
-  * Could also do on_save modifiers which run before files are saved
-  * also override_copy which modify the copy command both in render and copy_assets
-  * override_webpack to modify webpack args/env
-  * modify_data to change/extend data
+  * `on_save` modifiers which run before files are saved
+  * `override_copy` which modify the copy command both in render and copy_assets
+  * `override_webpack` to modify webpack args/env
+  * `modify_data` to change/extend data
 * extra context functions:
   * `site.each(glob='...', or regex='...')`

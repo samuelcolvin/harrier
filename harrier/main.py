@@ -42,7 +42,7 @@ def build(path: StrPath, steps: Set[BuildSteps]=None, mode: Optional[Mode]=None)
 
     steps = steps or ALL_STEPS
     if BuildSteps.extensions in steps:
-        config = apply_modifiers(config, config.extensions.pre_modifiers)
+        config = apply_modifiers(config, config.extensions.config_modifiers)
 
     clean = BuildSteps.clean in steps
     _empty_dir(config.dist_dir, clean)
@@ -73,7 +73,7 @@ def build(path: StrPath, steps: Set[BuildSteps]=None, mode: Optional[Mode]=None)
     )
 
     if BuildSteps.extensions in steps:
-        som = apply_modifiers(som, config.extensions.post_modifiers)
+        som = apply_modifiers(som, config.extensions.som_modifiers)
 
     if som['pages'] is not None:
         render_pages(config, som)
