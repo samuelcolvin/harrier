@@ -21,7 +21,7 @@ setup(
     description=description,
     long_description=long_description,
     classifiers=[
-        'Development Status :: a - Alpha',
+        'Development Status :: 4 - Beta',
         'Environment :: Console',
         'Environment :: Web Environment',
         'Intended Audience :: Developers',
