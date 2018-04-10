@@ -107,9 +107,15 @@ def test_build_simple_som(tmpdir):
     som['pages'] = build_pages(config)
     source_dir = Path(tmpdir)
     # debug(som)
-    som.pop('extensions')
     assert {
         'source_dir': source_dir,
+        'extensions': {
+            'config_modifiers': [],
+            'som_modifiers': [],
+            'page_modifiers': [],
+            'template_filters': {},
+            'template_functions': {},
+        },
         'mode': Mode.production,
         'pages_dir': source_dir / 'pages',
         'theme_dir': source_dir / 'theme',

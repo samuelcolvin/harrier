@@ -49,7 +49,7 @@ class Extensions:
         extensions = cls(value)
         try:
             extensions.load()
-        except ImportError as e:
+        except (ImportError, FileNotFoundError) as e:
             raise ValueError(str(e)) from e
         return extensions
 
@@ -67,20 +67,23 @@ class Extensions:
             spec.loader.exec_module(module)
 
             for attr_name in dir(module):
+                if attr_name.startswith('_'):
+                    continue
                 attr = getattr(module, attr_name)
                 ext_type = getattr(attr, '__extension__', None)
                 if ext_type == ExtType.page_modifiers:
                     self._extensions[ext_type].extend([(path_match, attr) for path_match in attr.path_matches])
                 elif ext_type:
                     self._extensions[ext_type].append(attr)
-                elif any(getattr(attr, n, False) for n in filter_attrs):
+                elif any(getattr(attr, n, False) is True for n in filter_attrs):
                     self._extensions[ExtType.template_filters][attr_name] = attr
-                elif any(getattr(attr, n, False) for n in function_attrs):
+                elif any(getattr(attr, n, False) is True for n in function_attrs):
                     self._extensions[ExtType.template_functions][attr_name] = attr
         self._set_extensions()
 
     def __repr__(self):
-        return f'<Extensions {repr(self._extensions) if self._extensions else "not loaded"}>'
+        ext = self._extensions and {k.value: v for k, v in self._extensions.items()}
+        return f'<Extensions {repr(ext) if ext else "not loaded"}>'
 
     def __eq__(self, other):
         return self._extensions == getattr(other, '_extensions', other)
@@ -91,18 +94,19 @@ def apply_modifiers(obj, ext):
     for f in ext:
         obj = f(obj)
         if not isinstance(obj, original_type):
-            raise HarrierProblem(f'extension "{f.__name__}" did not return a {original_type.__name__} as expected')
+            raise HarrierProblem(f'extension "{f.__name__}" did not return a {original_type.__name__} '
+                                 f'object as expected')
     return obj
 
 
 class modify:
     @staticmethod
-    def pre(f):
+    def config(f):
         f.__extension__ = ExtType.config_modifiers
         return f
 
     @staticmethod
-    def post(f):
+    def som(f):
         f.__extension__ = ExtType.som_modifiers
         return f
 
