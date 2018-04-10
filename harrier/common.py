@@ -16,7 +16,7 @@ class HarrierProblem(RuntimeError):
     pass
 
 
-def log_complete(start, description, items=1):
+def log_complete(start, description, items):
     completed_logger.info('%6s %20s %0.3fs', items, description, time() - start)
 
 

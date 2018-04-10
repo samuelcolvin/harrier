@@ -51,15 +51,19 @@ def build(path: StrPath, steps: Set[BuildSteps]=None, mode: Optional[Mode]=None)
     pages = None
     data_future = None
     with ProcessPoolExecutor() as executor:
-        BuildSteps.copy_assets in steps and executor.submit(copy_assets, config)
-        BuildSteps.sass in steps and executor.submit(run_grablib, config)
-        BuildSteps.webpack in steps and executor.submit(run_webpack, config)
+        futures = [
+            BuildSteps.copy_assets in steps and executor.submit(copy_assets, config),
+            BuildSteps.sass in steps and executor.submit(run_grablib, config),
+            BuildSteps.webpack in steps and executor.submit(run_webpack, config),
+        ]
 
         if BuildSteps.data in steps:
             data_future = executor.submit(load_data, config)
 
         if BuildSteps.pages in steps:
             pages = build_pages(config)
+        # this will raise errors if any of the above went wrong
+        [f.result() for f in futures if f]
 
     som = dict(
         theme_files=find_theme_files(config),

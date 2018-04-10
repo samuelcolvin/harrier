@@ -50,6 +50,7 @@ def test_run_webpack(tmpdir):
         '--devtool', 'source-map',
         '--mode', 'production',
         '--optimize-minimize',
+        '--json',
     ] == args
     webpack_env = json.loads(tmpdir.join('webpack_env.json').read_text('utf8'))
     assert webpack_env['NODE_ENV'] == 'production'
@@ -87,7 +88,8 @@ def test_run_webpack_error(tmpdir):
         '--output-filename', 'main.js',
         '--devtool', 'source-map',
         '--mode', 'development',
-        '--config', './webpack_config.js'
+        '--config', './webpack_config.js',
+        '--json',
     ] == args
     webpack_env = json.loads(tmpdir.join('webpack_env.json').read_text('utf8'))
     assert webpack_env['NODE_ENV'] == 'development'

@@ -1,4 +1,5 @@
 import asyncio
+import json
 import logging
 import os
 import re
@@ -108,16 +109,27 @@ def run_webpack(config: Config):
     cmd = ' '.join(args)
     kwargs = dict(check=True, cwd=config.source_dir, env=env)
     logger.debug('webpack command "%s"', cmd)
-    if not logger.isEnabledFor(logging.DEBUG):
+    capture_output = not logger.isEnabledFor(logging.DEBUG)
+    if capture_output:
         kwargs.update(stdout=subprocess.PIPE, stderr=subprocess.PIPE, encoding='utf8')
+        args += '--json',
     try:
-        subprocess.run(args, **kwargs)
+        p = subprocess.run(args, **kwargs)
     except subprocess.CalledProcessError as e:
         logger.warning('error running webpack "%s", returncode %s\nstdout: %s\nstderr: %s',
                        cmd, e.returncode, e.output, e.stderr)
         raise HarrierProblem('error running webpack') from e
     else:
-        log_complete(start, 'webpack built')
+        count = 1
+        if capture_output:
+            try:
+                output = json.loads(p.stdout[p.stdout.find('{'):])
+            except ValueError:
+                # happens when the webpack config script writes to standout including a "{"
+                pass
+            else:
+                count = len(output['assets'])
+        log_complete(start, 'webpack built', count)
 
 
 async def start_webpack_watch(config: Config):
