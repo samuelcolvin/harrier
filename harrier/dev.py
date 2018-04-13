@@ -8,7 +8,7 @@ from time import time
 
 from aiohttp.web_runner import AppRunner, TCPSite
 from aiohttp_devtools.runserver import serve_static
-from watchgod import Change, awatch
+from watchgod import Change, DefaultWatcher, awatch
 
 from .assets import copy_assets, find_theme_files, run_grablib, start_webpack_watch
 from .build import BuildPages, build_pages, render_pages
@@ -117,6 +117,15 @@ def is_within(location: Path, directory: Path):
         return True
 
 
+class HarrierWatcher(DefaultWatcher):
+    def __init__(self, root_path):
+        self._used_paths = str(CONFIG.pages_dir), str(CONFIG.theme_dir)
+        super().__init__(root_path)
+
+    def should_watch_dir(self, entry):
+        return super().should_watch_dir(entry) and entry.path.startswith(self._used_paths)
+
+
 async def adev(config: Config, port: int):
     global CONFIG
     CONFIG = config
@@ -136,7 +145,7 @@ async def adev(config: Config, port: int):
         await server.start()
 
         try:
-            async for changes in awatch(config.source_dir, stop_event=stop_event):
+            async for changes in awatch(config.source_dir, stop_event=stop_event, watcher_cls=HarrierWatcher):
                 logger.debug('file changes: %s', changes)
                 pages, assets, sass, templates, extensions = set(), False, False, False, False
                 for change, raw_path in changes:
