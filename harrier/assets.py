@@ -36,6 +36,11 @@ def run_grablib(config: Config):
     if sass_dir.is_dir():
         output_dir = config.dist_dir / config.dist_dir_sass
         output_dir.relative_to(config.dist_dir)
+
+        # this prevents SassGenerator from throwing an error because this directory exists
+        out_dir_src = output_dir / '.src'
+        out_dir_src.is_dir() and shutil.rmtree(out_dir_src)
+
         sass_gen = SassGenerator(
             input_dir=sass_dir,
             output_dir=output_dir,

@@ -23,14 +23,14 @@ class ExtType(str, Enum):
 
 class Extensions:
     def __init__(self, path):
-        self._path = path
+        self.path = path
         self._extensions = {}
 
     def __getstate__(self):
-        return self._path
+        return self.path
 
     def __setstate__(self, state):
-        self._path = state
+        self.path = state
         self._extensions = {}
 
     def _set_extensions(self):
@@ -47,10 +47,7 @@ class Extensions:
     @classmethod
     def validate(cls, value):
         extensions = cls(value)
-        try:
-            extensions.load()
-        except (ImportError, FileNotFoundError) as e:
-            raise ValueError(str(e)) from e
+        extensions.load()
         return extensions
 
     def load(self):
@@ -61,8 +58,8 @@ class Extensions:
             ExtType.template_filters: {},
             ExtType.template_functions: {},
         }
-        if self._path:
-            spec = spec_from_file_location('extensions', self._path)
+        if self.path.exists():
+            spec = spec_from_file_location('extensions', self.path)
             module = module_from_spec(spec)
             spec.loader.exec_module(module)
 

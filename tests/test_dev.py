@@ -92,6 +92,7 @@ def test_mock_executor(tmpdir, mocker):
         yield {(Change.modified, str(tmpdir.join('theme/assets/main.png')))}
         yield {(Change.modified, str(tmpdir.join('theme/sass/main.scss')))}
         yield {(Change.modified, str(tmpdir.join('theme/templates/main.jinja')))}
+        yield {(Change.modified, str(tmpdir.join('extensions.py')))}
 
     mktree(tmpdir, {
         'pages/foobar.md': '# hello',
@@ -113,11 +114,12 @@ def test_mock_executor(tmpdir, mocker):
     assert gettree(tmpdir.join('dist')) == {}
 
     assert mock_run_in_executor.call_args_list == [
-        mocker.call(mocker.ANY, update_site, '__FB__', True, True, True),
-        mocker.call(mocker.ANY, update_site, {(Change.modified, Path(foobar_path))}, False, False, False),
-        mocker.call(mocker.ANY, update_site, set(), True, False, False),
-        mocker.call(mocker.ANY, update_site, set(), False, True, False),
-        mocker.call(mocker.ANY, update_site, set(), False, False, True),
+        mocker.call(mocker.ANY, update_site, '__FB__', True, True, True, True),
+        mocker.call(mocker.ANY, update_site, {(Change.modified, Path(foobar_path))}, False, False, False, False),
+        mocker.call(mocker.ANY, update_site, set(), True, False, False, False),
+        mocker.call(mocker.ANY, update_site, set(), False, True, False, False),
+        mocker.call(mocker.ANY, update_site, set(), False, False, True, False),
+        mocker.call(mocker.ANY, update_site, set(), False, False, False, True),
     ]
 
 

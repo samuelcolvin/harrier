@@ -51,7 +51,7 @@ SOM = None
 BUILD_CACHE = {}
 
 
-def update_site(pages, assets, sass, templates):
+def update_site(pages, assets, sass, templates, extensions):
     assert CONFIG, 'CONFIG global not set'
     start_time = time()
     first_build = pages == FIRST_BUILD
@@ -66,37 +66,44 @@ def update_site(pages, assets, sass, templates):
         ]
         logger.info('%s rebuilding...', ', '.join([m for m in msg if m]))
 
+    if extensions:
+        CONFIG.extensions.load()
+        config = apply_modifiers(CONFIG, CONFIG.extensions.config_modifiers)
+        assets = sass = templates = True
+    else:
+        config = CONFIG
+
     if assets:
-        copy_assets(CONFIG)
+        copy_assets(config)
     if sass:
-        run_grablib(CONFIG)
+        run_grablib(config)
 
     global SOM
     if first_build or not SOM:
-        SOM = CONFIG.dict()
+        SOM = config.dict()
         SOM.update(
-            theme_files=find_theme_files(CONFIG),
-            pages=build_pages(CONFIG),
-            data=load_data(CONFIG),
+            theme_files=find_theme_files(config),
+            pages=build_pages(config),
+            data=load_data(config),
         )
-        SOM = apply_modifiers(SOM, CONFIG.extensions.som_modifiers)
+        SOM = apply_modifiers(SOM, config.extensions.som_modifiers)
     elif pages:
-        page_builder = BuildPages(CONFIG)
+        page_builder = BuildPages(config)
         for change, path in pages:
-            rel_path = str(path.relative_to(CONFIG.pages_dir))
+            rel_path = str(path.relative_to(config.pages_dir))
             if change == Change.deleted:
                 SOM['pages'][rel_path]['outfile'].unlink()
                 SOM['pages'].pop(rel_path)
             else:
                 SOM['pages'][rel_path] = page_builder.prep_file(path)
-        SOM = apply_modifiers(SOM, CONFIG.extensions.som_modifiers)
+        SOM = apply_modifiers(SOM, config.extensions.som_modifiers)
 
     if assets or sass:
-        SOM['theme_files'] = find_theme_files(CONFIG)
+        SOM['theme_files'] = find_theme_files(config)
 
     if templates or first_build or any(change != Change.deleted for change, _ in pages):
         global BUILD_CACHE
-        BUILD_CACHE = render_pages(CONFIG, SOM, BUILD_CACHE)
+        BUILD_CACHE = render_pages(config, SOM)
 
     logger.info('%sbuild completed in %0.3fs', '' if first_build else 're', time() - start_time)
 
@@ -111,7 +118,6 @@ def is_within(location: Path, directory: Path):
 
 
 async def adev(config: Config, port: int):
-    config = apply_modifiers(config, config.extensions.config_modifiers)
     global CONFIG
     CONFIG = config
     stop_event = asyncio.Event()
@@ -123,7 +129,7 @@ async def adev(config: Config, port: int):
 
     # max_workers = 1 so the same config and som are always used to build the site
     with ProcessPoolExecutor(max_workers=1) as executor:
-        await loop.run_in_executor(executor, update_site, FIRST_BUILD, True, True, True)
+        await loop.run_in_executor(executor, update_site, FIRST_BUILD, True, True, True, True)
 
         logger.info('\nStarting dev server, go to http://localhost:%s', port)
         server = Server(config, port)
@@ -132,7 +138,7 @@ async def adev(config: Config, port: int):
         try:
             async for changes in awatch(config.source_dir, stop_event=stop_event):
                 logger.debug('file changes: %s', changes)
-                pages, assets, sass, templates = set(), False, False, False
+                pages, assets, sass, templates, extensions = set(), False, False, False, False
                 for change, raw_path in changes:
                     path = Path(raw_path)
                     if is_within(path, config.pages_dir):
@@ -143,9 +149,11 @@ async def adev(config: Config, port: int):
                         sass = True
                     elif is_within(path, config.theme_dir / 'templates'):
                         templates = True
+                    elif path == config.extensions.path:
+                        extensions = True
 
-                if any([pages, assets, sass, templates]):
-                    await loop.run_in_executor(executor, update_site, pages, assets, sass, templates)
+                if any([pages, assets, sass, templates, extensions]):
+                    await loop.run_in_executor(executor, update_site, pages, assets, sass, templates, extensions)
         finally:
             if webpack_process:
                 if webpack_process.returncode is None:

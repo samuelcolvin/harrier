@@ -135,8 +135,3 @@ def modify_pages(site):
     with pytest.raises(HarrierProblem) as exc_info:
         Extensions.validate(Path(tmpdir.join('foobar.py')))
     assert exc_info.value.args[0] == 'validator with no page globs specified'
-
-
-def test_ext_invalid():
-    with pytest.raises(ValueError):
-        Extensions.validate(Path('foobar.py'))
