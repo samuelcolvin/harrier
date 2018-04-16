@@ -6,7 +6,7 @@ import sys
 import pytest
 from pytest_toolbox import gettree, mktree
 
-from harrier.assets import copy_assets, run_grablib, run_webpack, start_webpack_watch
+from harrier.assets import assets_grablib, copy_assets, run_grablib, run_webpack, start_webpack_watch
 from harrier.common import HarrierProblem
 from harrier.config import Mode, get_config
 
@@ -205,6 +205,31 @@ def test_grablib(tmpdir):
     assert gettree(tmpdir.join('dist')) == {
         'theme': {
             'main.7cc3e19.css': 'body{background:#BAD}\n',
+        },
+    }
+
+
+def test_sass_url(tmpdir):
+    mktree(tmpdir, {
+        'pages/foobar.md': '# hello',
+        'theme': {
+            'templates': {'main.jinja': 'main:\n {{ content }}'},
+            'assets/image.png': '*',
+            'sass/main.scss': (
+                '$background-url: resolve_url("theme/assets/image.png");\n'
+                'body {background: url($background-url)}'
+            ),
+        },
+    })
+
+    config = get_config(str(tmpdir))
+    assets_grablib(config)
+    assert gettree(tmpdir.join('dist')) == {
+        'theme': {
+            'assets': {
+                'image.3389dae.png': '*',
+            },
+            'main.a773ef9.css': 'body{background:url("theme/assets/image.3389dae.png")}\n',
         },
     }
 

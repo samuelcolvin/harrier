@@ -5,6 +5,7 @@ import os
 import re
 import shutil
 import subprocess
+from functools import partial
 from time import time
 
 from grablib.build import SassGenerator, insert_hash
@@ -42,12 +43,18 @@ def run_grablib(config: Config):
         out_dir_src = output_dir / '.src'
         out_dir_src.is_dir() and shutil.rmtree(out_dir_src)
 
+        theme_files = find_theme_files(config)
+        custom_functions = {
+            'resolve_url': partial(resolve_sass_url, theme_files),
+        }
+
         sass_gen = SassGenerator(
             input_dir=sass_dir,
             output_dir=output_dir,
             download_root=download_root,
             debug=config.mode == Mode.development,
             apply_hash=config.mode == Mode.production,
+            custom_functions=custom_functions,
         )
         try:
             sass_gen()
@@ -81,6 +88,11 @@ def copy_assets(config: Config):
 
     copied and log_complete(start, 'theme assets copied', copied)
     return copied
+
+
+def assets_grablib(config: Config):
+    copy_assets(config)
+    run_grablib(config)
 
 
 def webpack_configuration(config: Config, watch: bool):
@@ -171,3 +183,8 @@ def find_theme_files(config: Config):
                         path_name = re.sub('\.[a-f0-9]{7,20}$', '', path_name)
                     d[path_name] = rel_path
     return d
+
+
+def resolve_sass_url(theme_files, path):
+    # TODO try more things, raise error on failure
+    return f'"{theme_files.get(path) or path}"'

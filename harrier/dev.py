@@ -83,6 +83,7 @@ def update_site(pages, assets, sass, templates, extensions):  # noqa: C901 (igno
         if assets:
             copy_assets(config)
             templates = True  # force re-render as pages might have changed
+            sass = True  # in case paths changed as used by resolve_url in sass
         if sass:
             run_grablib(config)
             templates = True  # force re-render as pages might have changed

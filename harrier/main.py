@@ -8,7 +8,7 @@ from typing import Optional, Set, Union
 
 import devtools
 
-from .assets import copy_assets, find_theme_files, run_grablib, run_webpack
+from .assets import assets_grablib, find_theme_files, run_webpack
 from .build import build_pages, render_pages
 from .common import completed_logger
 from .config import Mode, get_config
@@ -52,8 +52,7 @@ def build(path: StrPath, steps: Set[BuildSteps]=None, mode: Optional[Mode]=None)
     data_future = None
     with ProcessPoolExecutor() as executor:
         futures = [
-            BuildSteps.copy_assets in steps and executor.submit(copy_assets, config),
-            BuildSteps.sass in steps and executor.submit(run_grablib, config),
+            BuildSteps.sass in steps and executor.submit(assets_grablib, config),
             BuildSteps.webpack in steps and executor.submit(run_webpack, config),
         ]
 
