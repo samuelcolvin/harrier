@@ -49,7 +49,7 @@ class PathMatch:
         return cls(value)
 
 
-class GrablibHandler(logging.Handler):
+class ColourHandler(logging.Handler):  # pragma: no cover
     formats = {
         logging.DEBUG: {'fg': 'white', 'dim': True},
         logging.INFO: {'fg': 'white', 'dim': True},
@@ -97,7 +97,7 @@ def log_config(verbose: bool, dev) -> dict:
             },
             'grablib': {
                 'level': 'INFO' if verbose else 'WARNING',
-                'class': 'harrier.common.GrablibHandler',
+                'class': 'harrier.common.ColourHandler',
                 'formatter': 'default'
             },
             'server_logging': {

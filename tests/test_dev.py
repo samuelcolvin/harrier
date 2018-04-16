@@ -4,7 +4,9 @@ from pathlib import Path
 from pytest_toolbox import gettree, mktree
 from watchgod import Change
 
-from harrier.dev import update_site
+import harrier.dev
+from harrier.config import Config
+from harrier.dev import HarrierWatcher, update_site
 from harrier.main import dev
 
 
@@ -185,3 +187,23 @@ def test_webpack_terminate(tmpdir, mocker, caplog):
     dev(str(tmpdir), 8000)
     assert mock_webpack.send_signal.call_count == 1
     assert 'webpack existed badly' in caplog.text
+
+
+class Entry:
+    def __init__(self, path):
+        self.path = str(path)
+        self.name = self.path.rsplit('/', 1)[1]
+
+
+def test_harrier_watcher(tmpdir):
+    mktree(tmpdir, {
+        'pages/foobar.md': '# hello',
+        'theme/templates/main.jinja': 'main:\n {{ content }}',
+    })
+    harrier.dev.CONFIG = Config(source_dir=tmpdir)
+    watcher = HarrierWatcher(Path(tmpdir))
+    assert not watcher.should_watch_dir(Entry(tmpdir.join('foobar')))
+    assert not watcher.should_watch_dir(Entry(tmpdir.join('__pycache__')))
+    assert watcher.should_watch_dir(Entry(tmpdir.join('pages')))
+    assert watcher.should_watch_dir(Entry(tmpdir.join('pages/whatever')))
+    harrier.dev.CONFIG = None
