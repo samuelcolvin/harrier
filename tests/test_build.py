@@ -224,7 +224,7 @@ def test_render_error(tmpdir, caplog):
     })
     with pytest.raises(ZeroDivisionError):
         build(tmpdir, mode=Mode.production)
-    assert 'foobar.html: ZeroDivisionError division by zero' in caplog.text
+    assert 'ZeroDivisionError: division by zero' in caplog.text
 
 
 def test_uri_key_error(tmpdir, caplog):

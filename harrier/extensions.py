@@ -1,3 +1,4 @@
+import logging
 from enum import Enum
 from importlib.util import module_from_spec, spec_from_file_location
 from types import FunctionType
@@ -11,6 +12,11 @@ __all__ = (
     'modify',
     'template',
 )
+logger = logging.getLogger('harrier.extensions')
+
+
+class ExtensionError(HarrierProblem):
+    pass
 
 
 class ExtType(str, Enum):
@@ -61,7 +67,11 @@ class Extensions:
         if self.path.exists():
             spec = spec_from_file_location('extensions', self.path)
             module = module_from_spec(spec)
-            spec.loader.exec_module(module)
+            try:
+                spec.loader.exec_module(module)
+            except Exception as e:
+                logger.exception('error loading extensions %s %s', e.__class__.__name__, e)
+                raise ExtensionError(str(e)) from e
 
             for attr_name in dir(module):
                 if attr_name.startswith('_'):
@@ -89,9 +99,15 @@ class Extensions:
 def apply_modifiers(obj, ext):
     original_type = type(obj)
     for f in ext:
-        obj = f(obj)
+        try:
+            obj = f(obj)
+        except Exception as e:
+            logger.exception('error running extension %s', f.__name__)
+            raise ExtensionError(str(e)) from e
+
         if not isinstance(obj, original_type):
-            raise HarrierProblem(f'extension "{f.__name__}" did not return a {original_type.__name__} '
+            logger.error('extension "%s" did not return a %s object as expected', f.__name__, original_type.__name__)
+            raise ExtensionError(f'extension "{f.__name__}" did not return a {original_type.__name__} '
                                  f'object as expected')
     return obj
 

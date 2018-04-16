@@ -4,7 +4,7 @@ import pytest
 from pytest_toolbox import gettree, mktree
 
 from harrier.common import HarrierProblem
-from harrier.extensions import Extensions
+from harrier.extensions import ExtensionError, Extensions
 from harrier.main import build
 
 
@@ -65,6 +65,66 @@ def before(site):
     assert exc_info.value.args[0] == 'extension "before" did not return a Config object as expected'
 
 
+def test_ext_error(tmpdir):
+    mktree(tmpdir, {
+        'pages': {
+            'foo.md': '# foo',
+        },
+        'theme/templates/main.jinja': '{{ content }}',
+        'extensions.py': """
+from harrier.extensions import modify
+
+@modify.config
+def before(site):
+    raise RuntimeError('xxx')
+        """
+    })
+
+    with pytest.raises(ExtensionError) as exc_info:
+        build(str(tmpdir))
+    assert exc_info.value.args[0] == 'xxx'
+
+
+def test_pages_error(tmpdir):
+    mktree(tmpdir, {
+        'pages': {
+            'foo.md': '# foo',
+        },
+        'theme/templates/main.jinja': '{{ content }}',
+        'extensions.py': """
+from harrier.extensions import modify
+
+@modify.pages('**/*')
+def modify_pages(data, config):
+    raise RuntimeError('xxx')
+        """
+    })
+
+    with pytest.raises(ExtensionError) as exc_info:
+        build(str(tmpdir))
+    assert exc_info.value.args[0] == 'xxx'
+
+
+def test_pages_broken(tmpdir):
+    mktree(tmpdir, {
+        'pages': {
+            'foo.md': '# foo',
+        },
+        'theme/templates/main.jinja': '{{ content }}',
+        'extensions.py': """
+from harrier.extensions import modify
+
+@modify.pages('**/*')
+def modify_pages(data, config):
+    return None
+        """
+    })
+
+    with pytest.raises(ExtensionError) as exc_info:
+        build(str(tmpdir))
+    assert exc_info.value.args[0] == 'extension "modify_pages" did not return a dict'
+
+
 def test_bad_python(tmpdir):
     mktree(tmpdir, {
         'pages': {
@@ -74,7 +134,7 @@ def test_bad_python(tmpdir):
         'extensions.py': 'xxx'
     })
 
-    with pytest.raises(NameError):
+    with pytest.raises(ExtensionError):
         build(str(tmpdir))
 
 
@@ -88,7 +148,7 @@ def before(site):
     pass
 
 @modify.pages('x', 'y')
-def modify_pages(site):
+def modify_pages(data, config):
     pass
 
 @template.function
@@ -113,7 +173,7 @@ def test_page_modifier_bare(tmpdir):
 from harrier.extensions import modify
 
 @modify.pages
-def modify_pages(site):
+def modify_pages(data, config):
     pass
         """
     })
@@ -128,7 +188,7 @@ def test_page_modifier_no_args(tmpdir):
 from harrier.extensions import modify
 
 @modify.pages()
-def modify_pages(site):
+def modify_pages(data, config):
     pass
         """
     })

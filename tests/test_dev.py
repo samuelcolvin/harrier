@@ -4,7 +4,9 @@ from pathlib import Path
 from pytest_toolbox import gettree, mktree
 from watchgod import Change
 
-from harrier.dev import update_site
+import harrier.dev
+from harrier.config import Config
+from harrier.dev import HarrierWatcher, update_site
 from harrier.main import dev
 
 
@@ -70,7 +72,7 @@ def test_dev_delete(tmpdir, mocker, loop):
 
     assert not tmpdir.join('dist').check()
 
-    dev(str(tmpdir), 8000)
+    assert dev(str(tmpdir), 8000) == 0
 
     # debug(gettree(tmpdir.join('dist')))
     assert gettree(tmpdir.join('dist')) == {
@@ -79,6 +81,33 @@ def test_dev_delete(tmpdir, mocker, loop):
         },
         'features': {
             'whatever': {},
+        },
+    }
+
+
+def test_extensions_error(tmpdir, mocker, loop):
+    async def awatch_alt(*args, **kwargs):
+        tmpdir.join('extensions.py').write('print(xxx)')
+        yield {(Change.modified, str(tmpdir.join('extensions.py')))}
+
+    asyncio.set_event_loop(loop)
+    mktree(tmpdir, {
+        'pages': {
+            'foobar.md': '# hello',
+        },
+        'theme/templates/main.jinja': 'main:\n {{ content }}',
+        'extensions.py': 'x = 1'
+    })
+    mocker.patch('harrier.dev.awatch', side_effect=awatch_alt)
+    mocker.patch('harrier.dev.Server', return_value=MockServer())
+
+    assert not tmpdir.join('dist').check()
+
+    assert dev(str(tmpdir), 8000) == 1
+
+    assert gettree(tmpdir.join('dist')) == {
+        'foobar': {
+            'index.html': 'main:\n <h1>hello</h1>\n',
         },
     }
 
@@ -158,3 +187,23 @@ def test_webpack_terminate(tmpdir, mocker, caplog):
     dev(str(tmpdir), 8000)
     assert mock_webpack.send_signal.call_count == 1
     assert 'webpack existed badly' in caplog.text
+
+
+class Entry:
+    def __init__(self, path):
+        self.path = str(path)
+        self.name = self.path.rsplit('/', 1)[1]
+
+
+def test_harrier_watcher(tmpdir):
+    mktree(tmpdir, {
+        'pages/foobar.md': '# hello',
+        'theme/templates/main.jinja': 'main:\n {{ content }}',
+    })
+    harrier.dev.CONFIG = Config(source_dir=tmpdir)
+    watcher = HarrierWatcher(Path(tmpdir))
+    assert not watcher.should_watch_dir(Entry(tmpdir.join('foobar')))
+    assert not watcher.should_watch_dir(Entry(tmpdir.join('__pycache__')))
+    assert watcher.should_watch_dir(Entry(tmpdir.join('pages')))
+    assert watcher.should_watch_dir(Entry(tmpdir.join('pages/whatever')))
+    harrier.dev.CONFIG = None

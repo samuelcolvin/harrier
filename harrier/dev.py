@@ -2,6 +2,7 @@ import asyncio
 import contextlib
 import logging
 import signal
+import traceback
 from concurrent.futures import ProcessPoolExecutor
 from pathlib import Path
 from time import time
@@ -12,12 +13,12 @@ from watchgod import Change, DefaultWatcher, awatch
 
 from .assets import copy_assets, find_theme_files, run_grablib, start_webpack_watch
 from .build import BuildPages, build_pages, render_pages
+from .common import HarrierProblem
 from .config import Config
 from .data import load_data
 from .extensions import apply_modifiers
 
 HOST = '0.0.0.0'
-FIRST_BUILD = '__FB__'
 logger = logging.getLogger('harrier.dev')
 
 
@@ -49,14 +50,18 @@ CONFIG: Config = None
 # SOM and BUILD_CACHE will only be set after the fork in the child process created by ProcessPoolExecutor
 SOM = None
 BUILD_CACHE = {}
+FIRST_BUILD = '__FB__'
 
 
-def update_site(pages, assets, sass, templates, extensions):
+def update_site(pages, assets, sass, templates, extensions):  # noqa: C901 (ignore complexity)
     assert CONFIG, 'CONFIG global not set'
     start_time = time()
+    global SOM
+    full_build = SOM is None
     first_build = pages == FIRST_BUILD
     if first_build:
         logger.info('building...')
+        full_build = True
     else:
         msg = [
             pages and f'{len(pages)} pages changed',
@@ -66,46 +71,55 @@ def update_site(pages, assets, sass, templates, extensions):
         ]
         logger.info('%s rebuilding...', ', '.join([m for m in msg if m]))
 
-    if extensions:
-        CONFIG.extensions.load()
-        config = apply_modifiers(CONFIG, CONFIG.extensions.config_modifiers)
-        assets = sass = templates = True
+    log_prefix = '' if first_build else 're'
+    try:
+        if extensions:
+            CONFIG.extensions.load()
+            config = apply_modifiers(CONFIG, CONFIG.extensions.config_modifiers)
+            assets = sass = templates = full_build = True
+        else:
+            config = CONFIG
+
+        if assets:
+            copy_assets(config)
+            templates = True  # force re-render as pages might have changed
+        if sass:
+            run_grablib(config)
+            templates = True  # force re-render as pages might have changed
+
+        if full_build:
+            SOM = config.dict()
+            SOM.update(
+                theme_files=find_theme_files(config),
+                pages=build_pages(config),
+                data=load_data(config),
+            )
+            SOM = apply_modifiers(SOM, config.extensions.som_modifiers)
+        elif pages:
+            page_builder = BuildPages(config)
+            for change, path in pages:
+                rel_path = str(path.relative_to(config.pages_dir))
+                if change == Change.deleted:
+                    SOM['pages'][rel_path]['outfile'].unlink()
+                    SOM['pages'].pop(rel_path)
+                else:
+                    SOM['pages'][rel_path] = page_builder.prep_file(path)
+            SOM = apply_modifiers(SOM, config.extensions.som_modifiers)
+            templates = templates or any(change != Change.deleted for change, _ in pages)
+
+        if assets or sass:
+            SOM['theme_files'] = find_theme_files(config)
+
+        if templates:
+            global BUILD_CACHE
+            BUILD_CACHE = render_pages(config, SOM)
+    except HarrierProblem as e:
+        logger.debug('error during build %s %s %s', traceback.format_exc(), e.__class__.__name__, e)
+        logger.warning('%sbuild failed in %0.3fs', log_prefix, time() - start_time)
+        return 1
     else:
-        config = CONFIG
-
-    if assets:
-        copy_assets(config)
-    if sass:
-        run_grablib(config)
-
-    global SOM
-    if first_build or not SOM:
-        SOM = config.dict()
-        SOM.update(
-            theme_files=find_theme_files(config),
-            pages=build_pages(config),
-            data=load_data(config),
-        )
-        SOM = apply_modifiers(SOM, config.extensions.som_modifiers)
-    elif pages:
-        page_builder = BuildPages(config)
-        for change, path in pages:
-            rel_path = str(path.relative_to(config.pages_dir))
-            if change == Change.deleted:
-                SOM['pages'][rel_path]['outfile'].unlink()
-                SOM['pages'].pop(rel_path)
-            else:
-                SOM['pages'][rel_path] = page_builder.prep_file(path)
-        SOM = apply_modifiers(SOM, config.extensions.som_modifiers)
-
-    if assets or sass:
-        SOM['theme_files'] = find_theme_files(config)
-
-    if templates or first_build or any(change != Change.deleted for change, _ in pages):
-        global BUILD_CACHE
-        BUILD_CACHE = render_pages(config, SOM)
-
-    logger.info('%sbuild completed in %0.3fs', '' if first_build else 're', time() - start_time)
+        logger.info('%sbuild completed in %0.3fs', log_prefix, time() - start_time)
+        return 0
 
 
 def is_within(location: Path, directory: Path):
@@ -138,7 +152,7 @@ async def adev(config: Config, port: int):
 
     # max_workers = 1 so the same config and som are always used to build the site
     with ProcessPoolExecutor(max_workers=1) as executor:
-        await loop.run_in_executor(executor, update_site, FIRST_BUILD, True, True, True, True)
+        ret = await loop.run_in_executor(executor, update_site, FIRST_BUILD, True, True, True, True)
 
         logger.info('\nStarting dev server, go to http://localhost:%s', port)
         server = Server(config, port)
@@ -162,7 +176,7 @@ async def adev(config: Config, port: int):
                         extensions = True
 
                 if any([pages, assets, sass, templates, extensions]):
-                    await loop.run_in_executor(executor, update_site, pages, assets, sass, templates, extensions)
+                    ret = await loop.run_in_executor(executor, update_site, pages, assets, sass, templates, extensions)
         finally:
             if webpack_process:
                 if webpack_process.returncode is None:
@@ -170,3 +184,4 @@ async def adev(config: Config, port: int):
                 elif webpack_process.returncode > 0:
                     logger.warning('webpack existed badly, returncode: %d', webpack_process.returncode)
             await server.shutdown()
+        return ret
