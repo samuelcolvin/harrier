@@ -4,7 +4,7 @@ import pytest
 from pytest_toolbox import gettree, mktree
 
 from harrier.common import HarrierProblem
-from harrier.extensions import Extensions
+from harrier.extensions import ExtensionError, Extensions
 from harrier.main import build
 
 
@@ -74,7 +74,7 @@ def test_bad_python(tmpdir):
         'extensions.py': 'xxx'
     })
 
-    with pytest.raises(NameError):
+    with pytest.raises(ExtensionError):
         build(str(tmpdir))
 
 

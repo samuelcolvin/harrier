@@ -15,6 +15,7 @@ from ruamel.yaml import YAMLError
 
 from .common import HarrierProblem, log_complete, yaml
 from .config import Config
+from .extensions import ExtensionError
 
 FRONT_MATTER_START_REGEX = re.compile(r'---[ \t]*(.*)\n---[ \t]*\n', re.S)
 FRONT_MATTER_DIVIDER_REGEX = re.compile(r'\n?^--- ?([.\w_-]+) ?---[ \t]*\n', re.S | re.M)
@@ -76,7 +77,11 @@ class BuildPages:
 
         for path_match, f in self.config.extensions.page_modifiers:
             if path_match(path_ref):
-                data = f(data, config=self.config)
+                try:
+                    data = f(data, config=self.config)
+                except Exception as e:
+                    logger.exception('error running extensions %s %s', e.__class__.__name__, e)
+                    raise ExtensionError(str(e))
                 if not isinstance(data, dict):
                     raise HarrierProblem(f'extension "{f.__name__}" did not return a dict')
 
