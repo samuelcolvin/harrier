@@ -2,6 +2,7 @@ import asyncio
 import contextlib
 import logging
 import signal
+import traceback
 from concurrent.futures import ProcessPoolExecutor
 from pathlib import Path
 from time import time
@@ -13,9 +14,10 @@ from watchgod import Change, DefaultWatcher, awatch
 
 from .assets import copy_assets, find_theme_files, run_grablib, start_webpack_watch
 from .build import BuildPages, build_pages, render_pages
+from .common import HarrierProblem
 from .config import Config
 from .data import load_data
-from .extensions import ExtensionError, apply_modifiers
+from .extensions import apply_modifiers
 
 HOST = '0.0.0.0'
 FIRST_BUILD = '__FB__'
@@ -52,25 +54,15 @@ SOM = None
 BUILD_CACHE = {}
 
 
-class UserError(RuntimeError):
-    pass
-
-
-@contextlib.contextmanager
-def catch_errors(stage, *exc_types):
-    try:
-        yield
-    except exc_types as e:
-        logger.debug('catching error %s: %s', e.__class__.__name__, e)
-        raise UserError(stage)
-
-
-def update_site(pages, assets, sass, templates, extensions):
+def update_site(pages, assets, sass, templates, extensions):  # noqa: C901 (ignore complexity)
     assert CONFIG, 'CONFIG global not set'
     start_time = time()
+    global SOM
     first_build = pages == FIRST_BUILD
     if first_build:
         logger.info('building...')
+        templates = True
+        SOM = None
     else:
         msg = [
             pages and f'{len(pages)} pages changed',
@@ -80,13 +72,13 @@ def update_site(pages, assets, sass, templates, extensions):
         ]
         logger.info('%s rebuilding...', ', '.join([m for m in msg if m]))
 
+    log_prefix = '' if first_build else 're'
     try:
         if extensions:
-            with catch_errors('while loading extensions', ExtensionError):
-                CONFIG.extensions.load()
-            with catch_errors('while running config modifier extensions', ExtensionError):
-                config = apply_modifiers(CONFIG, CONFIG.extensions.config_modifiers)
+            CONFIG.extensions.load()
+            config = apply_modifiers(CONFIG, CONFIG.extensions.config_modifiers)
             assets = sass = templates = True
+            SOM = None
         else:
             config = CONFIG
 
@@ -94,22 +86,20 @@ def update_site(pages, assets, sass, templates, extensions):
             copy_assets(config)
             templates = True  # force re-render as pages might have changed
         if sass:
-            with catch_errors('while running grablib', GrablibError):
+            try:
                 run_grablib(config)
-
+            except GrablibError as e:
+                raise HarrierProblem(str(e))
             templates = True  # force re-render as pages might have changed
 
-        global SOM
-        if first_build or not SOM:
+        if not SOM:
             SOM = config.dict()
-            with catch_errors('while building SOM', ExtensionError):
-                SOM.update(
-                    theme_files=find_theme_files(config),
-                    pages=build_pages(config),
-                    data=load_data(config),
-                )
-            with catch_errors('while running SOM modifier extensions', ExtensionError):
-                SOM = apply_modifiers(SOM, config.extensions.som_modifiers)
+            SOM.update(
+                theme_files=find_theme_files(config),
+                pages=build_pages(config),
+                data=load_data(config),
+            )
+            SOM = apply_modifiers(SOM, config.extensions.som_modifiers)
         elif pages:
             page_builder = BuildPages(config)
             for change, path in pages:
@@ -119,19 +109,19 @@ def update_site(pages, assets, sass, templates, extensions):
                     SOM['pages'].pop(rel_path)
                 else:
                     SOM['pages'][rel_path] = page_builder.prep_file(path)
-            with catch_errors('while running SOM modifier extensions', ExtensionError):
-                SOM = apply_modifiers(SOM, config.extensions.som_modifiers)
+            SOM = apply_modifiers(SOM, config.extensions.som_modifiers)
 
         if assets or sass:
             SOM['theme_files'] = find_theme_files(config)
 
-        if templates or first_build or any(change != Change.deleted for change, _ in pages):
+        if templates or any(change != Change.deleted for change, _ in pages):
             global BUILD_CACHE
             BUILD_CACHE = render_pages(config, SOM)
-    except UserError as e:
-        logger.warning('build failed on %s in %0.3fs', e, time() - start_time)
+    except HarrierProblem as e:
+        logger.debug('error during build %s %s %s', traceback.format_exc(), e.__class__.__name__, e)
+        logger.warning('%sbuild failed in %0.3fs', log_prefix, time() - start_time)
     else:
-        logger.info('%sbuild completed in %0.3fs', '' if first_build else 're', time() - start_time)
+        logger.info('%sbuild completed in %0.3fs', log_prefix, time() - start_time)
 
 
 def is_within(location: Path, directory: Path):

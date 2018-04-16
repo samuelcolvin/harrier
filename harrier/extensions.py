@@ -71,7 +71,7 @@ class Extensions:
                 spec.loader.exec_module(module)
             except Exception as e:
                 logger.exception('error loading extensions %s %s', e.__class__.__name__, e)
-                raise ExtensionError(str(e))
+                raise ExtensionError(str(e)) from e
 
             for attr_name in dir(module):
                 if attr_name.startswith('_'):
@@ -102,10 +102,11 @@ def apply_modifiers(obj, ext):
         try:
             obj = f(obj)
         except Exception as e:
-            logger.exception('error running extensions %s %s', e.__class__.__name__, e)
-            raise ExtensionError(str(e))
+            logger.exception('error running extension %s', f.__name__)
+            raise ExtensionError(str(e)) from e
 
         if not isinstance(obj, original_type):
+            logger.error('extension "%s" did not return a %s object as expected', f.__name__, original_type.__name__)
             raise ExtensionError(f'extension "{f.__name__}" did not return a {original_type.__name__} '
                                  f'object as expected')
     return obj

@@ -59,8 +59,11 @@ class BuildPages:
             if p.is_file():
                 try:
                     v = self.prep_file(p)
-                except Exception as e:
-                    logger.exception('%s: %s %s', p, e.__class__.__name__, e)
+                except ExtensionError:
+                    # these are logged directly
+                    raise
+                except Exception:
+                    logger.exception('%s: error building SOM for page', p)
                     raise
                 if v:
                     pages[str(p.relative_to(self.config.pages_dir))] = v
@@ -80,10 +83,11 @@ class BuildPages:
                 try:
                     data = f(data, config=self.config)
                 except Exception as e:
-                    logger.exception('error running extensions %s %s', e.__class__.__name__, e)
-                    raise ExtensionError(str(e))
+                    logger.exception('%s error running page extension %s', f.__name__)
+                    raise ExtensionError(str(e)) from e
                 if not isinstance(data, dict):
-                    raise HarrierProblem(f'extension "{f.__name__}" did not return a dict')
+                    logger.error('%s extension "%s" did not return a dict', p, f.__name__)
+                    raise ExtensionError(f'extension "{f.__name__}" did not return a dict')
 
         fd = FileData(**data)
         final_data = fd.dict(exclude=set() if apple_template else {'template', 'render'})
@@ -104,7 +108,7 @@ class BuildPages:
 
         return final_data
 
-    def get_page_data(self, p, html_output, path_ref):
+    def get_page_data(self, p, html_output, path_ref):  # noqa: C901 (ignore complexity)
         name = p.stem if html_output else p.name
 
         date_match = DATE_REGEX.match(name)
@@ -234,8 +238,8 @@ class Renderer:
             else:
                 rendered = content
             rendered = rendered.rstrip(' \t\r\n') + '\n'
-        except Exception as e:
-            logger.exception('%s: %s %s', infile, e.__class__.__name__, e)
+        except Exception:
+            logger.exception('%s: error rendering page', infile)
             raise
         else:
             rendered_b = rendered.encode()
