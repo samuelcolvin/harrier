@@ -89,7 +89,7 @@ def dev(path: StrPath, port: int):
     _empty_dir(config.get_tmp_dir())
 
     loop = asyncio.get_event_loop()
-    loop.run_until_complete(adev(config, port))
+    return loop.run_until_complete(adev(config, port))
 
 
 def _empty_dir(d: Path, clean: bool=True):

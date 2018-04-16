@@ -209,6 +209,26 @@ def test_grablib(tmpdir):
     }
 
 
+def test_grablib_error(tmpdir):
+    mktree(tmpdir, {
+        'pages/foobar.md': '# hello',
+        'theme': {
+            'templates': {'main.jinja': 'main:\n {{ content }}'},
+            'sass/main.scss': 'foobar',
+        },
+        'harrier.yml': (
+            f'download:\n'
+            f"  'https://cdn.rawgit.com/samuelcolvin/ae6d04dadbb4d552d365f440d3ac8015/raw/"
+            f"cda04f66c71e4a5f418e78d111d651ae3a2e3784/demo.scss': '_demo.scss'"
+        )
+    })
+
+    config = get_config(str(tmpdir))
+    with pytest.raises(HarrierProblem):
+        run_grablib(config)
+    assert not tmpdir.join('dist').check()
+
+
 def test_copy_assets_dev(tmpdir):
     mktree(tmpdir, {
         'pages/foobar.md': '# hello',

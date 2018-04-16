@@ -70,7 +70,7 @@ def test_dev_delete(tmpdir, mocker, loop):
 
     assert not tmpdir.join('dist').check()
 
-    dev(str(tmpdir), 8000)
+    assert dev(str(tmpdir), 8000) == 0
 
     # debug(gettree(tmpdir.join('dist')))
     assert gettree(tmpdir.join('dist')) == {
@@ -79,6 +79,33 @@ def test_dev_delete(tmpdir, mocker, loop):
         },
         'features': {
             'whatever': {},
+        },
+    }
+
+
+def test_extensions_error(tmpdir, mocker, loop):
+    async def awatch_alt(*args, **kwargs):
+        tmpdir.join('extensions.py').write('print(xxx)')
+        yield {(Change.modified, str(tmpdir.join('extensions.py')))}
+
+    asyncio.set_event_loop(loop)
+    mktree(tmpdir, {
+        'pages': {
+            'foobar.md': '# hello',
+        },
+        'theme/templates/main.jinja': 'main:\n {{ content }}',
+        'extensions.py': 'x = 1'
+    })
+    mocker.patch('harrier.dev.awatch', side_effect=awatch_alt)
+    mocker.patch('harrier.dev.Server', return_value=MockServer())
+
+    assert not tmpdir.join('dist').check()
+
+    assert dev(str(tmpdir), 8000) == 1
+
+    assert gettree(tmpdir.join('dist')) == {
+        'foobar': {
+            'index.html': 'main:\n <h1>hello</h1>\n',
         },
     }
 

@@ -8,6 +8,7 @@ import subprocess
 from time import time
 
 from grablib.build import SassGenerator, insert_hash
+from grablib.common import GrablibError
 from grablib.download import Downloader
 
 from .common import HarrierProblem, log_complete
@@ -48,7 +49,10 @@ def run_grablib(config: Config):
             debug=config.mode == Mode.development,
             apply_hash=config.mode == Mode.production,
         )
-        sass_gen()
+        try:
+            sass_gen()
+        except GrablibError as e:
+            raise HarrierProblem('error generating sass') from e
         log_msg = True
         count = sass_gen._files_generated
 

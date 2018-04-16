@@ -83,7 +83,7 @@ class BuildPages:
                 try:
                     data = f(data, config=self.config)
                 except Exception as e:
-                    logger.exception('%s error running page extension %s', f.__name__)
+                    logger.exception('%s error running page extension %s', p, f.__name__)
                     raise ExtensionError(str(e)) from e
                 if not isinstance(data, dict):
                     logger.error('%s extension "%s" did not return a dict', p, f.__name__)
