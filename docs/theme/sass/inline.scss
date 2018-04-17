@@ -1,0 +1,24 @@
+//$background-colour: #F6F9FC;
+$background-colour: white;
+@import 'pygments/autumn';
+
+html, body {
+  margin: 0;
+  padding: 0 0 10px;
+  background-color: $background-colour;
+  font-family: 'Ubuntu', sans-serif;
+  overflow-y: scroll;
+  font-size: 17px;
+}
+
+.container {
+  max-width: 1140px;
+  margin: 0 auto;
+}
+
+@media (max-width: 1156px) {
+  .container {
+    margin-left: 8px;
+    margin-right: 8px;
+  }
+}
