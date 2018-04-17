@@ -20,6 +20,7 @@ def test_build(tmpdir, mocker):
         'theme/templates/main.jinja': 'main:\n {{ content }}',
         'harrier.yml': (
             'webpack: {run: false}\n'
+            'default_template: main.jinja\n'
         )
     })
     mock_mod = mocker.patch('harrier.main.apply_modifiers', side_effect=lambda obj, mod: obj)
@@ -83,6 +84,14 @@ def test_dev_bad_verbose(mocker):
     result = CliRunner().invoke(cli, ['dev', '--verbose'])
     assert result.exit_code == 2
     assert 'for more details' not in result.output
+
+
+def test_dev_bad_quiet(mocker):
+    mocker.patch('harrier.cli.main.dev', side_effect=HarrierProblem())
+
+    result = CliRunner().invoke(cli, ['dev', '--quiet'])
+    assert result.exit_code == 2
+    assert 'for more details' in result.output
 
 
 def test_steps_pages(tmpdir, mocker):

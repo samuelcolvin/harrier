@@ -34,7 +34,6 @@ def test_dev_simple(tmpdir, mocker, loop):
             'foobar.md': '# hello',
             'features/whatever.md': '## Foo',
         },
-        'theme/templates/main.jinja': 'main:\n {{ content }}',
     })
     mocker.patch('harrier.dev.awatch', side_effect=awatch_alt)
 
@@ -45,11 +44,11 @@ def test_dev_simple(tmpdir, mocker, loop):
     # debug(gettree(tmpdir.join('dist')))
     assert gettree(tmpdir.join('dist')) == {
         'foobar': {
-            'index.html': 'main:\n <h1>hello</h1>\n',
+            'index.html': '<h1>hello</h1>\n',
         },
         'features': {
             'whatever': {
-                'index.html': 'main:\n <h2>Foo</h2>\n',
+                'index.html': '<h2>Foo</h2>\n',
             },
         },
     }
@@ -65,7 +64,6 @@ def test_dev_delete(tmpdir, mocker, loop):
             'foobar.md': '# hello',
             'features/whatever.md': '## Foo',
         },
-        'theme/templates/main.jinja': 'main:\n {{ content }}',
     })
     mocker.patch('harrier.dev.awatch', side_effect=awatch_alt)
     mocker.patch('harrier.dev.Server', return_value=MockServer())
@@ -77,7 +75,7 @@ def test_dev_delete(tmpdir, mocker, loop):
     # debug(gettree(tmpdir.join('dist')))
     assert gettree(tmpdir.join('dist')) == {
         'foobar': {
-            'index.html': 'main:\n <h1>hello</h1>\n',
+            'index.html': '<h1>hello</h1>\n',
         },
         'features': {
             'whatever': {},
@@ -96,6 +94,7 @@ def test_extensions_error(tmpdir, mocker, loop):
             'foobar.md': '# hello',
         },
         'theme/templates/main.jinja': 'main:\n {{ content }}',
+        'harrier.yml': 'default_template: main.jinja',
         'extensions.py': 'x = 1'
     })
     mocker.patch('harrier.dev.awatch', side_effect=awatch_alt)

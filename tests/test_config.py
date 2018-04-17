@@ -30,12 +30,14 @@ def test_ok_file(tmpdir):
     assert not config.webpack.run
 
 
-def test_no_dir(tmpdir):
+def test_no_theme_dir(tmpdir):
     mktree(tmpdir, {
         'pages': {
             'foo.md': '# foo',
             'bar.html': '{{ 4|add_one }} {{ site.dynamic }}',
         },
+        'theme': {},
+        'harrier.yml': 'default_template: main.jinja'
     })
 
     with pytest.raises(ValidationError) as exc_info:
@@ -44,10 +46,16 @@ def test_no_dir(tmpdir):
     assert 'is not a directory' not in str(exc_info.value)
 
 
-def test_not_dir(tmpdir):
+def test_no_pages(tmpdir):
+    with pytest.raises(ValidationError) as exc_info:
+        get_config(tmpdir)
+    assert 'does not exist' in str(exc_info.value)
+    assert 'is not a directory' not in str(exc_info.value)
+
+
+def test_pages_not_dir(tmpdir):
     mktree(tmpdir, {
-        'pages': {},
-        'theme': '*'
+        'pages': '*',
     })
 
     with pytest.raises(ValidationError) as exc_info:
@@ -80,17 +88,6 @@ def test_dist_dir_not_dir(tmpdir):
         get_config(tmpdir)
     assert 'is not a directory' in str(exc_info.value)
     assert 'parent directory does not exist' not in str(exc_info.value)
-
-
-def test_no_templates(tmpdir):
-    mktree(tmpdir, {
-        'pages/foo.md': '# foo',
-        'theme': {},
-    })
-
-    with pytest.raises(ValidationError) as exc_info:
-        get_config(tmpdir)
-    assert 'does not contain a "templates" directory' in str(exc_info.value)
 
 
 def test_extensions_not_dir(tmpdir):

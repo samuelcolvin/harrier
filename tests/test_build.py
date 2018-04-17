@@ -12,6 +12,55 @@ from harrier.config import Config, Mode
 from harrier.main import build
 
 
+def test_full_build(tmpdir):
+    mktree(tmpdir, {
+        'pages': {
+            'foobar.html': (
+                '{{url("theme/assets/foobar.png")}}\n'
+                '{{url("theme/main.css")}}'
+            ),
+        },
+        'theme': {
+            'templates/main.jinja': '{{ content }}',
+            'sass/main.scss': 'body {width: 10px + 10px;}',
+            'assets/foobar.png': '*',
+        },
+    })
+    build(tmpdir, mode=Mode.production)
+    assert gettree(tmpdir.join('dist')) == {
+        'foobar': {
+            'index.html': (
+                'theme/assets/foobar.3389dae.png\n'
+                'theme/main.a1ac3a7.css\n'
+            ),
+        },
+        'theme': {
+            'main.a1ac3a7.css': 'body{width:20px}\n',
+            'assets': {
+                'foobar.3389dae.png': '*',
+            },
+        },
+    }
+
+
+def test_build_no_templates(tmpdir):
+    mktree(tmpdir, {
+        'pages': {
+            'foobar.md': (
+                '# whatever'
+            ),
+        },
+    })
+    build(tmpdir, mode=Mode.production)
+    assert gettree(tmpdir.join('dist')) == {
+        'foobar': {
+            'index.html': (
+                '<h1>whatever</h1>\n'
+            ),
+        },
+    }
+
+
 def test_simple_render(tmpdir):
     foo_page = '# hello\n\nthis is a test foo: {{ foo }}'
     mktree(tmpdir, {
@@ -126,7 +175,7 @@ def test_build_simple_som(tmpdir):
         'tmp_dir': source_dir / 'tmp',
         'download': {},
         'download_aliases': {},
-        'default_template': 'main.jinja',
+        'default_template': None,
         'defaults': {
             PathMatch('/posts/*'): {
                 'uri': '/foobar/{slug}.html',
@@ -151,7 +200,7 @@ def test_build_simple_som(tmpdir):
                 'slug': 'foobar',
                 'created': CloseToNow(),
                 'uri': '/foobar',
-                'template': 'main.jinja',
+                'template': None,
                 'render': True,
                 'outfile': source_dir / 'dist/foobar/index.html',
                 '__file__': 1,
@@ -163,7 +212,7 @@ def test_build_simple_som(tmpdir):
                 'slug': 'testing',
                 'created': datetime(2032, 6, 1, 0, 0),
                 'uri': '/foobar/testing.html',
-                'template': 'main.jinja',
+                'template': None,
                 'render': True,
                 'outfile': source_dir / 'dist/foobar/testing.html',
                 '__file__': 1,
@@ -180,37 +229,6 @@ def test_build_simple_som(tmpdir):
 
         },
     } == som
-
-
-def test_build_render(tmpdir):
-    mktree(tmpdir, {
-        'pages': {
-            'foobar.html': (
-                '{{url("theme/assets/foobar.png")}}\n'
-                '{{url("theme/main.css")}}'
-            ),
-        },
-        'theme': {
-            'templates/main.jinja': '{{ content }}',
-            'sass/main.scss': 'body {width: 10px + 10px;}',
-            'assets/foobar.png': '*',
-        },
-    })
-    build(tmpdir, mode=Mode.production)
-    assert gettree(tmpdir.join('dist')) == {
-        'foobar': {
-            'index.html': (
-                'theme/assets/foobar.3389dae.png\n'
-                'theme/main.a1ac3a7.css\n'
-            ),
-        },
-        'theme': {
-            'main.a1ac3a7.css': 'body{width:20px}\n',
-            'assets': {
-                'foobar.3389dae.png': '*',
-            },
-        },
-    }
 
 
 def test_render_error(tmpdir, caplog):
@@ -368,6 +386,39 @@ def test_ignore_no_template(tmpdir):
             'index.html': 'rendered <p>hello this is normal</p>\n',
         },
 
+    }
+
+
+def test_xml_front_matter(tmpdir):
+    mktree(tmpdir, {
+        'pages': {
+            'foobar.xml': (
+                '---\n'
+                'foo: bar\n'
+                '---\n'
+                '<x><y>{{ site.whatever }}</y></x>'
+            ),
+        },
+        'harrier.yml': 'whatever: 123'
+    })
+    build(tmpdir, mode=Mode.production)
+    assert gettree(tmpdir.join('dist')) == {
+        'foobar.xml': '<x><y>123</y></x>\n'
+    }
+
+
+def test_xml_no_front_matter(tmpdir):
+    mktree(tmpdir, {
+        'pages': {
+            'foobar.xml': (
+                '<x><y>{{ site.whatever }}</y></x>'
+            ),
+        },
+        'harrier.yml': 'whatever: 123'
+    })
+    build(tmpdir, mode=Mode.production)
+    assert gettree(tmpdir.join('dist')) == {
+        'foobar.xml': '<x><y>{{ site.whatever }}</y></x>'
     }
 
 

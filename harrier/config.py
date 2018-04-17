@@ -51,7 +51,7 @@ class Config(BaseModel):
     download: Dict[str, Any] = {}
     download_aliases: Dict[str, str] = {}
 
-    default_template = 'main.jinja'
+    default_template: Optional[str] = None
     defaults: Dict[PathMatch, Dict[str, Any]] = {}
     ignore: List[PathMatch] = []
 
@@ -65,7 +65,7 @@ class Config(BaseModel):
     def resolve_relative_paths(cls, v, values, **kwargs):
         return (values['source_dir'] / v).resolve()
 
-    @validator('pages_dir', 'theme_dir')
+    @validator('pages_dir')
     def is_dir(cls, v, field, **kwargs):
         if not v.exists():
             raise ValueError(f'{field.name} directory "{v}" does not exist')
@@ -85,12 +85,13 @@ class Config(BaseModel):
         else:
             return p
 
-    @validator('theme_dir')
-    def theme_templates(cls, v):
-        if (v / 'templates').exists():
+    @validator('default_template')
+    def theme_templates(cls, v, values, **kwargs):
+        templates_dir = values['theme_dir'] / 'templates'
+        if not v or templates_dir.is_dir():
             return v
         else:
-            raise ValueError(f'theme directory "{v}" does not contain a "templates" directory')
+            raise ValueError(f'default-template set but template directory "{templates_dir}" does not exist')
 
     @validator('extensions', pre=True)
     def validate_extensions(cls, v, values, **kwargs):

@@ -76,13 +76,12 @@ def copy_assets(config: Config):
     out_dir.relative_to(config.dist_dir)
     copied = 0
     for in_path in in_dir.glob('**/*'):
-        if in_path.is_file():
-            out_path = out_dir / in_path.relative_to(in_dir)
-            if config.mode == Mode.production:
-                out_path = insert_hash(out_path, in_path.read_bytes())
-            out_path.parent.mkdir(parents=True, exist_ok=True)
-            shutil.copy(in_path, out_path)
-            copied += 1
+        out_path = out_dir / in_path.relative_to(in_dir)
+        if config.mode == Mode.production:
+            out_path = insert_hash(out_path, in_path.read_bytes())
+        out_path.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy(in_path, out_path)
+        copied += 1
     logger.debug('copied %d theme assets from "%s" to "%s"',
                  copied, in_dir.relative_to(config.source_dir), out_dir.relative_to(config.dist_dir))
 
