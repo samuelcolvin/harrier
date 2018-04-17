@@ -5,7 +5,7 @@ from pytest_toolbox import gettree, mktree
 
 from harrier.common import HarrierProblem
 from harrier.extensions import ExtensionError, Extensions
-from harrier.main import build
+from harrier.main import BuildSteps, build
 
 
 def test_extensions_ok(tmpdir):
@@ -90,18 +90,17 @@ def test_pages_error(tmpdir):
         'pages': {
             'foo.md': '# foo',
         },
-        'theme/templates/main.jinja': '{{ content }}',
         'extensions.py': """
 from harrier.extensions import modify
 
 @modify.pages('**/*')
 def modify_pages(data, config):
-    raise RuntimeError('xxx')
+    raise ValueError('xxx')
         """
     })
 
     with pytest.raises(ExtensionError) as exc_info:
-        build(str(tmpdir))
+        build(str(tmpdir), steps={BuildSteps.pages})
     assert exc_info.value.args[0] == 'xxx'
 
 
