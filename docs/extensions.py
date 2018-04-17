@@ -8,4 +8,3 @@ def inline_css(ctx):
     css = p.read_text()
     css = re.sub('(sourceMappingURL=)', r'\1/theme/', css)
     return css.strip('\n\r\t ')
-

@@ -1,7 +1,7 @@
 harrier
 =======
 
-|BuildStatus| |Coverage| |pypi|
+|BuildStatus| |Coverage|
 
 Static site generator, **in development**.
 
@@ -9,5 +9,3 @@ Static site generator, **in development**.
    :target: https://travis-ci.org/samuelcolvin/harrier
 .. |Coverage| image:: https://codecov.io/gh/samuelcolvin/harrier/branch/master/graph/badge.svg
    :target: https://codecov.io/gh/samuelcolvin/harrier
-.. |pypi| image:: https://img.shields.io/pypi/v/harrier.svg
-   :target: https://pypi.python.org/pypi/harrier
