@@ -174,7 +174,7 @@ class HighlighterRenderer(HtmlRenderer):
             lexer = None
 
         if lexer:
-            formatter = HtmlFormatter()
+            formatter = HtmlFormatter(cssclass='hi')
             return highlight(text, lexer, formatter)
         # default
         code = escape_html(text.strip())

@@ -5,6 +5,7 @@ import sys
 
 import pytest
 from pytest_toolbox import gettree, mktree
+from pytest_toolbox.comparison import RegexStr
 
 from harrier.assets import assets_grablib, copy_assets, run_grablib, run_webpack, start_webpack_watch
 from harrier.common import HarrierProblem
@@ -205,6 +206,29 @@ def test_grablib(tmpdir):
     assert gettree(tmpdir.join('dist')) == {
         'theme': {
             'main.7cc3e19.css': 'body{background:#BAD}\n',
+        },
+    }
+
+
+def test_grablib_pygments(tmpdir):
+    mktree(tmpdir, {
+        'pages/foobar.md': '# hello',
+        'theme': {
+            'sass': {
+                '_other.scss': 'div {colour: red}',
+                'main.scss': (
+                    '@import "other";\n'
+                    '@import "pygments/default";\n'
+                ),
+            },
+        }
+    })
+
+    config = get_config(str(tmpdir))
+    run_grablib(config)
+    assert gettree(tmpdir.join('dist')) == {
+        'theme': {
+            'main.9a9caa6.css': RegexStr('div{colour:red}\.hi \.hll.*'),
         },
     }
 

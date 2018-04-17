@@ -436,7 +436,7 @@ def test_render_code_lang(tmpdir):
     build(tmpdir, mode=Mode.production)
     assert tmpdir.join('dist/foobar/index.html').read_text('utf8') == (
         '<p>testing</p>\n'
-        '<div class="highlight"><pre><span></span><span class="n">x</span> '
+        '<div class="hi"><pre><span></span><span class="n">x</span> '
         '<span class="o">=</span> <span class="mi">4</span>\n'
         '</pre></div>\n'
     )

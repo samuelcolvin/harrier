@@ -11,6 +11,7 @@ from time import time
 from grablib.build import SassGenerator, insert_hash
 from grablib.common import GrablibError
 from grablib.download import Downloader
+from pygments.formatters.html import HtmlFormatter
 
 from .common import HarrierProblem, log_complete
 from .config import Config, Mode
@@ -55,6 +56,7 @@ def run_grablib(config: Config):
             debug=config.mode == Mode.development,
             apply_hash=config.mode == Mode.production,
             custom_functions=custom_functions,
+            extra_importers=[(0, pygments_importer)]
         )
         try:
             sass_gen()
@@ -65,6 +67,17 @@ def run_grablib(config: Config):
 
     log_msg and log_complete(start, 'sass built', count)
     return count
+
+
+PYGMENTS_PREFIX = 'pygments/'
+
+
+def pygments_importer(path: str):
+    if not path.startswith(PYGMENTS_PREFIX):
+        return
+    style_name = path[len(PYGMENTS_PREFIX):]
+    formatter = HtmlFormatter(style=style_name)
+    return [(f'pygments/{style_name}.css', formatter.get_style_defs('.hi'))]
 
 
 def copy_assets(config: Config):
