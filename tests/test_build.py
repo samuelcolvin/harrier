@@ -422,6 +422,44 @@ def test_xml_no_front_matter(tmpdir):
     }
 
 
+def test_render_code_lang(tmpdir):
+    mktree(tmpdir, {
+        'pages': {
+            'foobar.md': (
+                'testing\n\n'
+                '```py\n'
+                'x = 4\n'
+                '```\n'
+            ),
+        },
+    })
+    build(tmpdir, mode=Mode.production)
+    assert tmpdir.join('dist/foobar/index.html').read_text('utf8') == (
+        '<p>testing</p>\n'
+        '<div class="highlight"><pre><span></span><span class="n">x</span> '
+        '<span class="o">=</span> <span class="mi">4</span>\n'
+        '</pre></div>\n'
+    )
+
+
+def test_render_code_unknown_lang(tmpdir):
+    mktree(tmpdir, {
+        'pages': {
+            'foobar.md': (
+                'testing\n\n'
+                '```notalanguage\n'
+                'x = 4\n'
+                '```\n'
+            ),
+        },
+    })
+    build(tmpdir, mode=Mode.production)
+    assert tmpdir.join('dist/foobar/index.html').read_text('utf8') == (
+        '<p>testing</p>\n'
+        '<pre><code>x = 4</code></pre>\n'
+    )
+
+
 def test_file_data_ok():
     fd = FileData(
         infile='foo/bar.md',

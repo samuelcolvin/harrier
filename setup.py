@@ -45,6 +45,7 @@ setup(
     """,
     install_requires=[
         'Jinja2>=2.8',
+        'Pygments>=2.2.0',
         'aiohttp-devtools>=0.9',
         'click>=6.2',
         'devtools>=0.3',
