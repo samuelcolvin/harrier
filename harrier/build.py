@@ -257,9 +257,9 @@ class Renderer:
             else:
                 rendered = content
             rendered = rendered.rstrip(' \t\r\n') + '\n'
-        except Exception:
+        except Exception as e:
             logger.exception('%s: error rendering page', infile)
-            raise
+            raise HarrierProblem(f'{e.__class__.__name__}: {e}') from e
         else:
             rendered_b = rendered.encode()
             if self.build_cache is not None:

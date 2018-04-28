@@ -2,8 +2,6 @@
 .idea/
 env/
 node_modules/
-examples/
-.cache/
 .coverage
 .coverage.*
 coverage.xml
@@ -12,7 +10,7 @@ harrier.egg-info
 /dist/
 /htmlcov/
 /.pytest_cache/
-/old/
 /example/
+/example2/
 /sandbox/
 /docs/dist/

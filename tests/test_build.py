@@ -7,7 +7,7 @@ from pytest_toolbox import gettree, mktree
 from pytest_toolbox.comparison import CloseToNow
 
 from harrier.build import FileData, build_pages, render_pages
-from harrier.common import PathMatch
+from harrier.common import HarrierProblem, PathMatch
 from harrier.config import Config, Mode
 from harrier.main import build
 
@@ -240,7 +240,7 @@ def test_render_error(tmpdir, caplog):
             'templates/main.jinja': '{{ content }}',
         },
     })
-    with pytest.raises(ZeroDivisionError):
+    with pytest.raises(HarrierProblem):
         build(tmpdir, mode=Mode.production)
     assert 'ZeroDivisionError: division by zero' in caplog.text
 
