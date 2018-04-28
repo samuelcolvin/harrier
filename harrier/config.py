@@ -37,6 +37,7 @@ class WebpackConfig(BaseModel):
 
 class Config(BaseModel):
     source_dir: Path
+    config_path: Path = None
     mode: Mode = Mode.production
     pages_dir: Path = 'pages'
     extensions: Extensions = 'extensions.py'
@@ -155,6 +156,7 @@ def load_config_file(config_path: Path):
         logger.error('%s: %s', e.__class__.__name__, e)
         raise HarrierProblem(f'error loading "{config_path}"') from e
     raw_config.setdefault('source_dir', config_path.parent)
+    raw_config.setdefault('config_path', config_path.resolve())
     return raw_config
 
 

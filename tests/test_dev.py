@@ -125,6 +125,7 @@ def test_mock_executor(tmpdir, mocker):
     mktree(tmpdir, {
         'pages/foobar.md': '# hello',
         'theme/templates/main.jinja': 'main:\n {{ content }}',
+        'harrier.yml': 'foo: bar',
     })
     mocker.patch('harrier.dev.awatch', side_effect=awatch_alt)
     mocker.patch('harrier.dev.Server', return_value=MockServer())
@@ -141,13 +142,63 @@ def test_mock_executor(tmpdir, mocker):
 
     assert gettree(tmpdir.join('dist')) == {}
 
-    assert mock_run_in_executor.call_args_list == [
-        mocker.call(mocker.ANY, update_site, '__FB__', True, True, True, True),
-        mocker.call(mocker.ANY, update_site, {(Change.modified, Path(foobar_path))}, False, False, False, False),
-        mocker.call(mocker.ANY, update_site, set(), True, False, False, False),
-        mocker.call(mocker.ANY, update_site, set(), False, True, False, False),
-        mocker.call(mocker.ANY, update_site, set(), False, False, True, False),
-        mocker.call(mocker.ANY, update_site, set(), False, False, False, True),
+    assert [c[0][2].dict(exclude={'config_path'}) for c in mock_run_in_executor.call_args_list] == [
+        {
+            'pages': '__FB__',
+            'assets': False,
+            'sass': False,
+            'templates': False,
+            'extensions': False,
+            'update_config': False,
+        },
+        {
+            'pages': set(),
+            'assets': False,
+            'sass': False,
+            'templates': False,
+            'extensions': False,
+            'update_config': True,
+        },
+        {
+            'pages': {(Change.modified, Path(foobar_path))},
+            'assets': False,
+            'sass': False,
+            'templates': False,
+            'extensions': False,
+            'update_config': False,
+        },
+        {
+            'pages': set(),
+            'assets': True,
+            'sass': False,
+            'templates': False,
+            'extensions': False,
+            'update_config': False,
+        },
+        {
+            'pages': set(),
+            'assets': False,
+            'sass': True,
+            'templates': False,
+            'extensions': False,
+            'update_config': False,
+        },
+        {
+            'pages': set(),
+            'assets': False,
+            'sass': False,
+            'templates': True,
+            'extensions': False,
+            'update_config': False,
+        },
+        {
+            'pages': set(),
+            'assets': False,
+            'sass': False,
+            'templates': False,
+            'extensions': True,
+            'update_config': False,
+        },
     ]
 
 

@@ -9,12 +9,13 @@ from time import time
 
 from aiohttp.web_runner import AppRunner, TCPSite
 from aiohttp_devtools.runserver import serve_static
+from pydantic import BaseModel
 from watchgod import Change, DefaultWatcher, awatch
 
 from .assets import copy_assets, get_path_lookup, run_grablib, start_webpack_watch
 from .build import BuildPages, build_pages, render_pages
-from .common import HarrierProblem
-from .config import Config
+from .common import HarrierProblem, log_complete
+from .config import Config, get_config
 from .data import load_data
 from .extensions import apply_modifiers
 
@@ -53,40 +54,59 @@ BUILD_CACHE = {}
 FIRST_BUILD = '__FB__'
 
 
-def update_site(pages, assets, sass, templates, extensions):  # noqa: C901 (ignore complexity)
+class UpdateArgs(BaseModel):
+    config_path: str
+    pages: set = FIRST_BUILD
+    assets: bool = False
+    sass: bool = False
+    templates: bool = False
+    extensions: bool = False
+    update_config: bool = False
+
+    def build_required(self):
+        return any([self.pages, self.assets, self.sass, self.templates, self.extensions, self.update_config])
+
+
+def update_site(args: UpdateArgs):  # noqa: C901 (ignore complexity)
+    global CONFIG, SOM
     assert CONFIG, 'CONFIG global not set'
     start_time = time()
-    global SOM
     full_build = SOM is None
-    first_build = pages == FIRST_BUILD
+    first_build = args.pages == FIRST_BUILD
     if first_build:
         logger.info('building...')
-        full_build = True
+        args.assets = args.sass = args.templates = args.extensions = full_build = True
     else:
         msg = [
-            pages and f'{len(pages)} pages changed',
-            assets and 'assets changed',
-            sass and 'sass changed',
-            templates and 'templates changed'
+            args.pages and f'{len(args.pages)} pages changed',
+            args.assets and 'assets changed',
+            args.sass and 'sass changed',
+            args.templates and 'templates changed',
+            args.extensions and 'extensions changed',
+            args.update_config and 'config changed',
         ]
         logger.info('%s rebuilding...', ', '.join([m for m in msg if m]))
 
     log_prefix = '' if first_build else 're'
     try:
-        if extensions:
+        if args.update_config:
+            CONFIG = get_config(args.config_path)
+            args.assets = args.sass = args.templates = args.extensions = full_build = True
+
+        if args.extensions:
             CONFIG.extensions.load()
             config = apply_modifiers(CONFIG, CONFIG.extensions.config_modifiers)
-            assets = sass = templates = full_build = True
+            args.assets = args.sass = args.templates = full_build = True
         else:
             config = CONFIG
 
-        if assets:
+        if args.assets:
             copy_assets(config)
-            templates = True  # force re-render as pages might have changed
-            sass = True  # in case paths changed as used by resolve_url in sass
-        if sass:
+            args.templates = True  # force re-render as pages might have changed
+            args.sass = True  # in case paths changed as used by resolve_url in sass
+        if args.sass:
             run_grablib(config)
-            templates = True  # force re-render as pages might have changed
+            args.templates = True  # force re-render as pages might have changed
 
         if full_build:
             SOM = config.dict()
@@ -96,9 +116,10 @@ def update_site(pages, assets, sass, templates, extensions):  # noqa: C901 (igno
                 data=load_data(config),
             )
             SOM = apply_modifiers(SOM, config.extensions.som_modifiers)
-        elif pages:
+        elif args.pages:
+            start = time()
             page_builder = BuildPages(config)
-            for change, path in pages:
+            for change, path in args.pages:
                 rel_path = str(path.relative_to(config.pages_dir))
                 if change == Change.deleted:
                     SOM['pages'][rel_path]['outfile'].unlink()
@@ -106,11 +127,11 @@ def update_site(pages, assets, sass, templates, extensions):  # noqa: C901 (igno
                 else:
                     SOM['pages'][rel_path] = page_builder.prep_file(path)
             SOM = apply_modifiers(SOM, config.extensions.som_modifiers)
-            templates = templates or any(change != Change.deleted for change, _ in pages)
+            log_complete(start, 'pages built', len(args.pages))
+            args.templates = args.templates or any(change != Change.deleted for change, _ in args.pages)
 
         SOM['path_lookup'] = get_path_lookup(config)
-
-        if templates:
+        if args.templates:
             global BUILD_CACHE
             BUILD_CACHE = render_pages(config, SOM)
     except HarrierProblem as e:
@@ -150,9 +171,10 @@ async def adev(config: Config, port: int):
 
     webpack_process = await start_webpack_watch(config)
 
+    config_path = str(config.config_path or config.source_dir)
     # max_workers = 1 so the same config and som are always used to build the site
     with ProcessPoolExecutor(max_workers=1) as executor:
-        ret = await loop.run_in_executor(executor, update_site, FIRST_BUILD, True, True, True, True)
+        ret = await loop.run_in_executor(executor, update_site, UpdateArgs(config_path=config_path))
 
         logger.info('\nStarting dev server, go to http://localhost:%s', port)
         server = Server(config, port)
@@ -161,22 +183,24 @@ async def adev(config: Config, port: int):
         try:
             async for changes in awatch(config.source_dir, stop_event=stop_event, watcher_cls=HarrierWatcher):
                 logger.debug('file changes: %s', changes)
-                pages, assets, sass, templates, extensions = set(), False, False, False, False
+                args = UpdateArgs(config_path=config_path, pages=set())
                 for change, raw_path in changes:
                     path = Path(raw_path)
                     if is_within(path, config.pages_dir):
-                        pages.add((change, path))
+                        args.pages.add((change, path))
                     elif is_within(path, config.theme_dir / 'assets'):
-                        assets = True
+                        args.assets = True
                     elif is_within(path, config.theme_dir / 'sass'):
-                        sass = True
+                        args.sass = True
                     elif is_within(path, config.theme_dir / 'templates'):
-                        templates = True
+                        args.templates = True
                     elif path == config.extensions.path:
-                        extensions = True
+                        args.extensions = True
+                    elif path == config.config_path:
+                        args.update_config = True
 
-                if any([pages, assets, sass, templates, extensions]):
-                    ret = await loop.run_in_executor(executor, update_site, pages, assets, sass, templates, extensions)
+                if args.build_required():
+                    ret = await loop.run_in_executor(executor, update_site, args)
         finally:
             if webpack_process:
                 if webpack_process.returncode is None:

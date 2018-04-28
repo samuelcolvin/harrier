@@ -155,6 +155,7 @@ def test_build_simple_som(tmpdir):
     # debug(som)
     assert {
         'source_dir': source_dir,
+        'config_path': None,
         'extensions': {
             'config_modifiers': [],
             'som_modifiers': [],
