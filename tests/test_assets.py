@@ -267,16 +267,12 @@ def test_grablib_pygments(tmpdir):
     }
 
 
-def test_sass_url(tmpdir):
+def test_resolve_sass_path(tmpdir):
     mktree(tmpdir, {
         'pages/foobar.md': '# hello',
         'theme': {
-            'templates': {'main.jinja': 'main:\n {{ content }}'},
             'assets/assets/image.png': '*',
-            'sass/main.scss': (
-                '$background-url: resolve_url("assets/image.png");\n'
-                'body {background: url($background-url)}'
-            ),
+            'sass/main.scss': 'body {content: resolve_path("assets/image.png")}',
         },
     })
 
@@ -284,12 +280,46 @@ def test_sass_url(tmpdir):
     assets_grablib(config)
     assert gettree(tmpdir.join('dist')) == {
         'theme': {
-            'main.884128f.css': 'body{background:url("assets/image.3389dae.png")}\n',
+            'main.2e6d87a.css': "body{content:'assets/image.3389dae.png'}\n",
         },
         'assets': {
             'image.3389dae.png': '*',
         },
     }
+
+
+def test_smart_sass_url(tmpdir):
+    mktree(tmpdir, {
+        'pages/foobar.md': '# hello',
+        'theme': {
+            'assets/assets/image.png': '*',
+            'sass/main.scss': 'body {background: smart_url("assets/image.png")}',
+        },
+    })
+
+    config = get_config(str(tmpdir))
+    assets_grablib(config)
+    assert gettree(tmpdir.join('dist')) == {
+        'theme': {
+            'main.69e5c85.css': "body{background:url('assets/image.3389dae.png')}\n",
+        },
+        'assets': {
+            'image.3389dae.png': '*',
+        },
+    }
+
+
+def test_sass_wrong(tmpdir):
+    mktree(tmpdir, {
+        'pages/foobar.md': '# hello',
+        'theme': {
+            'sass/main.scss': 'body {content: resolve_path("assets/image.png")}',
+        },
+    })
+
+    config = get_config(str(tmpdir))
+    with pytest.raises(HarrierProblem):
+        assets_grablib(config)
 
 
 def test_grablib_error(tmpdir):
