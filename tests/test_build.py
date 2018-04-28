@@ -4,7 +4,7 @@ from pathlib import Path
 import pytest
 from pydantic import ValidationError
 from pytest_toolbox import gettree, mktree
-from pytest_toolbox.comparison import CloseToNow
+from pytest_toolbox.comparison import CloseToNow, RegexStr
 
 from harrier.build import FileData, build_pages, render_pages
 from harrier.common import HarrierProblem, PathMatch
@@ -16,12 +16,11 @@ def test_full_build(tmpdir):
     mktree(tmpdir, {
         'pages': {
             'foobar.html': (
-                '{{url("foobar.png")}}\n'
-                '{{url("theme/main.css")}}'
+                '{{ url("foobar.png") }}\n'
+                '{{ resolve_url("theme/main.css") }}'
             ),
         },
         'theme': {
-            'templates/main.jinja': '{{ content }}',
             'sass/main.scss': 'body {width: 10px + 10px;}',
             'assets/foobar.png': '*',
         },
@@ -384,6 +383,62 @@ def test_ignore_no_template(tmpdir):
             'index.html': 'rendered <p>hello this is normal</p>\n',
         },
 
+    }
+
+
+def test_inline_css_prod(tmpdir):
+    mktree(tmpdir, {
+        'pages': {
+            'foobar.html': '{{inline_css("theme/main.css")}}'
+        },
+        'theme': {
+            'sass/main.scss': 'body {width: 10px + 10px;}',
+        },
+    })
+    build(tmpdir, mode=Mode.production)
+    assert gettree(tmpdir.join('dist')) == {
+        'foobar': {
+            'index.html': (
+                'body{width:20px}\n'
+            ),
+        },
+        'theme': {
+            'main.a1ac3a7.css': 'body{width:20px}\n',
+        },
+    }
+
+
+def test_inline_css_dev(tmpdir):
+    mktree(tmpdir, {
+        'pages': {
+            'foobar.html': '{{inline_css("theme/main.css")}}'
+        },
+        'theme': {
+            'sass/main.scss': 'body {width: 10px + 10px;}',
+        },
+    })
+    build(tmpdir, mode=Mode.development)
+    assert gettree(tmpdir.join('dist')) == {
+        'foobar': {
+            'index.html': (
+                'body {\n'
+                '  width: 20px; }\n'
+                '\n'
+                '/*# sourceMappingURL=/theme/main.css.map */\n'
+            ),
+        },
+        'theme': {
+            'main.css.map': RegexStr('{.*'),
+            'main.css': (
+                'body {\n'
+                '  width: 20px; }\n'
+                '\n'
+                '/*# sourceMappingURL=main.css.map */'
+            ),
+            '.src': {
+                'main.scss': 'body {width: 10px + 10px;}',
+            },
+        },
     }
 
 

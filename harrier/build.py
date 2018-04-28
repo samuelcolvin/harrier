@@ -17,6 +17,7 @@ from pygments.formatters.html import HtmlFormatter
 from pygments.lexers import get_lexer_by_name
 from ruamel.yaml import YAMLError
 
+from .assets import resolve_path
 from .common import HarrierProblem, log_complete, yaml
 from .config import Config
 from .extensions import ExtensionError
@@ -198,7 +199,11 @@ class Renderer:
         self.env = Environment(loader=FileSystemLoader(template_dirs))
         self.env.filters.update(self.config.extensions.template_filters)
 
-        self.env.globals['url'] = resolve_url
+        self.env.globals.update(
+            url=resolve_url,
+            resolve_url=resolve_url,
+            inline_css=inline_css,
+        )
         self.env.globals.update(self.config.extensions.template_functions)
 
         self.checked_dirs = set()
@@ -359,6 +364,15 @@ def slugify(title):
 
 @contextfunction
 def resolve_url(ctx, path):
-    # TODO try more things, raise error on failure
-    path_lookup = ctx['site']['path_lookup']
-    return path_lookup.get(path) or path
+    return resolve_path(ctx['site']['path_lookup'], path)
+
+
+@contextfunction
+def inline_css(ctx, path):
+    real_path = Path(resolve_url(ctx, path))
+    p = ctx['site']['dist_dir'] / real_path
+    css = p.read_text()
+    map_path = real_path.with_suffix('.css.map')
+    if (ctx['site']['dist_dir'] / map_path).exists():
+        css = re.sub(r'/\*# sourceMappingURL=.*\*/', f'/*# sourceMappingURL=/{map_path} */', css)
+    return css.strip('\r\n ')

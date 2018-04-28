@@ -5,7 +5,6 @@ import os
 import re
 import shutil
 import subprocess
-from functools import partial
 from time import time
 
 from grablib.build import SassGenerator, insert_hash
@@ -46,8 +45,8 @@ def run_grablib(config: Config):
 
         path_lookup = get_path_lookup(config)
         custom_functions = {
-            'resolve_path': partial(resolve_sass_path, path_lookup),
-            'smart_url': partial(smart_sass_url, path_lookup)
+            'resolve_path': lambda path: f"'{resolve_path(path_lookup, path)}'",
+            'smart_url': lambda path: f"url('{resolve_path(path_lookup, path)}')",
         }
 
         sass_gen = SassGenerator(
@@ -191,13 +190,9 @@ def get_path_lookup(config: Config):
     return d
 
 
-def resolve_sass_path(path_lookup, path):
+def resolve_path(path_lookup, path):
     real_path = path_lookup.get(path.strip('/'))
     if real_path:
-        return f"'{real_path}'"
+        return real_path
     else:
         raise KeyError(f'Path "{path}" does not exist')
-
-
-def smart_sass_url(path_lookup, path):
-    return f'url({resolve_sass_path(path_lookup, path)})'
