@@ -317,7 +317,12 @@ def test_copy_assets_dev(tmpdir):
         'pages/foobar.md': '# hello',
         'theme': {
             'templates': {'main.jinja': 'main:\n {{ content }}'},
-            'assets/image.png': '*',
+            'assets': {
+                'image.png': '*',
+                'move': {
+                    'foobar.svg': 'x'
+                }
+            }
         },
     })
 
@@ -327,7 +332,10 @@ def test_copy_assets_dev(tmpdir):
     assert gettree(tmpdir.join('dist')) == {
         'theme': {
             'assets': {
-                'image.png': '*'
+                'image.png': '*',
+                'move': {
+                    'foobar.svg': 'x'
+                }
             },
         },
     }
@@ -338,7 +346,12 @@ def test_copy_assets_prod(tmpdir):
         'pages/foobar.md': '# hello',
         'theme': {
             'templates': {'main.jinja': 'main:\n {{ content }}'},
-            'assets/image.png': '*',
+            'assets': {
+                'image.png': '*',
+                'move': {
+                    'foobar.svg': 'x'
+                }
+            }
         },
     })
 
@@ -348,7 +361,10 @@ def test_copy_assets_prod(tmpdir):
     assert gettree(tmpdir.join('dist')) == {
         'theme': {
             'assets': {
-                'image.3389dae.png': '*'
+                'image.3389dae.png': '*',
+                'move': {
+                    'foobar.9dd4e46.svg': 'x'
+                }
             },
         },
     }

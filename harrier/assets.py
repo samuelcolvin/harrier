@@ -89,6 +89,8 @@ def copy_assets(config: Config):
     out_dir.relative_to(config.dist_dir)
     copied = 0
     for in_path in in_dir.glob('**/*'):
+        if not in_path.is_file():
+            continue
         out_path = out_dir / in_path.relative_to(in_dir)
         if config.mode == Mode.production:
             out_path = insert_hash(out_path, in_path.read_bytes())
