@@ -6,7 +6,7 @@ from watchgod import Change
 
 import harrier.dev
 from harrier.config import Config
-from harrier.dev import HarrierWatcher, update_site
+from harrier.dev import HarrierWatcher
 from harrier.main import dev
 
 
@@ -27,13 +27,16 @@ def test_dev_simple(tmpdir, mocker, loop):
         yield {(Change.modified, str(tmpdir.join('pages/features/whatever.md')))}
         yield {(Change.modified, str(tmpdir.join('harrier.yml')))}
         yield {(Change.added, str(tmpdir.join('theme/sass/main.scss')))}
+        tmpdir.join('harrier.yml').write('foo: 2')
+        yield {(Change.modified, str(tmpdir.join('harrier.yml')))}
 
     asyncio.set_event_loop(loop)
     mktree(tmpdir, {
         'pages': {
-            'foobar.md': '# hello',
+            'foobar.md': '# hello\n {{ site.foo }}',
             'features/whatever.md': '## Foo',
         },
+        'harrier.yml': 'foo: 1'
     })
     mocker.patch('harrier.dev.awatch', side_effect=awatch_alt)
 
@@ -44,7 +47,7 @@ def test_dev_simple(tmpdir, mocker, loop):
     # debug(gettree(tmpdir.join('dist')))
     assert gettree(tmpdir.join('dist')) == {
         'foobar': {
-            'index.html': '<h1>hello</h1>\n',
+            'index.html': '<h1>hello</h1>\n\n<p>2</p>\n',
         },
         'features': {
             'whatever': {
