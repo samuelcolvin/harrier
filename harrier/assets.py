@@ -44,9 +44,9 @@ def run_grablib(config: Config):
         out_dir_src = output_dir / '.src'
         out_dir_src.is_dir() and shutil.rmtree(out_dir_src)
 
-        theme_files = find_theme_files(config)
+        path_lookup = get_path_lookup(config)
         custom_functions = {
-            'resolve_url': partial(resolve_sass_url, theme_files),
+            'resolve_url': partial(resolve_sass_url, path_lookup),
         }
 
         sass_gen = SassGenerator(
@@ -179,26 +179,17 @@ async def start_webpack_watch(config: Config):
         return await asyncio.create_subprocess_exec(*args, cwd=config.source_dir, env=env)
 
 
-def find_theme_files(config: Config):
-    check_dirs = (
-        config.dist_dir / config.dist_dir_sass,
-        config.dist_dir / config.dist_dir_assets,
-        config.webpack.output_path
-    )
+def get_path_lookup(config: Config):
     d = {}
-    for dir in check_dirs:
-        if dir.is_dir():
-            for p in dir.glob('**/*'):
-                if p.is_file():
-                    rel_path = str(p.relative_to(config.dist_dir))
-                    path_name = rel_path
-                    if config.mode == Mode.production:
-                        path_name = re.sub('\.[a-f0-9]{7,20}\.', '.', rel_path)
-                        path_name = re.sub('\.[a-f0-9]{7,20}$', '', path_name)
-                    d[path_name] = rel_path
+    for p in config.dist_dir.glob('**/*'):
+        if p.is_file():
+            rel_path = str(p.relative_to(config.dist_dir))
+            path_name = re.sub('\.[a-f0-9]{7,20}\.', '.', rel_path)
+            path_name = re.sub('\.[a-f0-9]{7,20}$', '', path_name)
+            d[path_name] = rel_path
     return d
 
 
-def resolve_sass_url(theme_files, path):
+def resolve_sass_url(path_lookup, path):
     # TODO try more things, raise error on failure
-    return f'"{theme_files.get(path) or path}"'
+    return f'"{path_lookup.get(path) or path}"'

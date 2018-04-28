@@ -360,5 +360,5 @@ def slugify(title):
 @contextfunction
 def resolve_url(ctx, path):
     # TODO try more things, raise error on failure
-    theme_files = ctx['site']['theme_files']
-    return theme_files.get(path) or path
+    path_lookup = ctx['site']['path_lookup']
+    return path_lookup.get(path) or path

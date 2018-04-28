@@ -8,7 +8,7 @@ from typing import Optional, Set, Union
 
 import devtools
 
-from .assets import assets_grablib, find_theme_files, run_webpack
+from .assets import assets_grablib, get_path_lookup, run_webpack
 from .build import build_pages, render_pages
 from .common import completed_logger
 from .config import Mode, get_config
@@ -65,7 +65,7 @@ def build(path: StrPath, steps: Set[BuildSteps]=None, mode: Optional[Mode]=None)
         [f.result() for f in futures if f]
 
     som = dict(
-        theme_files=find_theme_files(config),
+        path_lookup=get_path_lookup(config),
         pages=pages,
         data=data_future and data_future.result(),
         **config.dict(),

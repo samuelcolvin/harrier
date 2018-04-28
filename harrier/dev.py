@@ -11,7 +11,7 @@ from aiohttp.web_runner import AppRunner, TCPSite
 from aiohttp_devtools.runserver import serve_static
 from watchgod import Change, DefaultWatcher, awatch
 
-from .assets import copy_assets, find_theme_files, run_grablib, start_webpack_watch
+from .assets import copy_assets, get_path_lookup, run_grablib, start_webpack_watch
 from .build import BuildPages, build_pages, render_pages
 from .common import HarrierProblem
 from .config import Config
@@ -91,7 +91,7 @@ def update_site(pages, assets, sass, templates, extensions):  # noqa: C901 (igno
         if full_build:
             SOM = config.dict()
             SOM.update(
-                theme_files=find_theme_files(config),
+                path_lookup=get_path_lookup(config),
                 pages=build_pages(config),
                 data=load_data(config),
             )
@@ -108,8 +108,7 @@ def update_site(pages, assets, sass, templates, extensions):  # noqa: C901 (igno
             SOM = apply_modifiers(SOM, config.extensions.som_modifiers)
             templates = templates or any(change != Change.deleted for change, _ in pages)
 
-        if assets or sass:
-            SOM['theme_files'] = find_theme_files(config)
+        SOM['path_lookup'] = get_path_lookup(config)
 
         if templates:
             global BUILD_CACHE
