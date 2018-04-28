@@ -110,9 +110,9 @@ def update_site(args: UpdateArgs):  # noqa: C901 (ignore complexity)
 
         if full_build:
             SOM = config.dict()
+            pages = build_pages(config)
             SOM.update(
-                path_lookup=get_path_lookup(config),
-                pages=build_pages(config),
+                pages=pages,
                 data=load_data(config),
             )
             SOM = apply_modifiers(SOM, config.extensions.som_modifiers)
@@ -130,7 +130,7 @@ def update_site(args: UpdateArgs):  # noqa: C901 (ignore complexity)
             log_complete(start, 'pages built', len(args.pages))
             args.templates = args.templates or any(change != Change.deleted for change, _ in args.pages)
 
-        SOM['path_lookup'] = get_path_lookup(config)
+        SOM['path_lookup'] = get_path_lookup(config, SOM['pages'])
         if args.templates:
             global BUILD_CACHE
             BUILD_CACHE = render_pages(config, SOM)

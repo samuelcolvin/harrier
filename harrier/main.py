@@ -65,7 +65,7 @@ def build(path: StrPath, steps: Set[BuildSteps]=None, mode: Optional[Mode]=None)
         [f.result() for f in futures if f]
 
     som = dict(
-        path_lookup=get_path_lookup(config),
+        path_lookup=get_path_lookup(config, pages),
         pages=pages,
         data=data_future and data_future.result(),
         **config.dict(),

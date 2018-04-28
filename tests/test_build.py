@@ -17,8 +17,10 @@ def test_full_build(tmpdir):
         'pages': {
             'foobar.html': (
                 '{{ url("foobar.png") }}\n'
-                '{{ resolve_url("theme/main.css") }}'
+                '{{ resolve_url("theme/main.css") }}\n'
+                '{{ resolve_url("another") }}\n'
             ),
+            'another.md': '# hello'
         },
         'theme': {
             'sass/main.scss': 'body {width: 10px + 10px;}',
@@ -29,9 +31,13 @@ def test_full_build(tmpdir):
     assert gettree(tmpdir.join('dist')) == {
         'foobar': {
             'index.html': (
-                'foobar.3389dae.png\n'
-                'theme/main.a1ac3a7.css\n'
+                '/foobar.3389dae.png\n'
+                '/theme/main.a1ac3a7.css\n'
+                '/another\n'
             ),
+        },
+        'another': {
+            'index.html': '<h1>hello</h1>\n'
         },
         'theme': {
             'main.a1ac3a7.css': 'body{width:20px}\n',

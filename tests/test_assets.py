@@ -272,7 +272,7 @@ def test_resolve_sass_path(tmpdir):
         'pages/foobar.md': '# hello',
         'theme': {
             'assets/assets/image.png': '*',
-            'sass/main.scss': 'body {content: resolve_path("assets/image.png")}',
+            'sass/main.scss': 'body {content: resolve_path("/assets/image.png")}',
         },
     })
 
@@ -280,7 +280,7 @@ def test_resolve_sass_path(tmpdir):
     assets_grablib(config)
     assert gettree(tmpdir.join('dist')) == {
         'theme': {
-            'main.2e6d87a.css': "body{content:'assets/image.3389dae.png'}\n",
+            'main.d024f29.css': "body{content:'/assets/image.3389dae.png'}\n",
         },
         'assets': {
             'image.3389dae.png': '*',
@@ -301,7 +301,7 @@ def test_smart_sass_url(tmpdir):
     assets_grablib(config)
     assert gettree(tmpdir.join('dist')) == {
         'theme': {
-            'main.69e5c85.css': "body{background:url('assets/image.3389dae.png')}\n",
+            'main.28d2724.css': "body{background:url('/assets/image.3389dae.png')}\n",
         },
         'assets': {
             'image.3389dae.png': '*',

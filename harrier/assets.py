@@ -179,20 +179,25 @@ async def start_webpack_watch(config: Config):
         return await asyncio.create_subprocess_exec(*args, cwd=config.source_dir, env=env)
 
 
-def get_path_lookup(config: Config):
+def get_path_lookup(config: Config, pages=None):
     d = {}
     for p in config.dist_dir.glob('**/*'):
         if p.is_file():
             rel_path = str(p.relative_to(config.dist_dir))
             path_name = re.sub('\.[a-f0-9]{7,20}\.', '.', rel_path)
             path_name = re.sub('\.[a-f0-9]{7,20}$', '', path_name)
-            d[path_name] = rel_path
+            d[path_name] = rel_path, False
+    if pages:
+        for p in pages.values():
+            if p.get('render'):
+                uri = p['uri'].strip('/')
+                d[uri] = uri, True
     return d
 
 
 def resolve_path(path_lookup, path):
     real_path = path_lookup.get(path.strip('/'))
     if real_path:
-        return real_path
+        return '/' + real_path[0]
     else:
         raise KeyError(f'Path "{path}" does not exist')

@@ -81,7 +81,7 @@ class BuildPages:
             return
         html_output = p.suffix in OUTPUT_HTML
 
-        data, apple_template = self.get_page_data(p, html_output, path_ref)
+        data, apply_template = self.get_page_data(p, html_output, path_ref)
 
         for path_match, f in self.config.extensions.page_modifiers:
             if path_match(path_ref):
@@ -95,10 +95,10 @@ class BuildPages:
                     raise ExtensionError(f'extension "{f.__name__}" did not return a dict')
 
         fd = FileData(**data)
-        final_data = fd.dict(exclude=set() if apple_template else {'template', 'render'})
+        final_data = fd.dict(exclude=set() if apply_template else {'template', 'render'})
         final_data['__file__'] = 1
 
-        if apple_template and fd.render:
+        if apply_template and fd.render:
             if not fd.content_template.parent.exists():
                 fd.content_template.parent.mkdir(parents=True)
             fd.content_template.write_text(final_data.pop('content'))
@@ -106,9 +106,9 @@ class BuildPages:
         else:
             final_data.pop('content_template')
 
-        # logger.debug('added %s apple_template: %s, outfile %s', p, apple_template, fd.outfile)
+        # logger.debug('added %s apply_template: %s, outfile %s', p, apply_template, fd.outfile)
         self.files += 1
-        if apple_template:
+        if apply_template:
             self.template_files += 1
 
         return final_data
@@ -138,13 +138,13 @@ class BuildPages:
                 data.update(defaults)
 
         maybe_render = p.suffix in MAYBE_RENDER
-        apple_template = data.get('apply_template', None)
-        if apple_template is not False and html_output or maybe_render:
+        apply_template = data.get('apply_template', None)
+        if apply_template is not False and html_output or maybe_render:
             fm_data, content = parse_front_matter(p.read_text())
             if html_output or fm_data:
                 data['content'] = content
                 fm_data and data.update(fm_data)
-                apple_template = True
+                apply_template = True
 
         uri = data.get('uri')
         if not uri:
@@ -164,7 +164,7 @@ class BuildPages:
             if html_output and outfile.suffix != '.html':
                 outfile /= 'index.html'
             data['outfile'] = outfile
-        return data, apple_template
+        return data, apply_template
 
 
 class HighlighterRenderer(HtmlRenderer):
@@ -177,7 +177,7 @@ class HighlighterRenderer(HtmlRenderer):
         if lexer:
             formatter = HtmlFormatter(cssclass='hi')
             return highlight(text, lexer, formatter)
-        # default
+
         code = escape_html(text.strip())
         return f'<pre><code>{code}</code></pre>\n'
 
@@ -369,7 +369,7 @@ def resolve_url(ctx, path):
 
 @contextfunction
 def inline_css(ctx, path):
-    real_path = Path(resolve_url(ctx, path))
+    real_path = Path(resolve_url(ctx, path)[1:])
     p = ctx['site']['dist_dir'] / real_path
     css = p.read_text()
     map_path = real_path.with_suffix('.css.map')
