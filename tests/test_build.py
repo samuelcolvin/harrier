@@ -16,7 +16,7 @@ def test_full_build(tmpdir):
     mktree(tmpdir, {
         'pages': {
             'foobar.html': (
-                '{{url("theme/assets/foobar.png")}}\n'
+                '{{url("foobar.png")}}\n'
                 '{{url("theme/main.css")}}'
             ),
         },
@@ -30,16 +30,14 @@ def test_full_build(tmpdir):
     assert gettree(tmpdir.join('dist')) == {
         'foobar': {
             'index.html': (
-                'theme/assets/foobar.3389dae.png\n'
+                'foobar.3389dae.png\n'
                 'theme/main.a1ac3a7.css\n'
             ),
         },
         'theme': {
             'main.a1ac3a7.css': 'body{width:20px}\n',
-            'assets': {
-                'foobar.3389dae.png': '*',
-            },
         },
+        'foobar.3389dae.png': '*',
     }
 
 
@@ -171,7 +169,7 @@ def test_build_simple_som(tmpdir):
         'data_dir': source_dir / 'data',
         'dist_dir': source_dir / 'dist',
         'dist_dir_sass': Path('theme'),
-        'dist_dir_assets': Path('theme/assets'),
+        'dist_dir_assets': Path('.'),
         'tmp_dir': source_dir / 'tmp',
         'download': {},
         'download_aliases': {},

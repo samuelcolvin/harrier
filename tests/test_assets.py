@@ -272,9 +272,9 @@ def test_sass_url(tmpdir):
         'pages/foobar.md': '# hello',
         'theme': {
             'templates': {'main.jinja': 'main:\n {{ content }}'},
-            'assets/image.png': '*',
+            'assets/assets/image.png': '*',
             'sass/main.scss': (
-                '$background-url: resolve_url("theme/assets/image.png");\n'
+                '$background-url: resolve_url("assets/image.png");\n'
                 'body {background: url($background-url)}'
             ),
         },
@@ -284,10 +284,10 @@ def test_sass_url(tmpdir):
     assets_grablib(config)
     assert gettree(tmpdir.join('dist')) == {
         'theme': {
-            'assets': {
-                'image.3389dae.png': '*',
-            },
-            'main.a773ef9.css': 'body{background:url("theme/assets/image.3389dae.png")}\n',
+            'main.884128f.css': 'body{background:url("assets/image.3389dae.png")}\n',
+        },
+        'assets': {
+            'image.3389dae.png': '*',
         },
     }
 
@@ -330,14 +330,10 @@ def test_copy_assets_dev(tmpdir):
     config.mode = Mode.development
     copy_assets(config)
     assert gettree(tmpdir.join('dist')) == {
-        'theme': {
-            'assets': {
-                'image.png': '*',
-                'move': {
-                    'foobar.svg': 'x'
-                }
-            },
-        },
+        'image.png': '*',
+        'move': {
+            'foobar.svg': 'x'
+        }
     }
 
 
@@ -359,12 +355,8 @@ def test_copy_assets_prod(tmpdir):
     config.mode = Mode.production
     copy_assets(config)
     assert gettree(tmpdir.join('dist')) == {
-        'theme': {
-            'assets': {
-                'image.3389dae.png': '*',
-                'move': {
-                    'foobar.9dd4e46.svg': 'x'
-                }
-            },
-        },
+        'image.3389dae.png': '*',
+        'move': {
+            'foobar.9dd4e46.svg': 'x'
+        }
     }

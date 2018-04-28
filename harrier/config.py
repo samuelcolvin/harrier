@@ -45,7 +45,7 @@ class Config(BaseModel):
 
     dist_dir: Path = 'dist'
     dist_dir_sass: Path = 'theme'
-    dist_dir_assets: Path = 'theme/assets'
+    dist_dir_assets: Path = '.'
     tmp_dir: Path = None
 
     download: Dict[str, Any] = {}
