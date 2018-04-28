@@ -4,6 +4,7 @@ import logging
 import sys
 
 import pytest
+from pydantic import ValidationError
 from pytest_toolbox import gettree, mktree
 from pytest_toolbox.comparison import RegexStr
 
@@ -182,6 +183,39 @@ async def test_start_webpack_watch(tmpdir, loop):
     ] == json.loads(tmpdir.join('webpack_args.json').read_text('utf8'))
     webpack_env = json.loads(tmpdir.join('webpack_env.json').read_text('utf8'))
     assert webpack_env['NODE_ENV'] == 'development'
+
+
+def test_run_webpack_cli_wrong(tmpdir, caplog):
+    mktree(tmpdir, {
+        'pages/foobar.md': '# hello',
+        'theme': {
+            'templates': {'main.jinja': 'main:\n {{ content }}'},
+            'js/index.js': '*',
+        },
+        'harrier.yml': (
+            f'webpack:\n'
+            f'  cli: /foo/bar'
+        )
+    })
+
+    with pytest.raises(ValidationError):
+        get_config(str(tmpdir))
+
+
+def test_run_webpack_default(tmpdir, caplog):
+    mktree(tmpdir, {
+        'pages/foobar.md': '# hello',
+        'theme': {
+            'templates': {'main.jinja': 'main:\n {{ content }}'},
+            'js/index.js': '*',
+        },
+        'node_modules/.bin/webpack-cli': MOCK_WEBPACK,
+    })
+    tmpdir.join('node_modules/.bin/webpack-cli').chmod(0o777)
+
+    caplog.set_level(logging.DEBUG)
+    config = get_config(str(tmpdir))
+    assert config.webpack.run is True
 
 
 def test_grablib(tmpdir):

@@ -183,7 +183,7 @@ def test_build_simple_som(tmpdir):
         },
         'ignore': [],
         'webpack': {
-            'cli': source_dir / 'node_modules/.bin/webpack-cli',
+            'cli': None,
             'entry': source_dir / 'theme/js/index.js',
             'output_path': source_dir / 'dist/theme',
             'dev_output_filename': 'main.js',

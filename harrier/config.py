@@ -23,7 +23,7 @@ class Mode(str, Enum):
 
 
 class WebpackConfig(BaseModel):
-    cli: Path = 'node_modules/.bin/webpack-cli'
+    cli: Path = None
     entry: Path = 'js/index.js'
     output_path: Path = 'theme'
     dev_output_filename: Optional[str] = 'main.js'
@@ -111,12 +111,17 @@ class Config(BaseModel):
             # some values are missing, can't validate properly
             return webpack
 
-        if not webpack.cli.is_absolute():
+        if webpack.cli is None:
+            default_cli = values['source_dir'] / 'node_modules/.bin/webpack-cli'
+            if default_cli.exists():
+                webpack.cli = default_cli
+        elif not webpack.cli.is_absolute():
             webpack.cli = values['source_dir'] / webpack.cli
 
-        if not webpack.cli.exists():
-            logger.warning('webpack cli path "%s" does not exist, not running webpack', webpack.cli)
+        if not webpack.cli:
             webpack.run = False
+        elif not webpack.cli.exists():
+            raise ValueError(f'webpack cli path set but does not exist "{webpack.cli}", not running webpack')
 
         webpack.entry = values['theme_dir'] / webpack.entry
         if not webpack.entry.exists() and webpack.run:
