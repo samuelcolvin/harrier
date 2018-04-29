@@ -162,6 +162,7 @@ def test_build_simple_som(tmpdir):
     assert {
         'source_dir': source_dir,
         'config_path': None,
+        'build_time': CloseToNow(),
         'extensions': {
             'config_modifiers': [],
             'som_modifiers': [],
@@ -418,21 +419,25 @@ def test_inline_css_prod(tmpdir):
 def test_inline_css_dev(tmpdir):
     mktree(tmpdir, {
         'pages': {
-            'foobar.html': '{{inline_css("theme/main.css")}}'
+            'foo.html': '{{inline_css("theme/main.css")}}',
+            'bar.html': "{{ url('theme/main.css') }}",
         },
         'theme': {
             'sass/main.scss': 'body {width: 10px + 10px;}',
         },
     })
-    build(tmpdir, mode=Mode.development)
+    som = build(tmpdir, mode=Mode.development)
     assert gettree(tmpdir.join('dist')) == {
-        'foobar': {
+        'foo': {
             'index.html': (
                 'body {\n'
                 '  width: 20px; }\n'
                 '\n'
                 '/*# sourceMappingURL=/theme/main.css.map */\n'
             ),
+        },
+        'bar': {
+            'index.html': f'/theme/main.css?t={som["config"].build_time:%s}\n',
         },
         'theme': {
             'main.css.map': RegexStr('{.*'),

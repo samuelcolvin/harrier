@@ -364,12 +364,13 @@ def slugify(title):
 
 @contextfunction
 def resolve_url(ctx, path):
-    return resolve_path(ctx['site']['path_lookup'], path)
+    return resolve_path(path, ctx['site']['path_lookup'], ctx['site']['config'])
 
 
 @contextfunction
 def inline_css(ctx, path):
-    real_path = Path(resolve_url(ctx, path)[1:])
+    path = resolve_path(path, ctx['site']['path_lookup'], None)
+    real_path = Path(path[1:])
     p = ctx['site']['dist_dir'] / real_path
     css = p.read_text()
     map_path = real_path.with_suffix('.css.map')

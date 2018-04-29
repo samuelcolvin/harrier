@@ -288,6 +288,37 @@ def test_resolve_sass_path(tmpdir):
     }
 
 
+def test_resolve_sass_path_dev(tmpdir):
+    mktree(tmpdir, {
+        'pages/foobar.md': '# hello',
+        'theme': {
+            'assets/assets/image.png': '*',
+            'sass/main.scss': 'body {content: resolve_path("/assets/image.png")}',
+        },
+    })
+
+    config = get_config(str(tmpdir))
+    config.mode = Mode.development
+    assets_grablib(config)
+    assert gettree(tmpdir.join('dist')) == {
+        'assets': {
+            'image.png': '*',
+        },
+        'theme': {
+            'main.css.map': RegexStr('{.*'),
+            'main.css': (
+                "body {\n"
+                "  content: '/assets/image.png?t=%s'; }\n"
+                "\n"
+                "/*# sourceMappingURL=main.css.map */"
+            ) % f'{config.build_time:%s}',
+            '.src': {
+                'main.scss': 'body {content: resolve_path("/assets/image.png")}',
+            },
+        },
+    }
+
+
 def test_smart_sass_url(tmpdir):
     mktree(tmpdir, {
         'pages/foobar.md': '# hello',

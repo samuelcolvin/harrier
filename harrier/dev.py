@@ -4,6 +4,7 @@ import logging
 import signal
 import traceback
 from concurrent.futures import ProcessPoolExecutor
+from datetime import datetime
 from pathlib import Path
 from time import time
 
@@ -99,7 +100,7 @@ def update_site(args: UpdateArgs):  # noqa: C901 (ignore complexity)
             args.assets = args.sass = args.templates = full_build = True
         else:
             config = CONFIG
-
+        config.build_time = datetime.utcnow()
         if args.assets:
             copy_assets(config)
             args.templates = True  # force re-render as pages might have changed
@@ -109,11 +110,12 @@ def update_site(args: UpdateArgs):  # noqa: C901 (ignore complexity)
             args.templates = True  # force re-render as pages might have changed
 
         if full_build:
-            SOM = config.dict()
             pages = build_pages(config)
-            SOM.update(
+            SOM = dict(
                 pages=pages,
                 data=load_data(config),
+                config=config,
+                **config.dict(),
             )
             SOM = apply_modifiers(SOM, config.extensions.som_modifiers)
         elif args.pages:

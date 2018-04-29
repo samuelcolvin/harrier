@@ -45,8 +45,8 @@ def run_grablib(config: Config):
 
         path_lookup = get_path_lookup(config)
         custom_functions = {
-            'resolve_path': lambda path: f"'{resolve_path(path_lookup, path)}'",
-            'smart_url': lambda path: f"url('{resolve_path(path_lookup, path)}')",
+            'resolve_path': lambda path: f"'{resolve_path(path, path_lookup, config)}'",
+            'smart_url': lambda path: f"url('{resolve_path(path, path_lookup, config)}')",
         }
 
         sass_gen = SassGenerator(
@@ -195,9 +195,12 @@ def get_path_lookup(config: Config, pages=None):
     return d
 
 
-def resolve_path(path_lookup, path):
-    real_path = path_lookup.get(path.strip('/'))
-    if real_path:
-        return '/' + real_path[0]
+def resolve_path(path, path_lookup, config):
+    p = path_lookup.get(path.strip('/'))
+    if p:
+        path, is_html = p
+        if not is_html and config and config.mode == Mode.development:
+            path += f'?t={config.build_time:%s}'
+        return '/' + path
     else:
         raise KeyError(f'Path "{path}" does not exist')

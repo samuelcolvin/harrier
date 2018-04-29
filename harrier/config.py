@@ -1,6 +1,7 @@
 import hashlib
 import logging
 import tempfile
+from datetime import datetime
 from enum import Enum
 from itertools import product
 from pathlib import Path
@@ -57,6 +58,7 @@ class Config(BaseModel):
     ignore: List[PathMatch] = []
 
     webpack: WebpackConfig = WebpackConfig()
+    build_time: datetime
 
     @validator('source_dir')
     def resolve_source_dir(cls, v):
@@ -136,6 +138,10 @@ class Config(BaseModel):
 
         webpack.output_path = values['dist_dir'] / webpack.output_path
         return webpack
+
+    @validator('build_time', pre=True)
+    def set_build_time(cls, v):
+        return datetime.utcnow()
 
     def get_tmp_dir(self) -> Path:
         if self.tmp_dir:

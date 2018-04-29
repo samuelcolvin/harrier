@@ -68,6 +68,7 @@ def build(path: StrPath, steps: Set[BuildSteps]=None, mode: Optional[Mode]=None)
         path_lookup=get_path_lookup(config, pages),
         pages=pages,
         data=data_future and data_future.result(),
+        config=config,
         **config.dict(),
     )
 
