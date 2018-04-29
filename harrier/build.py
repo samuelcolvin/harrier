@@ -22,8 +22,9 @@ from .common import HarrierProblem, log_complete, yaml
 from .config import Config
 from .extensions import ExtensionError
 
-FRONT_MATTER_START_REGEX = re.compile(r'---[ \t]*(.*)\n---[ \t]*\n', re.S)
+FRONT_MATTER_START_REGEX = re.compile(r'---[ \t]*(.*?)\n---[ \t]*\n', re.S)
 FRONT_MATTER_DIVIDER_REGEX = re.compile(r'\n?^--- ?([.\w_-]+) ?---[ \t]*\n', re.S | re.M)
+FRONT_MATTER_DIVIDER_EXTRA_REGEX = re.compile(r'(.*?)\n---[ \t]*\n', re.S | re.M)
 # extensions where we want to do anything except just copy the file to the output dir
 OUTPUT_HTML = {'.html', '.md'}
 MAYBE_RENDER = {'.xml'}
@@ -289,16 +290,25 @@ class Renderer:
         return 2
 
 
-def parse_front_matter(s):
-    m = FRONT_MATTER_START_REGEX.match(s)
+def parse_front_matter(s, regex=FRONT_MATTER_START_REGEX):
+    m = regex.match(s)
     if not m:
         return None, s
     try:
-        data = yaml.load(m.groups()[0]) or {}
+        data = yaml.load(m.group(1)) or {}
     except YAMLError as e:
         raise HarrierProblem(f'error parsing YAML: {e}') from e
     content = s[m.end():]
     return data, content
+
+
+def _parse_section_content(s):
+    data, content = parse_front_matter(s, FRONT_MATTER_DIVIDER_EXTRA_REGEX)
+    if data is None:
+        return content
+    else:
+        data['content'] = content
+        return data
 
 
 def split_content(s):
@@ -310,15 +320,15 @@ def split_content(s):
     while True:
         start, end = m.span()
         content.append(
-            (name, s[:start])
+            (name, _parse_section_content(s[:start]))
         )
-        name = m.groups()[0]
+        name = m.group(1)
         s = s[end:]
         m = FRONT_MATTER_DIVIDER_REGEX.search(s)
         if not m:
             break
     content.append(
-        (name, s)
+        (name, _parse_section_content(s))
     )
     names, values = zip(*content)
     names = set(names[1:])

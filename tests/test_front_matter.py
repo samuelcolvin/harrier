@@ -83,6 +83,47 @@ the third""",
 another
 --- bar ---
 the third""", {'foo': 'another', 'bar': 'the third'}),
+    ("""\
+main content
+--- . ---
+foo: 1
+bar: [1, 2, 3]
+---
+another
+
+---.---
+x: y
+---
+the third""", [
+        'main content',
+        {
+            'content': 'another\n',
+            'foo': 1,
+            'bar': [1, 2, 3],
+        },
+        {
+            'content': 'the third',
+            'x': 'y',
+        }
+    ]),
+    ("""\
+--- foo ---
+x: 1
+---
+another
+--- bar ---
+y: 2
+---
+the third""", {
+        'foo': {
+            'content': 'another',
+            'x': 1,
+        },
+        'bar': {
+            'content': 'the third',
+            'y': 2,
+        }
+    }),
 ])
 def test_multi_part_good(s, result):
     assert split_content(s) == result
@@ -98,3 +139,58 @@ another
 the third"""
     with pytest.raises(HarrierProblem):
         split_content(s)
+
+
+@pytest.mark.parametrize('s,result', [
+    ("""\
+---
+test: 1
+---
+--- xx ---
+x: 1
+---
+this is x
+--- yy ---
+y: 2
+---
+this is y""", {
+        'test': 1,
+        'content': {
+            'xx': {
+                'content': 'this is x',
+                'x': 1,
+            },
+            'yy': {
+                'content': 'this is y',
+                'y': 2
+            }
+        }
+    }
+    ),
+    ("""\
+---
+test: 2
+---
+whatever
+--- . ---
+this is more
+--- . ---
+has_dict: true
+---
+more""", {
+        'test': 2,
+        'content': [
+            'whatever',
+            'this is more',
+            {
+                'content': 'more',
+                'has_dict': True,
+            }
+        ]
+    }
+    )
+])
+def test_more_front_matter(s, result):
+    obj, content = parse_front_matter(s)
+    obj['content'] = split_content(content)
+    assert obj == result
