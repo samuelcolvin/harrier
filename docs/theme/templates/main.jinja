@@ -1,7 +1,7 @@
 {% extends 'base.jinja' %}
 
 {% macro badge(link, src, alt, width) %}
-  <a href="{{ link }}">
+  <a href="{{ link }}" class="badge">
     <amp-img
       src="{{ src }}"
       alt="{{ alt }}"
@@ -12,28 +12,42 @@
   </a>
 {% endmacro %}
 
+{% macro intro() %}
+  <h1>{{ page.title }}</h1>
+  {{ badge('https://travis-ci.org/samuelcolvin/harrier', 'https://travis-ci.org/samuelcolvin/harrier.svg?branch=master', 'build status', 100) }}
+  {{ badge('https://codecov.io/gh/samuelcolvin/harrier', 'https://codecov.io/gh/samuelcolvin/harrier/branch/master/graph/badge.svg', 'coverage', 106) }}
+  {{ badge('https://pypi.org/project/harrier/', url('images/version_badge.svg'), 'pypi version', 80) }}
+{% endmacro %}
+
 {% block main %}
   <main>
-    <header>
-      <h1>{{ page.title }}</h1>
-      <span>
-        {{ badge('https://travis-ci.org/samuelcolvin/harrier', 'https://travis-ci.org/samuelcolvin/harrier.svg?branch=master', 'build status', 100) }}
-        {{ badge('https://codecov.io/gh/samuelcolvin/harrier', 'https://codecov.io/gh/samuelcolvin/harrier/branch/master/graph/badge.svg', 'coverage', 106) }}
-        {{ badge('https://pypi.org/project/harrier/', url('images/version_badge.svg'), 'pypi version', 80) }}
-      </span>
-    </header>
-
-    <article>
-      <div>
-      {{ content }}
-      </div>
+    <div class="left">
+      <article>
+        <div class="narrow">
+          {{ intro() }}
+        </div>
+        {{ content }}
+      </article>
+    </div>
+    <div class="right">
       <nav>
+        {{ intro() }}
         {% for slug, name in page.headings %}
-          <div>
-            <a href="#{{ slug }}">{{ name }}</a>
-          </div>
+          <amp-animation id="{{ slug }}-spy" layout="nodisplay">
+            <script type="application/json">[
+              {% for slug2, _name in page.headings -%}
+                {%- if slug2 == slug -%}
+                  {"selector": "#a-{{ slug }}", "fill": "both", "duration": 100, "keyframes": {"opacity": 1}}
+                {%- else -%}
+                  {"selector": "#a-{{ slug2 }}", "fill": "both", "duration": 100, "keyframes": {"opacity": 0.5}}
+                {%- endif %}{{ '' if loop.last else ',' }}
+              {% endfor -%}
+            ]
+            </script>
+          </amp-animation>
+          <a id="a-{{ slug }}" href="#{{ slug }}" class="link" on="tap:{{ slug }}-spy.start">{{ name }}</a>
         {% endfor %}
       </nav>
-    </article>
+    </div>
   </main>
 {% endblock %}

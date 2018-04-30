@@ -4,8 +4,8 @@ title: harrier
 
 A static site generator.
 
-I built harrier because other static site generators like
-*jekyll*, *hugo*, *mkdocs* and *gatsby* didn't do what I wanted.
+Harrier exists because other static site generators like
+*jekyll*, *hugo*, *mkdocs* and *gatsby* didn't suffice.
 
 Some advantages of *harrier*:
 
