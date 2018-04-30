@@ -9,7 +9,7 @@ from typing import Optional, Set, Union
 import devtools
 
 from .assets import assets_grablib, get_path_lookup, run_webpack
-from .build import build_pages, render_pages
+from .build import build_pages, content_templates, render_pages
 from .common import completed_logger
 from .config import Mode, get_config
 from .data import load_data
@@ -61,6 +61,7 @@ def build(path: StrPath, steps: Set[BuildSteps]=None, mode: Optional[Mode]=None)
 
         if BuildSteps.pages in steps:
             pages = build_pages(config)
+            pages = content_templates(pages, config)
         # this will raise errors if any of the above went wrong
         [f.result() for f in futures if f]
 

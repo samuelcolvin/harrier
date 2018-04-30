@@ -14,7 +14,7 @@ from pydantic import BaseModel
 from watchgod import Change, DefaultWatcher, awatch
 
 from .assets import copy_assets, get_path_lookup, run_grablib, start_webpack_watch
-from .build import BuildPages, build_pages, render_pages
+from .build import BuildPages, build_pages, content_templates, render_pages
 from .common import HarrierProblem, log_complete
 from .config import Config, get_config
 from .data import load_data
@@ -111,6 +111,7 @@ def update_site(args: UpdateArgs):  # noqa: C901 (ignore complexity)
 
         if full_build:
             pages = build_pages(config)
+            pages = content_templates(pages, config)
             SOM = dict(
                 pages=pages,
                 data=load_data(config),
@@ -121,13 +122,18 @@ def update_site(args: UpdateArgs):  # noqa: C901 (ignore complexity)
         elif args.pages:
             start = time()
             page_builder = BuildPages(config)
+            tmp_dir = config.get_tmp_dir()
             for change, path in args.pages:
                 rel_path = str(path.relative_to(config.pages_dir))
                 if change == Change.deleted:
-                    SOM['pages'][rel_path]['outfile'].unlink()
+                    page = SOM['pages'][rel_path]
+                    page['outfile'].unlink()
+                    (tmp_dir / page['content_template']).unlink()
                     SOM['pages'].pop(rel_path)
                 else:
                     SOM['pages'][rel_path] = page_builder.prep_file(path)
+
+            SOM['pages'] = content_templates(SOM['pages'], config)
             SOM = apply_modifiers(SOM, config.extensions.som_modifiers)
             log_complete(start, 'pages built', len(args.pages))
             args.templates = args.templates or any(change != Change.deleted for change, _ in args.pages)
