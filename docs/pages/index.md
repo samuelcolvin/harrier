@@ -5,9 +5,9 @@ title: harrier
 A static site generator.
 
 I built harrier because other static site generators like
-_jekyll_, _hugo_, _mkdocs_ and _gatsby_ didn't do what I wanted.
+*jekyll*, *hugo*, *mkdocs* and *gatsby* didn't do what I wanted.
 
-Some advantages of **harrier**:
+Some advantages of *harrier*:
 
 * Fast:: roughly 5x faster than jekyll. In development mode harrier can perform partial rebuilds
 where possible to save even more time
@@ -37,7 +37,7 @@ browser use
 
     harrier dev
 
-For a production build use
+For a production build_use_x "whatever"
 
     harrier build
 
@@ -48,46 +48,55 @@ For more information and options append `--help` to any of the above commands.
 In it's very simplest form harrier will build a single file `pages/index.md` to create a site containing one file
 `dist/index.html`.
 
-The files required to build a compreshensive site look like this:
+The files required to build a comprehensive site look like this:
 
     ├── harrier.yml
     ├── extensions.py
     ├── webpack_config.js
     ├── pages
-    │   └── index.md
+    │   ├── index.md
     │   └── foobar.md
     └── theme
-        ├── assets
-        │   ├── favicon.ico
-        │   └── images
-        │       └── whatever.png
         ├── sass
         │   └── main.scss
         ├── js
         │   └── index.js
-        └── templates
-            ├── base.jinja
-            └── main.jinja
+        ├── templates
+        │   ├── base.jinja
+        │   └── main.jinja
+        └── assets
+            ├── favicon.ico
+            └── images
+                └── whatever.png
 
-Which will build a site looking like:
+* `harrier.yml`:: contains configuration on how harrier will build the site
+* `extensions.py`:: add custom functionality to harrier and modify the site at build time
+* `webpack_config.js`:: standard config for webpack, harrier takes care of running webpack during development
+  and production builds
+* `pages`:: contains `.md` and `.html` files which are built to form the site
+* `theme/sass`:: `.sass` and `.scss` files to compile into `.css` files
+* `theme/templates`:: jinja templates used to build the site 
+* `theme/assets`:: any other files used in the site, eg. images. These will be copied into the root of your site
 
-    ├── dist
-    │   ├── index.html
-    │   └── foobar
-    │       ├── index.html
-    │   ├── favicon.ico
-    │   ├── images
-    │   │   └── whatever.[hash].png
-    │   └── theme
-    │       ├── main.[hash].js
-    │       ├── main.[hash].css
-    │       └── main.[hash].css.map
+Which will build the following site:
+
+    └── dist
+        ├── index.html
+        ├── foobar
+        │   └── index.html
+        ├── favicon.ico
+        ├── images
+        │   └── whatever.[hash].png
+        └── theme
+            ├── main.[hash].js
+            ├── main.[hash].css
+            └── main.[hash].css.map
 
 ## Extended frontmatter
 
 ### Basic
 
-Simple frontmatter matching _jekyll_:
+Simple frontmatter matching *jekyll*:
 
     ---
     template: main.jinja
@@ -95,20 +104,25 @@ Simple frontmatter matching _jekyll_:
     ---
     This is the content.
 
-equates to
+equates to page data
 
 ```json
 {
   "template": "main.jinja",
-  "uri": "/path-to-page",
-  "content": "This is the content"
+  "uri": "/path-to-page"
 }
+```
+
+and content 
+
+```markdown
+This is the content
 ```
 
 ### Extended: list
 
-Extended usage creating a list for content, note that that frontmatter at the beginning of each section is optional,
-it's absent for the third item:
+Extended usage creating a list for content, note that frontmatter at the beginning of each section is optional,
+it is absent for the third item:
 
     ---
     template: main.jinja
@@ -129,25 +143,30 @@ it's absent for the third item:
 
     pop
 
-equates to
+equates to page data
 
 ```json
 {
-  "template": "main.jinja",
-  "content": [
-    {
-      "content": "first item content\n\nsnap",
-      "name": "name of the first section"
-    },
-    {
-      "content": "second item content\n\crackle",
-      "whatever": [1, 2, 3]
-    },
-    {
-      "content": "third item content\n\npop",
-    }
-  ]
+  "template": "main.jinja"
 }
+```
+
+and page content 
+
+```json
+[
+  {
+    "content": "first item content\n\nsnap",
+    "name": "name of the first section"
+  },
+  {
+    "content": "second item content\n\ncrackle",
+    "whatever": [1, 2, 3]
+  },
+  {
+    "content": "third item content\n\npop"
+  }
+]
 ```
 
 ### Extended: dictionary
@@ -161,36 +180,35 @@ it's absent for the third item:
     name: name of the first section
     ---
     first item content
-
-    snap
     --- second ---
     whatever: [1, 2, 3]
     ---
     second item content
-
-    crackle
     --- third ---
     third item content
 
-    pop
-
-equates to
+equates to page data
 
 ```json
 {
-  "template": "main.jinja",
-  "content": {
-    "main": {
-      "content": "first item content\n\nsnap",
-      "name": "name of the first section"
-    },
-    "second": {
-      "content": "second item content\n\crackle",
-      "whatever": [1, 2, 3]
-    },
-    "third": {
-      "content": "third item content\n\npop",
-    }
+  "template": "main.jinja"
+}
+```
+
+and page content 
+
+```json
+{
+  "main": {
+    "content": "first item content",
+    "name": "name of the first section"
+  },
+  "second": {
+    "content": "second item content",
+    "whatever": [1, 2, 3]
+  },
+  "third": {
+    "content": "third item content"
   }
 }
 ```

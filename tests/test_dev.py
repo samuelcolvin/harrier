@@ -47,11 +47,11 @@ def test_dev_simple(tmpdir, mocker, loop):
     # debug(gettree(tmpdir.join('dist')))
     assert gettree(tmpdir.join('dist')) == {
         'foobar': {
-            'index.html': '<h1>hello</h1>\n\n<p>2</p>\n',
+            'index.html': '<h1 id="1-hello">hello</h1>\n\n<p>2</p>\n',
         },
         'features': {
             'whatever': {
-                'index.html': '<h2>Foo</h2>\n',
+                'index.html': '<h2 id="2-foo">Foo</h2>\n',
             },
         },
     }
@@ -64,8 +64,8 @@ def test_dev_delete(tmpdir, mocker, loop):
     asyncio.set_event_loop(loop)
     mktree(tmpdir, {
         'pages': {
-            'foobar.md': '# hello',
-            'features/whatever.md': '## Foo',
+            'foobar.md': 'hello',
+            'features/whatever.md': 'Foo',
         },
     })
     mocker.patch('harrier.dev.awatch', side_effect=awatch_alt)
@@ -78,7 +78,7 @@ def test_dev_delete(tmpdir, mocker, loop):
     # debug(gettree(tmpdir.join('dist')))
     assert gettree(tmpdir.join('dist')) == {
         'foobar': {
-            'index.html': '<h1>hello</h1>\n',
+            'index.html': '<p>hello</p>\n',
         },
         'features': {
             'whatever': {},
@@ -94,7 +94,7 @@ def test_extensions_error(tmpdir, mocker, loop):
     asyncio.set_event_loop(loop)
     mktree(tmpdir, {
         'pages': {
-            'foobar.md': '# hello',
+            'foobar.md': '**hello**',
         },
         'theme/templates/main.jinja': 'main:\n {{ content }}',
         'harrier.yml': 'default_template: main.jinja',
@@ -109,7 +109,7 @@ def test_extensions_error(tmpdir, mocker, loop):
 
     assert gettree(tmpdir.join('dist')) == {
         'foobar': {
-            'index.html': 'main:\n <h1>hello</h1>\n',
+            'index.html': 'main:\n <p><strong>hello</strong></p>\n',
         },
     }
 

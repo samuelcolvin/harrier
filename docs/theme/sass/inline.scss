@@ -30,18 +30,18 @@ a {
   text-decoration: none;
 }
 
-h1, h2, h3 {
+h1, h2, h3, h4, h5, h6 {
   font-family: $head-front;
 }
 
-h3 {
-  font-size: 1.1rem;
-  margin: 0.5rem 0 0;
+h1, h2, h3 {
+  margin-left: -0.5em;
 }
 
 p {
   margin: 0.5rem 0 1rem;
 }
+
 $code-border: 1px solid #DDD;
 code {
   background: $code-back;
@@ -122,7 +122,7 @@ article {
   }
   dl {
     display: grid;
-    grid-template-columns: 6rem auto;
+    grid-template-columns: 10rem auto;
     grid-column-gap: 1rem;
     grid-row-gap: 0.8rem;
   }

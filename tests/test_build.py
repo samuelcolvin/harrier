@@ -20,7 +20,7 @@ def test_full_build(tmpdir):
                 '{{ resolve_url("theme/main.css") }}\n'
                 '{{ resolve_url("another") }}\n'
             ),
-            'another.md': '# hello'
+            'another.md': '# Hello'
         },
         'theme': {
             'sass/main.scss': 'body {width: 10px + 10px;}',
@@ -37,7 +37,7 @@ def test_full_build(tmpdir):
             ),
         },
         'another': {
-            'index.html': '<h1>hello</h1>\n'
+            'index.html': '<h1 id="1-hello">Hello</h1>\n'
         },
         'theme': {
             'main.a1ac3a7.css': 'body{width:20px}\n',
@@ -50,7 +50,7 @@ def test_build_no_templates(tmpdir):
     mktree(tmpdir, {
         'pages': {
             'foobar.md': (
-                '# whatever'
+                '### Whatever'
             ),
         },
     })
@@ -58,7 +58,7 @@ def test_build_no_templates(tmpdir):
     assert gettree(tmpdir.join('dist')) == {
         'foobar': {
             'index.html': (
-                '<h1>whatever</h1>\n'
+                '<h3 id="3-whatever">Whatever</h3>\n'
             ),
         },
     }
@@ -109,7 +109,7 @@ def test_simple_render(tmpdir):
     expected_tree = {
         'foobar.html': (
             'main, content:\n\n'
-            '<h1>hello</h1>\n\n'
+            '<h1 id="1-hello">hello</h1>\n\n'
             '<p>this is a test foo: </p>\n'
         ),
         'favicon.ico': '*',

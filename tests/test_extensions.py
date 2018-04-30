@@ -37,7 +37,7 @@ def add_one(v):
     build(str(tmpdir))
     assert gettree(tmpdir.join('dist')) == {
         'foo': {
-            'index.html': '<h1>foo changed by extension</h1>\n',
+            'index.html': '<h1 id="1-foo-changed-by-extension">foo changed by extension</h1>\n',
         },
         'bar': {
             'index.html': '5 42\n',

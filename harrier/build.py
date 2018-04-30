@@ -170,9 +170,10 @@ class BuildPages:
 
 DL_REGEX = re.compile('<li>(.*?)::(.*?)</li>', re.S)
 LI_REGEX = re.compile('<li>(.*?)</li>', re.S)
+MD_EXTENSIONS = 'fenced-code', 'strikethrough', 'no-intra-emphasis', 'tables', 'underline'
 
 
-class HighlighterRenderer(HtmlRenderer):
+class HarrierHtmlRenderer(HtmlRenderer):
     def blockcode(self, text, lang):
         try:
             lexer = get_lexer_by_name(lang, stripall=True)
@@ -192,6 +193,9 @@ class HighlighterRenderer(HtmlRenderer):
         else:
             return content
 
+    def header(self, content, level):
+        return f'<h{level} id="{level}-{slugify(content)}">{content}</h{level}>\n'
+
 
 class Renderer:
     __slots__ = 'config', 'som', 'build_cache', 'md', 'env', 'checked_dirs'
@@ -201,8 +205,8 @@ class Renderer:
         self.som = som
         self.build_cache = build_cache
 
-        md_renderer = HighlighterRenderer()
-        self.md = Markdown(md_renderer, extensions=('fenced-code',))
+        md_renderer = HarrierHtmlRenderer()
+        self.md = Markdown(md_renderer, extensions=MD_EXTENSIONS)
 
         template_dirs = [str(self.config.get_tmp_dir()), str(self.config.theme_dir / 'templates')]
         logger.debug('template directories: %s', ', '.join(template_dirs))
