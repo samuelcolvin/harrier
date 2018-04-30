@@ -1,8 +1,24 @@
 {% extends 'base.jinja' %}
 
+{% macro badge(link, src, alt, width) %}
+  <a href="{{ link }}">
+    <amp-img
+      src="{{ src }}"
+      alt="{{ alt }}"
+      width="{{ width }}"
+      height="20"
+      layout="fixed">
+    </amp-img>
+  </a>
+{% endmacro %}
+
 {% block main %}
   <div class="container">
     <h1>{{ page.title }}</h1>
+    {{ badge('https://travis-ci.org/samuelcolvin/harrier', 'https://travis-ci.org/samuelcolvin/harrier.svg?branch=master', 'build status', 100) }}
+    {{ badge('https://codecov.io/gh/samuelcolvin/harrier', 'https://codecov.io/gh/samuelcolvin/harrier/branch/master/graph/badge.svg', 'coverage', 106) }}
+    {{ badge('https://pypi.org/project/harrier/', url('version_badge.svg'), 'pypi version', 80) }}
+
     {{ content }}
   </div>
 {% endblock %}
