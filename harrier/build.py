@@ -168,6 +168,10 @@ class BuildPages:
         return data, apply_template
 
 
+DL_REGEX = re.compile('<li>(.*?)::(.*?)</li>', re.S)
+LI_REGEX = re.compile('<li>(.*?)</li>', re.S)
+
+
 class HighlighterRenderer(HtmlRenderer):
     def blockcode(self, text, lang):
         try:
@@ -181,6 +185,12 @@ class HighlighterRenderer(HtmlRenderer):
 
         code = escape_html(text.strip())
         return f'<pre><code>{code}</code></pre>\n'
+
+    def list(self, content, is_ordered, is_block):
+        if not is_ordered and len(DL_REGEX.findall(content)) == len(LI_REGEX.findall(content)):
+            return '<dl>\n' + DL_REGEX.sub(r'  <dt>\1</dt><dd>\2</dd>', content) + '</dl>'
+        else:
+            return content
 
 
 class Renderer:
@@ -250,9 +260,9 @@ class Renderer:
 
             if infile.suffix == '.md':
                 if isinstance(content, dict):
-                    content = {k: self.md(v) for k, v in content.items()}
+                    content = {k: self._md_content(v) for k, v in content.items()}
                 elif isinstance(content, list):
-                    content = [self.md(v) for v in content]
+                    content = [self._md_content(v) for v in content]
                 else:
                     # assumes content is a str
                     content = self.md(content)
@@ -277,6 +287,10 @@ class Renderer:
                     self.build_cache[infile] = out_hash
             outfile.write_bytes(rendered_b)
             return 1
+
+    def _md_content(self, v):
+        v['content'] = self.md(v['content'])
+        return v
 
     def copy_file(self, p: dict, infile: Path, outfile: Path):
         if self.build_cache is not None:
@@ -304,11 +318,9 @@ def parse_front_matter(s, regex=FRONT_MATTER_START_REGEX):
 
 def _parse_section_content(s):
     data, content = parse_front_matter(s, FRONT_MATTER_DIVIDER_EXTRA_REGEX)
-    if data is None:
-        return content
-    else:
-        data['content'] = content
-        return data
+    data = data or {}
+    data['content'] = content
+    return data
 
 
 def split_content(s):
@@ -337,7 +349,7 @@ def split_content(s):
     elif '.' in names:
         raise HarrierProblem(f'badly constructed multi-part front matter, dividers indicate a mix of list and dict')
     else:
-        return {k: v for k, v in content if v}
+        return {k: v for k, v in content if v['content']}
 
 
 class FileData(BaseModel):

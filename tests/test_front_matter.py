@@ -69,7 +69,7 @@ main content
 another
 
 ---.---
-the third""", ['main content', 'another\n', 'the third']),
+the third""", [{'content': 'main content'}, {'content': 'another\n'}, {'content': 'the third'}]),
     ("""\
 main content
 --- foo ---
@@ -77,12 +77,12 @@ another
 
 ---bar---
 the third""",
-     {'main': 'main content', 'foo': 'another\n', 'bar': 'the third'}),
+     {'main': {'content': 'main content'}, 'foo': {'content': 'another\n'}, 'bar': {'content': 'the third'}}),
     ("""\
 --- foo ---
 another
 --- bar ---
-the third""", {'foo': 'another', 'bar': 'the third'}),
+the third""", {'foo': {'content': 'another'}, 'bar': {'content': 'the third'}}),
     ("""\
 main content
 --- . ---
@@ -95,7 +95,9 @@ another
 x: y
 ---
 the third""", [
-        'main content',
+        {
+            'content': 'main content',
+        },
         {
             'content': 'another\n',
             'foo': 1,
@@ -180,8 +182,12 @@ has_dict: true
 more""", {
         'test': 2,
         'content': [
-            'whatever',
-            'this is more',
+            {
+                'content': 'whatever',
+            },
+            {
+                'content': 'this is more',
+            },
             {
                 'content': 'more',
                 'has_dict': True,

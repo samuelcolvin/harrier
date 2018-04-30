@@ -1,28 +1,140 @@
-//$background-colour: #F6F9FC;
-$background-colour: white;
-@import 'pygments/autumn';
+$back: #f5f7f9;
+$head-back: #42587f;
+$main-back: #ECEFF1;
+//$main-back: #E0F7FA;
+//$main-back: #e5f3f5;
+//$main-back: #fafafa;
+$main-back: #fefeff;
+$code-back: $back;
+@import 'pygments/friendly';
+
+$main-front: 'Source Sans Pro', sans-serif;
+$head-front: 'Titillium Web', sans-serif;
+
+$narrow: 1156px;
+$narrowp: $narrow + 1px;
 
 html, body {
-  margin: 0;
   padding: 0 0 10px;
-  background-color: $background-colour;
-  font-family: 'Ubuntu', sans-serif;
-  overflow-y: scroll;
-  font-size: 17px;
+  font-size: 18px;
+  font-family: $main-front;
+  background: $back;
+  color: #444;
 }
 
-.container {
-  max-width: 1140px;
-  margin: 0 auto;
-}
-
-@media (max-width: 1156px) {
-  .container {
-    margin-left: 8px;
-    margin-right: 8px;
-  }
-}
+// ====================
+//  general
+// ====================
 
 a {
   text-decoration: none;
+}
+
+h1, h2, h3 {
+  font-family: $head-front;
+}
+
+h3 {
+  font-size: 1.1rem;
+  margin: 0.5rem 0 0;
+}
+
+p {
+  margin: 0.5rem 0 1rem;
+}
+$code-border: 1px solid #DDD;
+code {
+  background: $code-back;
+  border-radius: 3px;
+  padding: 2px 4px;
+  font-size: 0.8rem;
+  color: #444;
+  border: $code-border;
+}
+
+pre {
+  padding: 10px;
+  border: $code-border;
+  code {
+    border: none;
+    padding: 0;
+  }
+}
+
+pre, div.hi {
+  margin: 15px 0;
+  line-height: 1.3em;
+  background: $code-back;
+  border-radius: 3px;
+  font-size: 0.8rem;
+}
+
+amp-img {
+  vertical-align: text-bottom;
+}
+
+// ====================
+//  specific
+// ====================
+
+$rad: 5px;
+main {
+  background: $main-back;
+}
+
+header {
+  background-color: $head-back;
+  color: white;
+  display: flex;
+  justify-content: space-between;
+  padding: 15px 20px 12px;
+  h1 {
+    font-size: 22px;
+    line-height: 22px;
+    padding: 0;
+    margin: 0;
+  }
+  amp-img {
+    margin-left: 8px;
+  }
+}
+
+article {
+  padding: 10px 20px;
+}
+
+@media (min-width: $narrowp) {
+  html, body {
+    margin: 20px;
+  }
+  main {
+    max-width: 1140px;
+    margin: 0 auto;
+    background: $main-back;
+    border-radius: $rad;
+    box-shadow: 0 1px 8px rgba(0,0,0,.8);
+  }
+  header {
+    border-radius: $rad $rad 0 0;
+  }
+  article {
+    padding: 10px 30px;
+  }
+  dl {
+    display: grid;
+    grid-template-columns: 6rem auto;
+    grid-column-gap: 1rem;
+    grid-row-gap: 0.8rem;
+  }
+  dt {
+    font-weight: 700;
+    text-align: right;
+  }
+  dd {
+    margin-left: 0;
+  }
+}
+
+dt {
+  font-weight: 700;
 }

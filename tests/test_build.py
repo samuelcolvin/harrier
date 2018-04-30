@@ -317,12 +317,12 @@ def test_build_multi_part(tmpdir):
             'templates/': {
                 'list.jinja': (
                     '{% for v in content %}\n'
-                    '  {{ v}}\n'
+                    '  {{ v.content }}\n'
                     '{% endfor %}\n'
                 ),
                 'dict.jinja': (
-                    '{{ content.main }}\n'
-                    '{{ content.other }}\n'
+                    '{{ content.main.content }}\n'
+                    '{{ content.other.content }}\n'
                 ),
             },
         },
@@ -522,6 +522,40 @@ def test_render_code_unknown_lang(tmpdir):
     assert tmpdir.join('dist/foobar/index.html').read_text('utf8') == (
         '<p>testing</p>\n'
         '<pre><code>x = 4</code></pre>\n'
+    )
+
+
+def test_list_not_dd(tmpdir):
+    mktree(tmpdir, {
+        'pages': {
+            'foobar.md': (
+                '* whatever\n'
+                '* thing:: other\n'
+            ),
+        },
+    })
+    build(tmpdir, mode=Mode.production)
+    assert tmpdir.join('dist/foobar/index.html').read_text('utf8') == (
+        '<li>whatever</li>\n'
+        '<li>thing:: other</li>\n'
+    )
+
+
+def test_list_dd(tmpdir):
+    mktree(tmpdir, {
+        'pages': {
+            'foobar.md': (
+                '* name:: whatever\n'
+                '* thing:: other\n'
+            ),
+        },
+    })
+    build(tmpdir, mode=Mode.production)
+    assert tmpdir.join('dist/foobar/index.html').read_text('utf8') == (
+        '<dl>\n'
+        '  <dt>name</dt><dd> whatever</dd>\n'
+        '  <dt>thing</dt><dd> other</dd>\n'
+        '</dl>\n'
     )
 
 
