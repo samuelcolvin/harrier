@@ -162,14 +162,13 @@ class BuildPages:
 
 def content_templates(pages, config):
     tmp_dir = config.get_tmp_dir()
-    for page in pages.values():
+    for page in pages:
         if not page['pass_through']:
             content_template = tmp_dir / 'content' / page['infile'].relative_to(config.pages_dir)
             if not content_template.parent.exists():
                 content_template.parent.mkdir(parents=True)
             content_template.write_text(page['content'])
             page['content_template'] = str(content_template.relative_to(tmp_dir))
-    return pages
 
 
 DL_REGEX = re.compile('<li>(.*?)::(.*?)</li>', re.S)

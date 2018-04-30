@@ -111,7 +111,6 @@ def update_site(args: UpdateArgs):  # noqa: C901 (ignore complexity)
 
         if full_build:
             pages = build_pages(config)
-            pages = content_templates(pages, config)
             SOM = dict(
                 pages=pages,
                 data=load_data(config),
@@ -119,22 +118,26 @@ def update_site(args: UpdateArgs):  # noqa: C901 (ignore complexity)
                 **config.dict(),
             )
             SOM = apply_modifiers(SOM, config.extensions.som_modifiers)
+            content_templates(SOM['pages'].values(), config)
         elif args.pages:
             start = time()
             page_builder = BuildPages(config)
             tmp_dir = config.get_tmp_dir()
+            to_update = set()
             for change, path in args.pages:
                 rel_path = str(path.relative_to(config.pages_dir))
                 if change == Change.deleted:
                     page = SOM['pages'][rel_path]
                     page['outfile'].unlink()
-                    (tmp_dir / page['content_template']).unlink()
+                    if 'content_template' in page:
+                        (tmp_dir / page['content_template']).unlink()
                     SOM['pages'].pop(rel_path)
                 else:
                     SOM['pages'][rel_path] = page_builder.prep_file(path)
+                    to_update.add(rel_path)
 
-            SOM['pages'] = content_templates(SOM['pages'], config)
             SOM = apply_modifiers(SOM, config.extensions.som_modifiers)
+            content_templates([SOM['pages'][k] for k in SOM['pages'] if k in to_update], config)
             log_complete(start, 'pages built', len(args.pages))
             args.templates = args.templates or any(change != Change.deleted for change, _ in args.pages)
 

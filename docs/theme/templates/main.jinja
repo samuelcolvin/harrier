@@ -24,7 +24,16 @@
     </header>
 
     <article>
+      <div>
       {{ content }}
+      </div>
+      <nav>
+        {% for slug, name in page.headings %}
+          <div>
+            <a href="#{{ slug }}">{{ name }}</a>
+          </div>
+        {% endfor %}
+      </nav>
     </article>
   </main>
 {% endblock %}

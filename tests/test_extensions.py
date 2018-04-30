@@ -13,6 +13,7 @@ def test_extensions_ok(tmpdir):
         'pages': {
             'foo.md': '# foo',
             'bar.html': '{{ 4|add_one }} {{ site.dynamic }}',
+            'spam.html': 'before'
         },
         'theme/templates/main.jinja': '{{ content }}',
         'extensions.py': """
@@ -24,8 +25,13 @@ def modify_foo(page, config):
     return page
 
 @modify.som
-def post_build(site):
+def add_var(site):
     site['dynamic'] = 42
+    return site
+
+@modify.som
+def change_pages(site):
+    site['pages']['spam.html']['content'] = 'after'
     return site
 
 @template.filter
@@ -42,6 +48,9 @@ def add_one(v):
         'bar': {
             'index.html': '5 42\n',
         },
+        'spam': {
+            'index.html': 'after\n',
+        }
     }
 
 

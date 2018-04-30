@@ -42,7 +42,7 @@ def test_dev_simple(tmpdir, mocker, loop):
 
     assert not tmpdir.join('dist').check()
 
-    dev(str(tmpdir), 8000)
+    dev(str(tmpdir), 25698)
 
     # debug(gettree(tmpdir.join('dist')))
     assert gettree(tmpdir.join('dist')) == {
@@ -260,3 +260,70 @@ def test_harrier_watcher(tmpdir):
     assert watcher.should_watch_dir(Entry(tmpdir.join('pages')))
     assert watcher.should_watch_dir(Entry(tmpdir.join('pages/whatever')))
     harrier.dev.CONFIG = None
+
+
+def test_dev_extensions(tmpdir, mocker, loop):
+    async def awatch_alt(*args, **kwargs):
+        yield {(Change.modified, str(tmpdir.join('pages/foobar.html')))}
+        yield {(Change.modified, str(tmpdir.join('pages/foobar.html')))}
+
+    asyncio.set_event_loop(loop)
+    mktree(tmpdir, {
+        'pages': {
+            'foobar.html': 'before',
+        },
+        'call': '0',
+        'extensions.py': """
+from pathlib import Path
+from harrier.extensions import modify, template
+p = Path(__file__).parent / 'call'
+
+@modify.som
+def change_pages(site):
+    v = int(p.read_text())
+    v += 1
+    p.write_text(str(v))
+    site['pages']['foobar.html']['content'] = str(v)
+    return site
+        """
+    })
+    mocker.patch('harrier.dev.awatch', side_effect=awatch_alt)
+    mocker.patch('harrier.dev.Server', return_value=MockServer())
+
+    assert not tmpdir.join('dist').check()
+
+    dev(str(tmpdir), 8000)
+
+    # debug(gettree(tmpdir.join('dist')))
+    assert gettree(tmpdir.join('dist')) == {
+        'foobar': {
+            'index.html': '3\n',
+        },
+    }
+
+
+def test_dev_delete_image(tmpdir, mocker, loop):
+    async def awatch_alt(*args, **kwargs):
+        yield {(Change.deleted, str(tmpdir.join('pages/other/whatever.png')))}
+
+    asyncio.set_event_loop(loop)
+    mktree(tmpdir, {
+        'pages': {
+            'foobar.html': 'hello',
+            'other/whatever.png': '*',
+        },
+    })
+    mocker.patch('harrier.dev.awatch', side_effect=awatch_alt)
+    mocker.patch('harrier.dev.Server', return_value=MockServer())
+
+    assert not tmpdir.join('dist').check()
+
+    dev(str(tmpdir), 8000)
+
+    # debug(gettree(tmpdir.join('dist')))
+    assert gettree(tmpdir.join('dist')) == {
+        'foobar': {
+            'index.html': 'hello\n',
+        },
+        'other': {},
+    }

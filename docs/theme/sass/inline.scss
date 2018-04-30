@@ -101,6 +101,15 @@ header {
 
 article {
   padding: 10px 20px;
+  display: flex;
+  grid-template-columns: auto auto;
+}
+
+nav {
+  width: 400px;
+  a {
+    color: #888;
+  }
 }
 
 @media (min-width: $narrowp) {

@@ -61,7 +61,6 @@ def build(path: StrPath, steps: Set[BuildSteps]=None, mode: Optional[Mode]=None)
 
         if BuildSteps.pages in steps:
             pages = build_pages(config)
-            pages = content_templates(pages, config)
         # this will raise errors if any of the above went wrong
         [f.result() for f in futures if f]
 
@@ -77,6 +76,7 @@ def build(path: StrPath, steps: Set[BuildSteps]=None, mode: Optional[Mode]=None)
         som = apply_modifiers(som, config.extensions.som_modifiers)
 
     if som['pages'] is not None:
+        content_templates(som['pages'].values(), config)
         render_pages(config, som)
     return som
 

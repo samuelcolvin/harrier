@@ -144,8 +144,8 @@ def test_build_simple_som(tmpdir):
     )
 
     som = config.dict()
-    pages = build_pages(config)
-    som['pages'] = content_templates(pages, config)
+    som['pages'] = build_pages(config)
+    content_templates(som['pages'].values(), config)
     source_dir = Path(tmpdir)
     # debug(som)
     assert {
