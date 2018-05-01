@@ -189,7 +189,7 @@ def get_path_lookup(config: Config, pages=None):
             d[path_name] = rel_path, False
     if pages:
         for p in pages.values():
-            if p.get('render'):
+            if p.get('outfile'):
                 uri = p['uri'].strip('/')
                 d[uri] = uri, True
     return d

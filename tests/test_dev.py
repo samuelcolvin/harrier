@@ -42,16 +42,16 @@ def test_dev_simple(tmpdir, mocker, loop):
 
     assert not tmpdir.join('dist').check()
 
-    dev(str(tmpdir), 8000)
+    dev(str(tmpdir), 25698)
 
     # debug(gettree(tmpdir.join('dist')))
     assert gettree(tmpdir.join('dist')) == {
         'foobar': {
-            'index.html': '<h1>hello</h1>\n\n<p>2</p>\n',
+            'index.html': '<h1 id="1-hello">hello</h1>\n\n<p>2</p>\n',
         },
         'features': {
             'whatever': {
-                'index.html': '<h2>Foo</h2>\n',
+                'index.html': '<h2 id="2-foo">Foo</h2>\n',
             },
         },
     }
@@ -64,8 +64,8 @@ def test_dev_delete(tmpdir, mocker, loop):
     asyncio.set_event_loop(loop)
     mktree(tmpdir, {
         'pages': {
-            'foobar.md': '# hello',
-            'features/whatever.md': '## Foo',
+            'foobar.md': 'hello',
+            'features/whatever.md': 'Foo',
         },
     })
     mocker.patch('harrier.dev.awatch', side_effect=awatch_alt)
@@ -78,7 +78,7 @@ def test_dev_delete(tmpdir, mocker, loop):
     # debug(gettree(tmpdir.join('dist')))
     assert gettree(tmpdir.join('dist')) == {
         'foobar': {
-            'index.html': '<h1>hello</h1>\n',
+            'index.html': '<p>hello</p>\n',
         },
         'features': {
             'whatever': {},
@@ -94,7 +94,7 @@ def test_extensions_error(tmpdir, mocker, loop):
     asyncio.set_event_loop(loop)
     mktree(tmpdir, {
         'pages': {
-            'foobar.md': '# hello',
+            'foobar.md': '**hello**',
         },
         'theme/templates/main.jinja': 'main:\n {{ content }}',
         'harrier.yml': 'default_template: main.jinja',
@@ -109,7 +109,7 @@ def test_extensions_error(tmpdir, mocker, loop):
 
     assert gettree(tmpdir.join('dist')) == {
         'foobar': {
-            'index.html': 'main:\n <h1>hello</h1>\n',
+            'index.html': 'main:\n <p><strong>hello</strong></p>\n',
         },
     }
 
@@ -260,3 +260,70 @@ def test_harrier_watcher(tmpdir):
     assert watcher.should_watch_dir(Entry(tmpdir.join('pages')))
     assert watcher.should_watch_dir(Entry(tmpdir.join('pages/whatever')))
     harrier.dev.CONFIG = None
+
+
+def test_dev_extensions(tmpdir, mocker, loop):
+    async def awatch_alt(*args, **kwargs):
+        yield {(Change.modified, str(tmpdir.join('pages/foobar.html')))}
+        yield {(Change.modified, str(tmpdir.join('pages/foobar.html')))}
+
+    asyncio.set_event_loop(loop)
+    mktree(tmpdir, {
+        'pages': {
+            'foobar.html': 'before',
+        },
+        'call': '0',
+        'extensions.py': """
+from pathlib import Path
+from harrier.extensions import modify, template
+p = Path(__file__).parent / 'call'
+
+@modify.som
+def change_pages(site):
+    v = int(p.read_text())
+    v += 1
+    p.write_text(str(v))
+    site['pages']['foobar.html']['content'] = str(v)
+    return site
+        """
+    })
+    mocker.patch('harrier.dev.awatch', side_effect=awatch_alt)
+    mocker.patch('harrier.dev.Server', return_value=MockServer())
+
+    assert not tmpdir.join('dist').check()
+
+    dev(str(tmpdir), 8000)
+
+    # debug(gettree(tmpdir.join('dist')))
+    assert gettree(tmpdir.join('dist')) == {
+        'foobar': {
+            'index.html': '3\n',
+        },
+    }
+
+
+def test_dev_delete_image(tmpdir, mocker, loop):
+    async def awatch_alt(*args, **kwargs):
+        yield {(Change.deleted, str(tmpdir.join('pages/other/whatever.png')))}
+
+    asyncio.set_event_loop(loop)
+    mktree(tmpdir, {
+        'pages': {
+            'foobar.html': 'hello',
+            'other/whatever.png': '*',
+        },
+    })
+    mocker.patch('harrier.dev.awatch', side_effect=awatch_alt)
+    mocker.patch('harrier.dev.Server', return_value=MockServer())
+
+    assert not tmpdir.join('dist').check()
+
+    dev(str(tmpdir), 8000)
+
+    # debug(gettree(tmpdir.join('dist')))
+    assert gettree(tmpdir.join('dist')) == {
+        'foobar': {
+            'index.html': 'hello\n',
+        },
+        'other': {},
+    }

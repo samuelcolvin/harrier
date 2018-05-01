@@ -16,7 +16,7 @@ def test_blank():
 
 def test_build(tmpdir, mocker):
     mktree(tmpdir, {
-        'pages/foobar.md': '# hello',
+        'pages/foobar.md': 'hello',
         'theme/templates/main.jinja': 'main:\n {{ content }}',
         'harrier.yml': (
             'webpack: {run: false}\n'
@@ -34,7 +34,7 @@ def test_build(tmpdir, mocker):
     assert tmpdir.join('dist').check()
     assert gettree(tmpdir.join('dist')) == {
         'foobar': {
-            'index.html': 'main:\n <h1>hello</h1>\n',
+            'index.html': 'main:\n <p>hello</p>\n',
         },
     }
     assert mock_mod.call_count == 2

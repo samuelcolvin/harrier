@@ -54,7 +54,6 @@ class BuildPages:
 
     def __init__(self, config: Config):
         self.config = config
-        self.tmp_dir = config.get_tmp_dir()
         self.files = 0
         self.template_files = 0
 
@@ -80,9 +79,8 @@ class BuildPages:
         path_ref = '/' + os.path.normcase(str(p.relative_to(self.config.pages_dir)))
         if any(path_match(path_ref) for path_match in self.config.ignore):
             return
-        html_output = p.suffix in OUTPUT_HTML
 
-        data, apply_template = self.get_page_data(p, html_output, path_ref)
+        data, pass_through = self.get_page_data(p, path_ref)
 
         for path_match, f in self.config.extensions.page_modifiers:
             if path_match(path_ref):
@@ -96,25 +94,19 @@ class BuildPages:
                     raise ExtensionError(f'extension "{f.__name__}" did not return a dict')
 
         fd = FileData(**data)
-        final_data = fd.dict(exclude=set() if apply_template else {'template', 'render'})
-        final_data['__file__'] = 1
+        final_data = fd.dict(exclude={'template', 'render'} if pass_through else set())
+        final_data['pass_through'] = bool(pass_through)
 
-        if apply_template and fd.render:
-            if not fd.content_template.parent.exists():
-                fd.content_template.parent.mkdir(parents=True)
-            fd.content_template.write_text(final_data.pop('content'))
-            final_data['content_template'] = str(fd.content_template.relative_to(self.tmp_dir))
-        else:
-            final_data.pop('content_template')
-
-        # logger.debug('added %s apply_template: %s, outfile %s', p, apply_template, fd.outfile)
+        # logger.debug('added %s pass_through: %s, outfile %s', p, pass_through, fd.outfile)
         self.files += 1
-        if apply_template:
+        if not pass_through:
             self.template_files += 1
 
         return final_data
 
-    def get_page_data(self, p, html_output, path_ref):  # noqa: C901 (ignore complexity)
+    def get_page_data(self, p, path_ref):  # noqa: C901 (ignore complexity)
+        html_output = p.suffix in OUTPUT_HTML
+        maybe_render = p.suffix in MAYBE_RENDER
         name = p.stem if html_output else p.name
 
         date_match = DATE_REGEX.match(name)
@@ -127,7 +119,6 @@ class BuildPages:
 
         data = {
             'infile': p,
-            'content_template': self.tmp_dir / 'content' / p.relative_to(self.config.pages_dir),
             'template': self.config.default_template,
             'title': name,
             'slug': '' if html_output and p.stem == 'index' else slugify(name),
@@ -138,14 +129,15 @@ class BuildPages:
             if path_match(path_ref):
                 data.update(defaults)
 
-        maybe_render = p.suffix in MAYBE_RENDER
-        apply_template = data.get('apply_template', None)
-        if apply_template is not False and html_output or maybe_render:
+        pass_through = data.get('pass_through')
+        if not pass_through and (html_output or maybe_render):
             fm_data, content = parse_front_matter(p.read_text())
             if html_output or fm_data:
                 data['content'] = content
                 fm_data and data.update(fm_data)
-                apply_template = True
+
+        if 'content' not in data:
+            pass_through = True
 
         uri = data.get('uri')
         if not uri:
@@ -165,10 +157,26 @@ class BuildPages:
             if html_output and outfile.suffix != '.html':
                 outfile /= 'index.html'
             data['outfile'] = outfile
-        return data, apply_template
+        return data, pass_through
 
 
-class HighlighterRenderer(HtmlRenderer):
+def content_templates(pages, config):
+    tmp_dir = config.get_tmp_dir()
+    for page in pages:
+        if not page['pass_through']:
+            content_template = tmp_dir / 'content' / page['infile'].relative_to(config.pages_dir)
+            if not content_template.parent.exists():
+                content_template.parent.mkdir(parents=True)
+            content_template.write_text(page['content'])
+            page['content_template'] = str(content_template.relative_to(tmp_dir))
+
+
+DL_REGEX = re.compile('<li>(.*?)::(.*?)</li>', re.S)
+LI_REGEX = re.compile('<li>(.*?)</li>', re.S)
+MD_EXTENSIONS = 'fenced-code', 'strikethrough', 'no-intra-emphasis', 'tables', 'underline'
+
+
+class HarrierHtmlRenderer(HtmlRenderer):
     def blockcode(self, text, lang):
         try:
             lexer = get_lexer_by_name(lang, stripall=True)
@@ -182,6 +190,15 @@ class HighlighterRenderer(HtmlRenderer):
         code = escape_html(text.strip())
         return f'<pre><code>{code}</code></pre>\n'
 
+    def list(self, content, is_ordered, is_block):
+        if not is_ordered and len(DL_REGEX.findall(content)) == len(LI_REGEX.findall(content)):
+            return '<dl>\n' + DL_REGEX.sub(r'  <dt>\1</dt><dd>\2</dd>', content) + '</dl>'
+        else:
+            return content
+
+    def header(self, content, level):
+        return f'<h{level} id="{level}-{slugify(content)}">{content}</h{level}>\n'
+
 
 class Renderer:
     __slots__ = 'config', 'som', 'build_cache', 'md', 'env', 'checked_dirs'
@@ -191,8 +208,8 @@ class Renderer:
         self.som = som
         self.build_cache = build_cache
 
-        md_renderer = HighlighterRenderer()
-        self.md = Markdown(md_renderer, extensions=('fenced-code',))
+        md_renderer = HarrierHtmlRenderer()
+        self.md = Markdown(md_renderer, extensions=MD_EXTENSIONS)
 
         template_dirs = [str(self.config.get_tmp_dir()), str(self.config.theme_dir / 'templates')]
         logger.debug('template directories: %s', ', '.join(template_dirs))
@@ -240,19 +257,16 @@ class Renderer:
     def render_template(self, p: dict, infile: Path, outfile: Path):
         template_file = p['template']
         try:
-            if p['render']:
-                content_template = self.env.get_template(str(p['content_template']))
-                content = content_template.render(page=p, site=self.som)
-            else:
-                content = p['content']
+            content_template = self.env.get_template(str(p['content_template']))
+            content = content_template.render(page=p, site=self.som)
 
             content = split_content(content)
 
             if infile.suffix == '.md':
                 if isinstance(content, dict):
-                    content = {k: self.md(v) for k, v in content.items()}
+                    content = {k: self._md_content(v) for k, v in content.items()}
                 elif isinstance(content, list):
-                    content = [self.md(v) for v in content]
+                    content = [self._md_content(v) for v in content]
                 else:
                     # assumes content is a str
                     content = self.md(content)
@@ -277,6 +291,10 @@ class Renderer:
                     self.build_cache[infile] = out_hash
             outfile.write_bytes(rendered_b)
             return 1
+
+    def _md_content(self, v):
+        v['content'] = self.md(v['content'])
+        return v
 
     def copy_file(self, p: dict, infile: Path, outfile: Path):
         if self.build_cache is not None:
@@ -304,11 +322,9 @@ def parse_front_matter(s, regex=FRONT_MATTER_START_REGEX):
 
 def _parse_section_content(s):
     data, content = parse_front_matter(s, FRONT_MATTER_DIVIDER_EXTRA_REGEX)
-    if data is None:
-        return content
-    else:
-        data['content'] = content
-        return data
+    data = data or {}
+    data['content'] = content
+    return data
 
 
 def split_content(s):
@@ -337,18 +353,16 @@ def split_content(s):
     elif '.' in names:
         raise HarrierProblem(f'badly constructed multi-part front matter, dividers indicate a mix of list and dict')
     else:
-        return {k: v for k, v in content if v}
+        return {k: v for k, v in content if v['content']}
 
 
 class FileData(BaseModel):
     infile: Path
-    content_template: Path
     title: str
     slug: str
     created: datetime
     uri: str
     template: Optional[str]
-    render: bool = True
     outfile: Path = None
 
     @validator('uri')

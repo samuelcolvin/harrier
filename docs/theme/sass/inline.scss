@@ -1,24 +1,152 @@
-//$background-colour: #F6F9FC;
-$background-colour: white;
-@import 'pygments/autumn';
+$back-right: #f5f7f9;
+$head-back: #42587f;
+//$main-back: #ECEFF1;
+//$main-back: #E0F7FA;
+//$main-back: #e5f3f5;
+//$main-back: #fafafa;
+//$main-back: #fefeff;
+$code-back: $back-right;
+@import 'pygments/friendly';
+
+$main-front: 'Source Sans Pro', sans-serif;
+$head-front: 'Titillium Web', sans-serif;
+
+$narrow: 1156px;
+$narrowp: $narrow + 1px;
 
 html, body {
-  margin: 0;
   padding: 0 0 10px;
-  background-color: $background-colour;
-  font-family: 'Ubuntu', sans-serif;
-  overflow-y: scroll;
-  font-size: 17px;
+  font-size: 18px;
+  font-family: $main-front;
+  color: #444;
 }
 
-.container {
-  max-width: 1140px;
-  margin: 0 auto;
+// ====================
+//  general
+// ====================
+
+a {
+  text-decoration: none;
 }
 
-@media (max-width: 1156px) {
-  .container {
-    margin-left: 8px;
-    margin-right: 8px;
+h1, h2, h3, h4, h5, h6 {
+  font-family: $head-front;
+}
+
+h1 {
+  font-size: 2rem;
+  padding: 0;
+  margin: 0 0 10px;
+}
+
+p {
+  margin: 0.5rem 0 1rem;
+}
+
+$code-border: 1px solid #DDD;
+code {
+  background: $code-back;
+  border-radius: 3px;
+  padding: 2px 4px;
+  font-size: 0.8rem;
+  color: #444;
+  border: $code-border;
+}
+
+pre {
+  padding: 10px;
+  border: $code-border;
+  code {
+    border: none;
+    padding: 0;
+  }
+}
+
+pre, div.hi {
+  margin: 15px 0;
+  line-height: 1.3em;
+  background: $code-back;
+  border-radius: 3px;
+  font-size: 0.8rem;
+}
+
+amp-img {
+  vertical-align: text-bottom;
+}
+
+// ====================
+//  specific
+// ====================
+
+article {
+  margin-top: 20px;
+  margin-left: auto;
+  padding: 0 1rem;
+  h2, h3 {
+    margin-left: -0.5em;
+  }
+}
+
+div.right {
+  display: none;
+  width: 30%;
+  padding: 10px 20px;
+  background: $back-right;
+  border-left: $code-border;
+}
+
+nav {
+  position: fixed;
+  h1 {
+    font-size: 2rem;
+    padding: 0;
+    margin: 0 0 10px;
+  }
+  a.badge {
+    display: block;
+    margin-bottom: 5px;
+  }
+  a.link {
+    display: block;
+    margin-bottom: 10px;
+    color: black;
+    opacity: 0.5;
+  }
+}
+
+dt {
+  font-weight: 700;
+}
+
+@media (min-width: $narrowp) {
+  main {
+    display: flex;
+    grid-template-columns: auto auto;
+  }
+  div.left {
+    width: 70%;
+  }
+  div.right {
+    display: block;
+  }
+  article {
+    max-width: 800px;
+    margin-top: 3rem;
+  }
+  dl {
+    display: grid;
+    grid-template-columns: 10rem auto;
+    grid-column-gap: 1rem;
+    grid-row-gap: 0.4rem;
+  }
+  dt {
+    font-weight: 700;
+    text-align: right;
+  }
+  dd {
+    margin-left: 0;
+  }
+  .narrow {
+    display: none;
   }
 }

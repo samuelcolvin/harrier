@@ -9,7 +9,7 @@ from typing import Optional, Set, Union
 import devtools
 
 from .assets import assets_grablib, get_path_lookup, run_webpack
-from .build import build_pages, render_pages
+from .build import build_pages, content_templates, render_pages
 from .common import completed_logger
 from .config import Mode, get_config
 from .data import load_data
@@ -76,6 +76,7 @@ def build(path: StrPath, steps: Set[BuildSteps]=None, mode: Optional[Mode]=None)
         som = apply_modifiers(som, config.extensions.som_modifiers)
 
     if som['pages'] is not None:
+        content_templates(som['pages'].values(), config)
         render_pages(config, som)
     return som
 

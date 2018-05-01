@@ -6,7 +6,7 @@ from pydantic import ValidationError
 from pytest_toolbox import gettree, mktree
 from pytest_toolbox.comparison import CloseToNow, RegexStr
 
-from harrier.build import FileData, build_pages, render_pages
+from harrier.build import FileData, build_pages, content_templates, render_pages
 from harrier.common import HarrierProblem, PathMatch
 from harrier.config import Config, Mode
 from harrier.main import build
@@ -20,7 +20,7 @@ def test_full_build(tmpdir):
                 '{{ resolve_url("theme/main.css") }}\n'
                 '{{ resolve_url("another") }}\n'
             ),
-            'another.md': '# hello'
+            'another.md': '# Hello'
         },
         'theme': {
             'sass/main.scss': 'body {width: 10px + 10px;}',
@@ -37,7 +37,7 @@ def test_full_build(tmpdir):
             ),
         },
         'another': {
-            'index.html': '<h1>hello</h1>\n'
+            'index.html': '<h1 id="1-hello">Hello</h1>\n'
         },
         'theme': {
             'main.a1ac3a7.css': 'body{width:20px}\n',
@@ -50,7 +50,7 @@ def test_build_no_templates(tmpdir):
     mktree(tmpdir, {
         'pages': {
             'foobar.md': (
-                '# whatever'
+                '### Whatever'
             ),
         },
     })
@@ -58,7 +58,7 @@ def test_build_no_templates(tmpdir):
     assert gettree(tmpdir.join('dist')) == {
         'foobar': {
             'index.html': (
-                '<h1>whatever</h1>\n'
+                '<h3 id="3-whatever">Whatever</h3>\n'
             ),
         },
     }
@@ -87,33 +87,21 @@ def test_simple_render(tmpdir):
                 'outfile': config.dist_dir / 'foobar.html',
                 'infile': config.pages_dir / 'foobar.md',
                 'template': 'main.jinja',
-                'render': True,
                 'content_template': Path('content') / 'foobar.md',
-                '__file__': 1,
-            },
-            'spam.html': {
-                'outfile': config.dist_dir / 'spam.html',
-                'infile': config.pages_dir / 'spam.html',
-                'template': None,
-                'render': False,
-                'content': '# SPAM',
-                '__file__': 1,
             },
             'favicon.ico': {
                 'outfile': config.dist_dir / 'favicon.ico',
                 'infile': config.pages_dir / 'favicon.ico',
-                '__file__': 1,
             },
         }
     }
     expected_tree = {
         'foobar.html': (
             'main, content:\n\n'
-            '<h1>hello</h1>\n\n'
+            '<h1 id="1-hello">hello</h1>\n\n'
             '<p>this is a test foo: </p>\n'
         ),
         'favicon.ico': '*',
-        'spam.html': '# SPAM\n'
     }
     assert not tmpdir.join('dist').check()
 
@@ -125,7 +113,7 @@ def test_simple_render(tmpdir):
 
     cache = render_pages(config, som, {})
     assert gettree(tmpdir.join('dist')) == expected_tree
-    assert len(cache) == 3
+    assert len(cache) == 2
 
     tmpdir.join('dist').remove(rec=1)
     assert not tmpdir.join('dist').check()
@@ -157,6 +145,7 @@ def test_build_simple_som(tmpdir):
 
     som = config.dict()
     som['pages'] = build_pages(config)
+    content_templates(som['pages'].values(), config)
     source_dir = Path(tmpdir)
     # debug(som)
     assert {
@@ -206,9 +195,13 @@ def test_build_simple_som(tmpdir):
                 'created': CloseToNow(),
                 'uri': '/foobar',
                 'template': None,
-                'render': True,
                 'outfile': source_dir / 'dist/foobar/index.html',
-                '__file__': 1,
+                'content': (
+                    '# hello\n'
+                    '\n'
+                    'this is a test foo: {{ foo }}'
+                ),
+                'pass_through': False,
             },
             'posts/2032-06-01-testing.html': {
                 'infile': source_dir / 'pages/posts/2032-06-01-testing.html',
@@ -218,9 +211,9 @@ def test_build_simple_som(tmpdir):
                 'created': datetime(2032, 6, 1, 0, 0),
                 'uri': '/foobar/testing.html',
                 'template': None,
-                'render': True,
                 'outfile': source_dir / 'dist/foobar/testing.html',
-                '__file__': 1,
+                'content': '# testing',
+                'pass_through': False,
             },
             'static/image.png': {
                 'infile': source_dir / 'pages/static/image.png',
@@ -229,7 +222,7 @@ def test_build_simple_som(tmpdir):
                 'created': CloseToNow(),
                 'uri': '/static/image.png',
                 'outfile': source_dir / 'dist/static/image.png',
-                '__file__': 1,
+                'pass_through': True,
             }
 
         },
@@ -317,12 +310,12 @@ def test_build_multi_part(tmpdir):
             'templates/': {
                 'list.jinja': (
                     '{% for v in content %}\n'
-                    '  {{ v}}\n'
+                    '  {{ v.content }}\n'
                     '{% endfor %}\n'
                 ),
                 'dict.jinja': (
-                    '{{ content.main }}\n'
-                    '{{ content.other }}\n'
+                    '{{ content.main.content }}\n'
+                    '{{ content.other.content }}\n'
                 ),
             },
         },
@@ -362,7 +355,7 @@ def test_ignore_no_template(tmpdir):
         'pages': {
             'ignore_this.md': 'this file is ignored',
             'normal.md': 'hello this is normal',
-            'no_template.md': 'this should be rendered as-is',
+            'no_template.md': 'this should be passed through as-is',
             'normal_but_no_output.md': (
                 '---\n'
                 'output: false\n'
@@ -379,13 +372,13 @@ def test_ignore_no_template(tmpdir):
             '- "**/ignore*"\n'
             'defaults:\n'
             '  "/no_temp*":\n'
-            '    apply_template: false\n'
+            '    pass_through: true\n'
         )
     })
     build(tmpdir, mode=Mode.production)
     assert gettree(tmpdir.join('dist')) == {
         'no_template': {
-            'index.html': 'this should be rendered as-is',
+            'index.html': 'this should be passed through as-is',
         },
         'normal': {
             'index.html': 'rendered <p>hello this is normal</p>\n',
@@ -522,6 +515,40 @@ def test_render_code_unknown_lang(tmpdir):
     assert tmpdir.join('dist/foobar/index.html').read_text('utf8') == (
         '<p>testing</p>\n'
         '<pre><code>x = 4</code></pre>\n'
+    )
+
+
+def test_list_not_dd(tmpdir):
+    mktree(tmpdir, {
+        'pages': {
+            'foobar.md': (
+                '* whatever\n'
+                '* thing:: other\n'
+            ),
+        },
+    })
+    build(tmpdir, mode=Mode.production)
+    assert tmpdir.join('dist/foobar/index.html').read_text('utf8') == (
+        '<li>whatever</li>\n'
+        '<li>thing:: other</li>\n'
+    )
+
+
+def test_list_dd(tmpdir):
+    mktree(tmpdir, {
+        'pages': {
+            'foobar.md': (
+                '* name:: whatever\n'
+                '* thing:: other\n'
+            ),
+        },
+    })
+    build(tmpdir, mode=Mode.production)
+    assert tmpdir.join('dist/foobar/index.html').read_text('utf8') == (
+        '<dl>\n'
+        '  <dt>name</dt><dd> whatever</dd>\n'
+        '  <dt>thing</dt><dd> other</dd>\n'
+        '</dl>\n'
     )
 
 
