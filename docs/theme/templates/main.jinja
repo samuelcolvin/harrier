@@ -14,6 +14,16 @@
 
 {% macro intro() %}
   <h1>harrier</h1>
+  <a href="https://github.com/samuelcolvin/harrier" class="badge">
+    <amp-img
+      src="{{ url('images/github.png') }}"
+      alt="github"
+      width="20"
+      height="20"
+      layout="fixed">
+    </amp-img>
+    samuelcolvin/harrier
+  </a>
   {{ badge('https://travis-ci.org/samuelcolvin/harrier', 'https://travis-ci.org/samuelcolvin/harrier.svg?branch=master', 'build status', 100) }}
   {{ badge('https://codecov.io/gh/samuelcolvin/harrier', 'https://codecov.io/gh/samuelcolvin/harrier/branch/master/graph/badge.svg', 'coverage', 106) }}
   {{ badge('https://pypi.org/project/harrier/', url('images/version_badge.svg'), 'pypi version', 80) }}

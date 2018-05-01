@@ -96,12 +96,17 @@ div.right {
   border-left: $code-border;
 }
 
+a.badge {
+  color: black;
+  margin-right: 5px;
+}
+
 nav {
   position: fixed;
   h1 {
     font-size: 2rem;
     padding: 0;
-    margin: 0 0 10px;
+    margin: 0 0 12px;
   }
   a.badge {
     display: block;
