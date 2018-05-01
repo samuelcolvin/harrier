@@ -1,7 +1,7 @@
 import re
 
 from harrier.build import slugify
-from harrier.extensions import modify, template
+from harrier.extensions import modify
 
 
 @modify.pages('/index.md')

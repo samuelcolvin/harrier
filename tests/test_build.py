@@ -156,6 +156,7 @@ def test_build_simple_som(tmpdir):
             'config_modifiers': [],
             'som_modifiers': [],
             'page_modifiers': [],
+            'copy_modifiers': [],
             'template_filters': {},
             'template_functions': {},
         },

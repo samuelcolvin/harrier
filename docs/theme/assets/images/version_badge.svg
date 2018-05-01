@@ -14,7 +14,7 @@
   <g fill="#fff" text-anchor="middle" font-family="DejaVu Sans,Verdana,Geneva,sans-serif" font-size="110">
     <text x="175" y="150" fill="#010101" fill-opacity=".3" transform="scale(.1)" textLength="230">pypi</text>
     <text x="175" y="140" transform="scale(.1)" textLength="230">pypi</text>
-    <text x="545" y="150" fill="#010101" fill-opacity=".3" transform="scale(.1)">v0.1</text>
-    <text x="545" y="140" transform="scale(.1)">v0.1</text>
+    <text x="545" y="150" fill="#010101" fill-opacity=".3" transform="scale(.1)">v{version}</text>
+    <text x="545" y="140" transform="scale(.1)">v{version}</text>
   </g>
 </svg>

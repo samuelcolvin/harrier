@@ -23,6 +23,7 @@ class ExtType(str, Enum):
     config_modifiers = 'config_modifiers'
     som_modifiers = 'som_modifiers'
     page_modifiers = 'page_modifiers'
+    copy_modifiers = 'copy_modifiers'
     template_filters = 'template_filters'
     template_functions = 'template_functions'
 
@@ -43,6 +44,7 @@ class Extensions:
         self.config_modifiers = self._extensions[ExtType.config_modifiers]
         self.som_modifiers = self._extensions[ExtType.som_modifiers]
         self.page_modifiers = self._extensions[ExtType.page_modifiers]
+        self.copy_modifiers = self._extensions[ExtType.copy_modifiers]
         self.template_filters = self._extensions[ExtType.template_filters]
         self.template_functions = self._extensions[ExtType.template_functions]
 
@@ -61,6 +63,7 @@ class Extensions:
             ExtType.config_modifiers: [],
             ExtType.som_modifiers: [],
             ExtType.page_modifiers: [],
+            ExtType.copy_modifiers: [],
             ExtType.template_filters: {},
             ExtType.template_functions: {},
         }
@@ -78,7 +81,7 @@ class Extensions:
                     continue
                 attr = getattr(module, attr_name)
                 ext_type = getattr(attr, '__extension__', None)
-                if ext_type == ExtType.page_modifiers:
+                if ext_type in {ExtType.page_modifiers, ExtType.copy_modifiers}:
                     self._extensions[ext_type].extend([(path_match, attr) for path_match in attr.path_matches])
                 elif ext_type:
                     self._extensions[ext_type].append(attr)
@@ -123,16 +126,24 @@ class modify:
         f.__extension__ = ExtType.som_modifiers
         return f
 
+    @classmethod
+    def pages(cls, *globs):
+        return cls._file_glob_add(globs, ExtType.page_modifiers, 'pages')
+
+    @classmethod
+    def copy(cls, *globs):
+        return cls._file_glob_add(globs, ExtType.copy_modifiers, 'copy')
+
     @staticmethod
-    def pages(*globs):
+    def _file_glob_add(globs, key: ExtType, name):
         if not globs:
-            raise HarrierProblem('validator with no page globs specified')
+            raise HarrierProblem(f'modify.{name} with no file globs specified')
         elif isinstance(globs[0], FunctionType):
-            raise HarrierProblem("modify_pages should be used with page globs as arguments, not bare. "
-                                 "E.g. usage should be `@modify_pages('<page_glob>', ...)`")
+            raise HarrierProblem(f"modify.{name} should be used with page globs as arguments, not bare. "
+                                 f"E.g. usage should be `@modify.{name}('<file_glob>', ...)`")
 
         def dec(f):
-            f.__extension__ = ExtType.page_modifiers
+            f.__extension__ = key
             f.path_matches = [PathMatch(glob) for glob in globs]
             return f
         return dec

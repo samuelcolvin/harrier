@@ -14,6 +14,7 @@ from pygments.formatters.html import HtmlFormatter
 
 from .common import HarrierProblem, log_complete
 from .config import Config, Mode
+from .extensions import ExtensionError
 
 logger = logging.getLogger('harrier.assets')
 
@@ -95,7 +96,22 @@ def copy_assets(config: Config):
         if config.mode == Mode.production:
             out_path = insert_hash(out_path, in_path.read_bytes())
         out_path.parent.mkdir(parents=True, exist_ok=True)
-        shutil.copy(in_path, out_path)
+
+        config.extensions.load()
+        path_ref = '/' + os.path.normcase(str(in_path.relative_to(in_dir)))
+        applied_extension = False
+        for path_match, f in config.extensions.copy_modifiers:
+            if path_match(path_ref):
+                try:
+                    applied_extension = f(in_path, out_path, config=config)
+                except Exception as e:
+                    logger.exception('%s error running copy extension %s', in_path, f.__name__)
+                    raise ExtensionError(str(e)) from e
+                if applied_extension:
+                    break
+
+        if not applied_extension:
+            shutil.copy(in_path, out_path)
         copied += 1
     logger.debug('copied %d theme assets from "%s" to "%s"',
                  copied, in_dir.relative_to(config.source_dir), out_dir.relative_to(config.dist_dir))

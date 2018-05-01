@@ -187,7 +187,7 @@ def modify_pages(data, config):
     })
     with pytest.raises(HarrierProblem) as exc_info:
         Extensions.validate(Path(tmpdir.join('foobar.py')))
-    assert exc_info.value.args[0].startswith('modify_pages should be used with page globs as arguments, not bare.')
+    assert exc_info.value.args[0].startswith('modify.pages should be used with page globs as arguments, not bare.')
 
 
 def test_page_modifier_no_args(tmpdir):
@@ -202,4 +202,61 @@ def modify_pages(data, config):
     })
     with pytest.raises(HarrierProblem) as exc_info:
         Extensions.validate(Path(tmpdir.join('foobar.py')))
-    assert exc_info.value.args[0] == 'validator with no page globs specified'
+    assert exc_info.value.args[0] == 'modify.pages with no file globs specified'
+
+
+def test_copy_extensions(tmpdir):
+    mktree(tmpdir, {
+        'pages': {
+            'index.html': 'hello',
+        },
+        'theme/assets': {
+            'image1.png': 'a',
+            'image2.png': 'c',
+            'foo/bar.svg': 'c',
+        },
+        'extensions.py': """
+from harrier.extensions import modify, template
+
+@modify.copy('/foo/*')
+def modify_foo(in_path, out_path, config):
+    out_path.write_text(f'{in_path.name} {in_path.read_text()} custom')
+    return 1  # prevent default copy
+
+@modify.copy('/image2.png')
+def print_in_path(in_path, out_path, config):
+    out_path.with_name(out_path.name + '.alt').write_bytes(in_path.read_bytes() + b'2')
+    # return nothing so normal copy also happens
+    """
+    })
+
+    build(str(tmpdir))
+    assert gettree(tmpdir.join('dist')) == {
+        'index.html': 'hello\n',
+        'foo': {
+            'bar.4a8a08f.svg': 'bar.svg c custom',
+        },
+        'image1.0cc175b.png': 'a',
+        'image2.4a8a08f.png': 'c',
+        'image2.4a8a08f.png.alt': 'c2',
+    }
+
+
+def test_copy_extensions_error(tmpdir):
+    mktree(tmpdir, {
+        'pages': {
+            'index.html': 'hello',
+        },
+        'theme/assets': {
+            'foo/bar.svg': 'b',
+        },
+        'extensions.py': """
+from harrier.extensions import modify, template
+
+@modify.copy('/foo/*')
+def modify_foo(in_path, out_path, config):
+    raise RuntimeError('x')
+    """
+    })
+    with pytest.raises(ExtensionError):
+        build(str(tmpdir))
