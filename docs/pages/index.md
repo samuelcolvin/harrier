@@ -1,8 +1,9 @@
 ---
-title: harrier
+title: 'harrier | A better static site generator'
+description: 'Fast builds with first class jinja, scss, webpack support and CDN compatibility'
 ---
 
-A static site generator.
+A better static site generator.
 
 Harrier exists because other static site generators like
 *jekyll*, *hugo*, *mkdocs* and *gatsby* didn't suffice.
@@ -17,8 +18,8 @@ where possible to save even more time
 * frontmatter:: extended frontmatter, like jekyll's frontmatter but on steroids.
 * sass:: support built in for effortless development and optimised deploys.
 * webpack:: for 21st century javascript development.
-* url hashes:: all assets ar renamed `whatever.[hash].ext`, meaning guarenteed content update after a deploy.
-  These paths are reflected in templates and sass using custom lookup functions.
+* url hashes:: all assets ar renamed `whatever.[hash].ext`, meaning good CDN compatibility and guarenteed content
+  update after a deploy. These paths are reflected in templates and sass using custom lookup functions.
 * simple:: sass, markdown, extensions, webpack just work with no complex faff.
 
 
@@ -75,7 +76,7 @@ The files required to build a comprehensive site look like this:
   and production builds
 * `pages`:: contains `.md` and `.html` files which are built to form the site
 * `theme/sass`:: `.sass` and `.scss` files to compile into `.css` files
-* `theme/templates`:: jinja templates used to build the site 
+* `theme/templates`:: jinja templates used to build the site
 * `theme/assets`:: any other files used in the site, eg. images. These will be copied into the root of your site
 
 Which will build the following site:
@@ -113,7 +114,7 @@ equates to page data
 }
 ```
 
-and content 
+and content
 
 ```markdown
 This is the content
@@ -151,7 +152,7 @@ equates to page data
 }
 ```
 
-and page content 
+and page content
 
 ```json
 [
@@ -195,7 +196,7 @@ equates to page data
 }
 ```
 
-and page content 
+and page content
 
 ```json
 {

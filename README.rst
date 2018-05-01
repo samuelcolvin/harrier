@@ -3,7 +3,9 @@ harrier
 
 |BuildStatus| |Coverage| |pypi|
 
-Static site generator.
+A better static site generator.
+
+See `documentation`_ for more details.
 
 .. |BuildStatus| image:: https://travis-ci.org/samuelcolvin/harrier.svg?branch=master
    :target: https://travis-ci.org/samuelcolvin/harrier
@@ -11,3 +13,4 @@ Static site generator.
    :target: https://codecov.io/gh/samuelcolvin/harrier
 .. |pypi| image:: https://img.shields.io/pypi/v/harrier.svg
    :target: https://pypi.python.org/pypi/harrier
+.. _documentation: https://harrier.helpmanual.io/
