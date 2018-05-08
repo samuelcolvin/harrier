@@ -6,10 +6,11 @@ from pydantic import ValidationError
 from pytest_toolbox import gettree, mktree
 from pytest_toolbox.comparison import CloseToNow, RegexStr
 
-from harrier.build import FileData, build_pages, content_templates, render_pages
+from harrier.build import FileData, build_pages, content_templates
 from harrier.common import HarrierProblem, PathMatch
 from harrier.config import Config, Mode
 from harrier.main import build
+from harrier.render import json_function, render_pages
 
 
 def test_full_build(tmpdir):
@@ -551,6 +552,68 @@ def test_list_dd(tmpdir):
         '  <dt>thing</dt><dd> other</dd>\n'
         '</dl>\n'
     )
+
+
+@pytest.mark.parametrize('input,output', [
+    (
+        '{{ json([1,2,3]) }}',
+        '[1, 2, 3]\n'
+    ),
+    (
+        '{{ debug([1,2,3]) }}',
+        (
+            '<pre style="white-space: pre-wrap;">\n'
+            "  type: &lt;class &#x27;list&#x27;&gt;\n"
+            'length: 3\n'
+            '  json: [\n'
+            '  1,\n'
+            '  2,\n'
+            '  3\n'
+            ']\n'
+            '</pre>\n'
+        )
+    ),
+    (
+        '{{ debug(123) }}',
+        (
+            '<pre style="white-space: pre-wrap;">\n'
+            "  type: &lt;class &#x27;int&#x27;&gt;\n"
+            'length: -\n'
+            '  json: 123\n'
+            '</pre>\n'
+        )
+    ),
+    (
+        '{{ markdown("this is some **markdown**") }}',
+        (
+            '<p>this is some <strong>markdown</strong></p>\n'
+        )
+    ),
+])
+def test_jinja_functions(input, output, tmpdir):
+    mktree(tmpdir, {
+        'pages/index.html': input
+    })
+    build(tmpdir, mode=Mode.production)
+    assert tmpdir.join('dist/index.html').read_text('utf8') == output
+
+
+@pytest.mark.parametrize('input,output', [
+    (
+        {'x': datetime(2032, 6, 1)},
+        '{"x": "2032-06-01T00:00:00"}'
+    ),
+    (
+        {'x': b'123'},
+        '{"x": "123"}'
+    ),
+    (
+        {'x': type('Foobar', (), {'__repr__': lambda s: 'Foobar repr output'})()},
+        '{"x": "Foobar repr output"}'
+    ),
+])
+def test_json_function(input, output):
+    assert json_function(input) == output
 
 
 def test_file_data_ok():

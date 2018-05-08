@@ -14,11 +14,12 @@ from pydantic import BaseModel
 from watchgod import Change, DefaultWatcher, awatch
 
 from .assets import copy_assets, get_path_lookup, run_grablib, start_webpack_watch
-from .build import BuildPages, build_pages, content_templates, render_pages
+from .build import BuildPages, build_pages, content_templates
 from .common import HarrierProblem, log_complete
 from .config import Config, get_config
 from .data import load_data
 from .extensions import apply_modifiers
+from .render import render_pages
 
 HOST = '0.0.0.0'
 logger = logging.getLogger('harrier.dev')

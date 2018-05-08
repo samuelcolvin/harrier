@@ -9,12 +9,13 @@ from typing import Optional, Set, Union
 import devtools
 
 from .assets import assets_grablib, get_path_lookup, run_webpack
-from .build import build_pages, content_templates, render_pages
+from .build import build_pages, content_templates
 from .common import completed_logger
 from .config import Mode, get_config
 from .data import load_data
 from .dev import adev
 from .extensions import apply_modifiers
+from .render import render_pages
 
 logger = logging.getLogger('harrier.main')
 StrPath = Union[str, Path]

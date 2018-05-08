@@ -9,6 +9,7 @@ from pydantic.validators import str_validator
 from ruamel.yaml import YAML
 
 yaml = YAML(typ='safe')
+URI_NOT_ALLOWED = re.compile(r'[^a-zA-Z0-9_\-/.]')
 completed_logger = logging.getLogger('harrier.completed')
 
 
@@ -47,6 +48,13 @@ class PathMatch:
     @classmethod
     def validate(cls, value):
         return cls(value)
+
+
+def slugify(title):
+    name = title.replace(' ', '-').lower()
+    name = URI_NOT_ALLOWED.sub('', name)
+    name = re.sub('-{2,}', '-', name)
+    return name.strip('_-')
 
 
 class ColourHandler(logging.Handler):  # pragma: no cover
