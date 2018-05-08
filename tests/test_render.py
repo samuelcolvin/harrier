@@ -203,7 +203,7 @@ def test_frontmatter_maybe(tmpdir):
                 '---\n'
                 'foo: bar\n'
                 '---\n'
-                '<x><y>{{ site.whatever }}</y></x>'
+                '<x><y>{{ config.whatever }}</y></x>'
             ),
             'foobar.txt': (
                 '---\n'
@@ -225,14 +225,14 @@ def test_xml_no_front_matter(tmpdir):
     mktree(tmpdir, {
         'pages': {
             'foobar.xml': (
-                '<x><y>{{ site.whatever }}</y></x>'
+                '<x><y>{{ config.whatever }}</y></x>'
             ),
         },
         'harrier.yml': 'whatever: 123'
     })
     build(tmpdir, mode=Mode.production)
     assert gettree(tmpdir.join('dist')) == {
-        'foobar.xml': '<x><y>{{ site.whatever }}</y></x>'
+        'foobar.xml': '<x><y>{{ config.whatever }}</y></x>'
     }
 
 
@@ -385,7 +385,7 @@ def test_file_data_ok():
 
 @pytest.mark.parametrize('infile,outfile', [
     (
-        '{% for page in site.pages|glob("*")|sort(attribute="uri") -%}\n'
+        '{% for page in pages|glob("*")|sort(attribute="uri") -%}\n'
         '<a href="{{ page.uri }}">{{ page.title }}</a>\n'
         '{% endfor %}\n',
 
@@ -395,14 +395,14 @@ def test_file_data_ok():
         '<a href="/testing">testing</a>\n'
     ),
     (
-        '{% for page in site.pages|glob("*.txt") -%}\n'
+        '{% for page in pages|glob("*.txt") -%}\n'
         '<a href="{{ page.uri }}">{{ page.title }}</a>\n'
         '{% endfor %}\n',
 
         '<a href="/robots.txt">robots.txt</a>\n'
     ),
     (
-        '{% for page in site.pages|glob("**/*.html", test="path") -%}\n'
+        '{% for page in pages|glob("**/*.html", test="path") -%}\n'
         '<a href="{{ page.uri }}">{{ page.title }}</a>\n'
         '{% endfor %}\n',
 

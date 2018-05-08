@@ -33,7 +33,7 @@ def test_dev_simple(tmpdir, mocker, loop):
     asyncio.set_event_loop(loop)
     mktree(tmpdir, {
         'pages': {
-            'foobar.md': '# hello\n {{ site.foo }}',
+            'foobar.md': '# hello\n {{ config.foo }}',
             'features/whatever.md': '## Foo',
         },
         'harrier.yml': 'foo: 1'

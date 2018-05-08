@@ -67,11 +67,7 @@ class Renderer:
             markdown=self.md,
         )
         self.env.globals.update(self.config.extensions.template_functions)
-        self.ctx = {
-            'site': self.som,
-            'data': self.som.pop('data', None),
-        }
-
+        self.som['config'] = config
         self.checked_dirs = set()
 
     def run(self):
@@ -91,7 +87,7 @@ class Renderer:
         outfile: Path = p['outfile']
         out_dir = outfile.parent
         if out_dir not in self.checked_dirs:
-            # this will raise an exception if somehow outfile is outside dis_dir
+            # this will raise an exception if somehow outfile is outside dist_dir
             out_dir.relative_to(self.config.dist_dir)
             out_dir.mkdir(exist_ok=True, parents=True)
             self.checked_dirs.add(out_dir)
@@ -106,7 +102,7 @@ class Renderer:
         template_file = p['template']
         try:
             content_template = self.env.get_template(str(p['content_template']))
-            content = content_template.render(page=p, **self.ctx)
+            content = content_template.render(page=p, **self.som)
 
             content = split_content(content)
 
@@ -121,7 +117,7 @@ class Renderer:
 
             if template_file:
                 template = self.env.get_template(template_file)
-                rendered = template.render(content=content, page=p, **self.ctx)
+                rendered = template.render(content=content, page=p, **self.som)
             else:
                 rendered = content
             rendered = rendered.rstrip(' \t\r\n') + '\n'
@@ -187,17 +183,18 @@ class HarrierHtmlRenderer(HtmlRenderer):
 
 @contextfunction
 def resolve_url(ctx, path):
-    return resolve_path(path, ctx['site']['path_lookup'], ctx['site']['config'])
+    return resolve_path(path, ctx['path_lookup'], ctx['config'])
 
 
 @contextfunction
 def inline_css(ctx, path):
-    path = resolve_path(path, ctx['site']['path_lookup'], None)
+    path = resolve_path(path, ctx['path_lookup'], None)
     real_path = Path(path[1:])
-    p = ctx['site']['dist_dir'] / real_path
+    config: Config = ctx['config']
+    p = config.dist_dir / real_path
     css = p.read_text()
     map_path = real_path.with_suffix('.css.map')
-    if (ctx['site']['dist_dir'] / map_path).exists():
+    if (config.dist_dir / map_path).exists():
         css = re.sub(r'/\*# sourceMappingURL=.*\*/', f'/*# sourceMappingURL=/{map_path} */', css)
     return css.strip('\r\n ')
 

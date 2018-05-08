@@ -34,7 +34,7 @@ def test_no_theme_dir(tmpdir):
     mktree(tmpdir, {
         'pages': {
             'foo.md': '# foo',
-            'bar.html': '{{ 4|add_one }} {{ site.dynamic }}',
+            'bar.html': '{{ 4|add_one }} {{ config.dynamic }}',
         },
         'theme': {},
         'harrier.yml': 'default_template: main.jinja'

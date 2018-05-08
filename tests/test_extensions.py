@@ -12,7 +12,7 @@ def test_extensions_ok(tmpdir):
     mktree(tmpdir, {
         'pages': {
             'foo.md': '# foo',
-            'bar.html': '{{ 4|add_one }} {{ site.dynamic }}',
+            'bar.html': '{{ 4|add_one }} {{ dynamic }}',
             'spam.html': 'before'
         },
         'theme/templates/main.jinja': '{{ content }}',
