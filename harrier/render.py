@@ -255,7 +255,7 @@ def lenient_len(v):
 def debug_filter(content):
     debug(content)
     return (
-        f'<pre style="white-space: pre-wrap;">\n'
+        f'<pre style="white-space:pre-wrap;background:#444;color:white;border-radius:8px;padding:10px;">\n'
         f'  type: {escape(str(type(content)))}\n'
         f'length: {lenient_len(content)}\n'
         f'  json: {escape(json_filter(content, indent=2), quote=False)}\n'

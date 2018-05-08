@@ -316,7 +316,7 @@ def test_list_dd(tmpdir):
     (
         '{{ [1,2,3]|debug }}',
         (
-            '<pre style="white-space: pre-wrap;">\n'
+            '<pre style="white-space:pre-wrap;background:#444;color:white;border-radius:8px;padding:10px;">\n'
             "  type: &lt;class &#x27;list&#x27;&gt;\n"
             'length: 3\n'
             '  json: [\n'
@@ -330,7 +330,7 @@ def test_list_dd(tmpdir):
     (
         '{{ 123|debug }}',
         (
-            '<pre style="white-space: pre-wrap;">\n'
+            '<pre style="white-space:pre-wrap;background:#444;color:white;border-radius:8px;padding:10px;">\n'
             "  type: &lt;class &#x27;int&#x27;&gt;\n"
             'length: -\n'
             '  json: 123\n'
