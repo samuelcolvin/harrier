@@ -8,7 +8,7 @@ from pytest_toolbox.comparison import RegexStr
 from harrier.build import FileData
 from harrier.config import Mode
 from harrier.main import build
-from harrier.render import json_function
+from harrier.render import json_filter
 
 
 def test_build_multi_part(tmpdir):
@@ -310,11 +310,11 @@ def test_list_dd(tmpdir):
 
 @pytest.mark.parametrize('input,output', [
     (
-        '{{ json([1,2,3]) }}',
+        '{{ [1,2,3]|anyjson }}',
         '[1, 2, 3]\n'
     ),
     (
-        '{{ debug([1,2,3]) }}',
+        '{{ [1,2,3]|debug }}',
         (
             '<pre style="white-space: pre-wrap;">\n'
             "  type: &lt;class &#x27;list&#x27;&gt;\n"
@@ -328,7 +328,7 @@ def test_list_dd(tmpdir):
         )
     ),
     (
-        '{{ debug(123) }}',
+        '{{ 123|debug }}',
         (
             '<pre style="white-space: pre-wrap;">\n'
             "  type: &lt;class &#x27;int&#x27;&gt;\n"
@@ -338,7 +338,7 @@ def test_list_dd(tmpdir):
         )
     ),
     (
-        '{{ markdown("this is some **markdown**") }}',
+        '{{ "this is some **markdown**"|markdown }}',
         (
             '<p>this is some <strong>markdown</strong></p>\n'
         )
@@ -366,8 +366,8 @@ def test_jinja_functions(input, output, tmpdir):
         '{"x": "Foobar repr output"}'
     ),
 ])
-def test_json_function(input, output):
-    assert json_function(input) == output
+def test_json_filter(input, output):
+    assert json_filter(input) == output
 
 
 def test_file_data_ok():

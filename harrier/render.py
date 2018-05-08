@@ -59,6 +59,9 @@ class Renderer:
             glob=page_glob,
             slugify=slugify,
             format=jinja_format,
+            anyjson=json_filter,
+            debug=debug_filter,
+            markdown=self.md,
         )
         self.env.filters.update(self.config.extensions.template_filters)
 
@@ -66,9 +69,6 @@ class Renderer:
             url=resolve_url,
             resolve_url=resolve_url,
             inline_css=inline_css,
-            json=json_function,
-            debug=debug_function,
-            markdown=self.md,
         )
         self.env.globals.update(self.config.extensions.template_functions)
         self.som['config'] = config
@@ -241,7 +241,7 @@ class UniversalEncoder(json.JSONEncoder):
         return encoder(obj)
 
 
-def json_function(content, indent=None):
+def json_filter(content, indent=None):
     return json.dumps(content, indent=indent, cls=UniversalEncoder)
 
 
@@ -252,11 +252,11 @@ def lenient_len(v):
         return '-'
 
 
-def debug_function(content):
+def debug_filter(content):
     debug(content)
     return (
         f'<pre style="white-space: pre-wrap;">\n'
         f'  type: {escape(str(type(content)))}\n'
         f'length: {lenient_len(content)}\n'
-        f'  json: {escape(json_function(content, indent=2), quote=False)}\n'
+        f'  json: {escape(json_filter(content, indent=2), quote=False)}\n'
         f'</pre>')
