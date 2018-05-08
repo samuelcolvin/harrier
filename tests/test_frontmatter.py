@@ -1,7 +1,7 @@
 import pytest
 
-from harrier.build import parse_front_matter, split_content
 from harrier.common import HarrierProblem
+from harrier.frontmatter import parse_front_matter, split_content
 
 
 def test_simple_front_matter():
@@ -106,6 +106,24 @@ the third""", [
         {
             'content': 'the third',
             'x': 'y',
+        }
+    ]),
+    ("""\
+--- . ---
+foo: 1
+---
+first
+---.---
+foo: 2
+---
+second""", [
+        {
+            'foo': 1,
+            'content': 'first',
+        },
+        {
+            'foo': 2,
+            'content': 'second',
         }
     ]),
     ("""\
