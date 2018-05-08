@@ -300,7 +300,7 @@ def change_pages(site):
     v = int(p.read_text())
     v += 1
     p.write_text(str(v))
-    site['pages']['foobar.html']['content'] = str(v)
+    site['pages']['/foobar.html']['content'] = str(v)
     return site
         """
     })
@@ -354,7 +354,7 @@ def test_dev_data(tmpdir, mocker, loop):
     asyncio.set_event_loop(loop)
     mktree(tmpdir, {
         'pages': {
-            'foobar.html': '{{ site.data.foobar.a }}',
+            'foobar.html': '{{ data.foobar.a }}',
         },
         'data/foobar.yml': 'a: 1'
     })

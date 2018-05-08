@@ -135,7 +135,7 @@ def update_site(args: UpdateArgs):  # noqa: C901 (ignore complexity)
                 page_builder = BuildPages(config)
                 tmp_dir = config.get_tmp_dir()
                 for change, path in args.pages:
-                    rel_path = str(path.relative_to(config.pages_dir))
+                    rel_path = '/' + str(path.relative_to(config.pages_dir))
                     if change == Change.deleted:
                         page = SOM['pages'][rel_path]
                         page['outfile'].unlink()

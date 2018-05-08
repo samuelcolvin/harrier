@@ -62,7 +62,7 @@ class BuildPages:
                     logger.exception('%s: error building SOM for page', p)
                     raise
                 if v:
-                    pages[str(p.relative_to(self.config.pages_dir))] = v
+                    pages['/' + str(p.relative_to(self.config.pages_dir))] = v
         logger.debug('Built site object model with %d files, %d files to render', self.files, self.template_files)
         return pages, self.files
 

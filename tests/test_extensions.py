@@ -31,7 +31,7 @@ def add_var(site):
 
 @modify.som
 def change_pages(site):
-    site['pages']['spam.html']['content'] = 'after'
+    site['pages']['/spam.html']['content'] = 'after'
     return site
 
 @template.filter

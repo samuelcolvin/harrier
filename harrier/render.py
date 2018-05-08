@@ -20,7 +20,7 @@ from pygments.formatters.html import HtmlFormatter
 from pygments.lexers import get_lexer_by_name
 
 from .assets import resolve_path
-from .common import HarrierProblem, log_complete, slugify
+from .common import HarrierProblem, PathMatch, log_complete, slugify
 from .config import Config
 from .frontmatter import split_content
 
@@ -41,7 +41,7 @@ def render_pages(config: Config, som: dict, build_cache=None):
 
 
 class Renderer:
-    __slots__ = 'config', 'som', 'build_cache', 'md', 'env', 'checked_dirs'
+    __slots__ = 'config', 'som', 'build_cache', 'md', 'env', 'checked_dirs', 'ctx'
 
     def __init__(self, config: Config, som: dict, build_cache: dict=None):
         self.config = config
@@ -64,8 +64,13 @@ class Renderer:
             json=json_function,
             debug=debug_function,
             markdown=self.md,
+            pages=pages,
         )
         self.env.globals.update(self.config.extensions.template_functions)
+        self.ctx = {
+            'site': self.som,
+            'data': self.som.pop('data', None),
+        }
 
         self.checked_dirs = set()
 
@@ -101,7 +106,7 @@ class Renderer:
         template_file = p['template']
         try:
             content_template = self.env.get_template(str(p['content_template']))
-            content = content_template.render(page=p, site=self.som)
+            content = content_template.render(page=p, **self.ctx)
 
             content = split_content(content)
 
@@ -116,7 +121,7 @@ class Renderer:
 
             if template_file:
                 template = self.env.get_template(template_file)
-                rendered = template.render(content=content, page=p, site=self.som)
+                rendered = template.render(content=content, page=p, **self.ctx)
             else:
                 rendered = content
             rendered = rendered.rstrip(' \t\r\n') + '\n'
@@ -195,6 +200,19 @@ def inline_css(ctx, path):
     if (ctx['site']['dist_dir'] / map_path).exists():
         css = re.sub(r'/\*# sourceMappingURL=.*\*/', f'/*# sourceMappingURL=/{map_path} */', css)
     return css.strip('\r\n ')
+
+
+@contextfunction
+def pages(ctx, *globs, test='path'):
+    assert test in ('uri', 'path'), 'the "test" argument should be either "uri" or "path"'
+    matches = globs and [PathMatch(glob) for glob in globs]
+    for k, page in ctx['site']['pages'].items():
+        if not matches:
+            yield page
+        else:
+            glob_key = k if test == 'path' else page['uri']
+            if any(match(glob_key) for match in matches):
+                yield page
 
 
 def isoformat(o):
