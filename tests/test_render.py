@@ -422,3 +422,17 @@ def test_pages_function(infile, outfile, tmpdir):
     build(tmpdir, mode=Mode.production)
     # debug(tmpdir.join('dist/testing/index.html').read_text('utf8'))
     assert tmpdir.join('dist/testing/index.html').read_text('utf8') == outfile
+
+
+def test_jinja_format(tmpdir):
+    mktree(tmpdir, {
+        'pages': {
+            'index.html': '{{"{:0.2f}".format(3.1415)}}',
+            '2032-06-02-date.txt': '---\nx: 1\n---\n{{ "{:%b %d, %Y}".format(page.created) }}',
+        },
+    })
+    build(tmpdir, mode=Mode.production)
+    assert gettree(tmpdir.join('dist')) == {
+        'index.html': '3.14\n',
+        'date.txt': 'Jun 02, 2032\n'
+    }

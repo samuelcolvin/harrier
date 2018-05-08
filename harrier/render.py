@@ -54,8 +54,12 @@ class Renderer:
         template_dirs = [str(self.config.get_tmp_dir()), str(self.config.theme_dir / 'templates')]
         logger.debug('template directories: %s', ', '.join(template_dirs))
 
-        self.env = Environment(loader=FileSystemLoader(template_dirs))
-        self.env.filters['glob'] = pages_glob
+        self.env = Environment(loader=FileSystemLoader(template_dirs), extensions=['jinja2.ext.loopcontrols'])
+        self.env.filters.update(
+            glob=page_glob,
+            slugify=slugify,
+            format=jinja_format,
+        )
         self.env.filters.update(self.config.extensions.template_filters)
 
         self.env.globals.update(
@@ -199,13 +203,17 @@ def inline_css(ctx, path):
     return css.strip('\r\n ')
 
 
-def pages_glob(pages, *globs, test='path'):
+def page_glob(pages, *globs, test='path'):
     assert test in ('uri', 'path'), 'the "test" argument should be either "uri" or "path"'
     matches = globs and [PathMatch(glob) for glob in globs]
     for k, page in pages.items():
         glob_key = k if test == 'path' else page['uri']
         if any(match(glob_key) for match in matches):
             yield page
+
+
+def jinja_format(s, *args, **kwargs):
+    return s.format(*args, **kwargs)
 
 
 def isoformat(o):
