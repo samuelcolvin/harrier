@@ -449,7 +449,7 @@ def test_inline_css_dev(tmpdir):
     }
 
 
-def test_xml_front_matter(tmpdir):
+def test_frontmatter_maybe(tmpdir):
     mktree(tmpdir, {
         'pages': {
             'foobar.xml': (
@@ -458,12 +458,19 @@ def test_xml_front_matter(tmpdir):
                 '---\n'
                 '<x><y>{{ site.whatever }}</y></x>'
             ),
+            'foobar.txt': (
+                '---\n'
+                'x: 1\n'
+                '---\n'
+                '{{ page.x }}'
+            ),
         },
         'harrier.yml': 'whatever: 123'
     })
     build(tmpdir, mode=Mode.production)
     assert gettree(tmpdir.join('dist')) == {
-        'foobar.xml': '<x><y>123</y></x>\n'
+        'foobar.xml': '<x><y>123</y></x>\n',
+        'foobar.txt': '1\n',
     }
 
 

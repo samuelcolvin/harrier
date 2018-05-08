@@ -15,7 +15,7 @@ from .frontmatter import parse_front_matter
 
 # extensions where we want to do anything except just copy the file to the output dir
 OUTPUT_HTML = {'.html', '.md'}
-MAYBE_RENDER = {'.xml'}
+MAYBE_RENDER = {'.xml', '.txt'}
 DATE_REGEX = re.compile(r'(\d{4})-(\d{2})-(\d{2})-?(.*)')
 URI_IS_TEMPLATE = re.compile('[{}]')
 
