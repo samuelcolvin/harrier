@@ -55,6 +55,7 @@ class Renderer:
         logger.debug('template directories: %s', ', '.join(template_dirs))
 
         self.env = Environment(loader=FileSystemLoader(template_dirs))
+        self.env.filters['glob'] = pages_glob
         self.env.filters.update(self.config.extensions.template_filters)
 
         self.env.globals.update(
@@ -64,7 +65,6 @@ class Renderer:
             json=json_function,
             debug=debug_function,
             markdown=self.md,
-            pages=pages,
         )
         self.env.globals.update(self.config.extensions.template_functions)
         self.ctx = {
@@ -202,17 +202,13 @@ def inline_css(ctx, path):
     return css.strip('\r\n ')
 
 
-@contextfunction
-def pages(ctx, *globs, test='path'):
+def pages_glob(pages, *globs, test='path'):
     assert test in ('uri', 'path'), 'the "test" argument should be either "uri" or "path"'
     matches = globs and [PathMatch(glob) for glob in globs]
-    for k, page in ctx['site']['pages'].items():
-        if not matches:
+    for k, page in pages.items():
+        glob_key = k if test == 'path' else page['uri']
+        if any(match(glob_key) for match in matches):
             yield page
-        else:
-            glob_key = k if test == 'path' else page['uri']
-            if any(match(glob_key) for match in matches):
-                yield page
 
 
 def isoformat(o):

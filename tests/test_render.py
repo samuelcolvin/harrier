@@ -385,24 +385,24 @@ def test_file_data_ok():
 
 @pytest.mark.parametrize('infile,outfile', [
     (
-        '{% for page in pages() -%}\n'
+        '{% for page in site.pages|glob("*")|sort(attribute="uri") -%}\n'
         '<a href="{{ page.uri }}">{{ page.title }}</a>\n'
         '{% endfor %}\n',
 
-        '<a href="/foobar">foobar</a>\n'
         '<a href="/">index</a>\n'
+        '<a href="/foobar">foobar</a>\n'
         '<a href="/robots.txt">robots.txt</a>\n'
         '<a href="/testing">testing</a>\n'
     ),
     (
-        '{% for page in pages("*.txt") -%}\n'
+        '{% for page in site.pages|glob("*.txt") -%}\n'
         '<a href="{{ page.uri }}">{{ page.title }}</a>\n'
         '{% endfor %}\n',
 
         '<a href="/robots.txt">robots.txt</a>\n'
     ),
     (
-        '{% for page in pages("**/*.html", test="path") -%}\n'
+        '{% for page in site.pages|glob("**/*.html", test="path") -%}\n'
         '<a href="{{ page.uri }}">{{ page.title }}</a>\n'
         '{% endfor %}\n',
 
@@ -420,5 +420,5 @@ def test_pages_function(infile, outfile, tmpdir):
         }
     })
     build(tmpdir, mode=Mode.production)
-    debug(tmpdir.join('dist/testing/index.html').read_text('utf8'))
+    # debug(tmpdir.join('dist/testing/index.html').read_text('utf8'))
     assert tmpdir.join('dist/testing/index.html').read_text('utf8') == outfile
