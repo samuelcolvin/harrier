@@ -62,11 +62,12 @@ class UpdateArgs(BaseModel):
     assets: bool = False
     sass: bool = False
     templates: bool = False
+    data: bool = False
     extensions: bool = False
     update_config: bool = False
 
     def build_required(self):
-        return any([self.pages, self.assets, self.sass, self.templates, self.extensions, self.update_config])
+        return any([self.pages, self.assets, self.sass, self.templates, self.data, self.extensions, self.update_config])
 
 
 def update_site(args: UpdateArgs):  # noqa: C901 (ignore complexity)
@@ -84,6 +85,7 @@ def update_site(args: UpdateArgs):  # noqa: C901 (ignore complexity)
             args.assets and 'assets changed',
             args.sass and 'sass changed',
             args.templates and 'templates changed',
+            args.data and 'data changed',
             args.extensions and 'extensions changed',
             args.update_config and 'config changed',
         ]
@@ -93,12 +95,12 @@ def update_site(args: UpdateArgs):  # noqa: C901 (ignore complexity)
     try:
         if args.update_config:
             CONFIG = get_config(args.config_path)
-            args.assets = args.sass = args.templates = args.extensions = full_build = True
+            args.assets = args.sass = args.templates = args.data = args.extensions = full_build = True
 
         if args.extensions:
             CONFIG.extensions.load()
             config = apply_modifiers(CONFIG, CONFIG.extensions.config_modifiers)
-            args.assets = args.sass = args.templates = full_build = True
+            args.assets = args.sass = args.templates = args.data = full_build = True
         else:
             config = CONFIG
         config.build_time = datetime.utcnow()
@@ -120,27 +122,34 @@ def update_site(args: UpdateArgs):  # noqa: C901 (ignore complexity)
             )
             SOM = apply_modifiers(SOM, config.extensions.som_modifiers)
             content_templates(SOM['pages'].values(), config)
-        elif args.pages:
-            start = time()
-            page_builder = BuildPages(config)
-            tmp_dir = config.get_tmp_dir()
+        else:
+            if args.data:
+                start = time()
+                SOM['data'] = load_data(config)
+                log_complete(start, 'data updated', 1)
+                args.templates = True
+
             to_update = set()
-            for change, path in args.pages:
-                rel_path = str(path.relative_to(config.pages_dir))
-                if change == Change.deleted:
-                    page = SOM['pages'][rel_path]
-                    page['outfile'].unlink()
-                    if 'content_template' in page:
-                        (tmp_dir / page['content_template']).unlink()
-                    SOM['pages'].pop(rel_path)
-                else:
-                    SOM['pages'][rel_path] = page_builder.prep_file(path)
-                    to_update.add(rel_path)
+            if args.pages:
+                start = time()
+                page_builder = BuildPages(config)
+                tmp_dir = config.get_tmp_dir()
+                for change, path in args.pages:
+                    rel_path = str(path.relative_to(config.pages_dir))
+                    if change == Change.deleted:
+                        page = SOM['pages'][rel_path]
+                        page['outfile'].unlink()
+                        if 'content_template' in page:
+                            (tmp_dir / page['content_template']).unlink()
+                        SOM['pages'].pop(rel_path)
+                    else:
+                        SOM['pages'][rel_path] = page_builder.prep_file(path)
+                        to_update.add(rel_path)
+                log_complete(start, 'pages built', len(args.pages))
+                args.templates = args.templates or any(change != Change.deleted for change, _ in args.pages)
 
             SOM = apply_modifiers(SOM, config.extensions.som_modifiers)
             content_templates([SOM['pages'][k] for k in SOM['pages'] if k in to_update], config)
-            log_complete(start, 'pages built', len(args.pages))
-            args.templates = args.templates or any(change != Change.deleted for change, _ in args.pages)
 
         SOM['path_lookup'] = get_path_lookup(config, SOM['pages'])
         if args.templates:
@@ -206,6 +215,8 @@ async def adev(config: Config, port: int):
                         args.sass = True
                     elif is_within(path, config.theme_dir / 'templates'):
                         args.templates = True
+                    elif is_within(path, config.data_dir):
+                        args.data = True
                     elif path == config.extensions.path:
                         args.extensions = True
                     elif path == config.config_path:

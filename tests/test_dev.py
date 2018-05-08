@@ -124,6 +124,7 @@ def test_mock_executor(tmpdir, mocker):
         yield {(Change.modified, str(tmpdir.join('theme/sass/main.scss')))}
         yield {(Change.modified, str(tmpdir.join('theme/templates/main.jinja')))}
         yield {(Change.modified, str(tmpdir.join('extensions.py')))}
+        yield {(Change.modified, str(tmpdir.join('data/foobar.yml')))}
 
     mktree(tmpdir, {
         'pages/foobar.md': '# hello',
@@ -151,6 +152,7 @@ def test_mock_executor(tmpdir, mocker):
             'assets': False,
             'sass': False,
             'templates': False,
+            'data': False,
             'extensions': False,
             'update_config': False,
         },
@@ -159,6 +161,7 @@ def test_mock_executor(tmpdir, mocker):
             'assets': False,
             'sass': False,
             'templates': False,
+            'data': False,
             'extensions': False,
             'update_config': True,
         },
@@ -167,6 +170,7 @@ def test_mock_executor(tmpdir, mocker):
             'assets': False,
             'sass': False,
             'templates': False,
+            'data': False,
             'extensions': False,
             'update_config': False,
         },
@@ -175,6 +179,7 @@ def test_mock_executor(tmpdir, mocker):
             'assets': True,
             'sass': False,
             'templates': False,
+            'data': False,
             'extensions': False,
             'update_config': False,
         },
@@ -183,6 +188,7 @@ def test_mock_executor(tmpdir, mocker):
             'assets': False,
             'sass': True,
             'templates': False,
+            'data': False,
             'extensions': False,
             'update_config': False,
         },
@@ -191,6 +197,7 @@ def test_mock_executor(tmpdir, mocker):
             'assets': False,
             'sass': False,
             'templates': True,
+            'data': False,
             'extensions': False,
             'update_config': False,
         },
@@ -199,7 +206,17 @@ def test_mock_executor(tmpdir, mocker):
             'assets': False,
             'sass': False,
             'templates': False,
+            'data': False,
             'extensions': True,
+            'update_config': False,
+        },
+        {
+            'pages': set(),
+            'assets': False,
+            'sass': False,
+            'templates': False,
+            'data': True,
+            'extensions': False,
             'update_config': False,
         },
     ]
@@ -326,4 +343,31 @@ def test_dev_delete_image(tmpdir, mocker, loop):
             'index.html': 'hello\n',
         },
         'other': {},
+    }
+
+
+def test_dev_data(tmpdir, mocker, loop):
+    async def awatch_alt(*args, **kwargs):
+        tmpdir.join('data/foobar.yml').write('a: 2')
+        yield {(Change.modified, str(tmpdir.join('data/foobar.yml')))}
+
+    asyncio.set_event_loop(loop)
+    mktree(tmpdir, {
+        'pages': {
+            'foobar.html': '{{ site.data.foobar.a }}',
+        },
+        'data/foobar.yml': 'a: 1'
+    })
+    mocker.patch('harrier.dev.awatch', side_effect=awatch_alt)
+    mocker.patch('harrier.dev.Server', return_value=MockServer())
+
+    assert not tmpdir.join('dist').check()
+
+    dev(str(tmpdir), 8000)
+
+    # debug(gettree(tmpdir.join('dist')))
+    assert gettree(tmpdir.join('dist')) == {
+        'foobar': {
+            'index.html': '2\n',
+        },
     }
