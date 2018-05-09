@@ -1,5 +1,4 @@
 import logging
-import os
 import re
 from datetime import datetime
 from pathlib import Path
@@ -8,7 +7,7 @@ from typing import Optional
 
 from pydantic import BaseModel, validator
 
-from .common import URI_NOT_ALLOWED, log_complete, slugify
+from .common import URI_NOT_ALLOWED, log_complete, norm_path_ref, slugify
 from .config import Config
 from .extensions import ExtensionError
 from .frontmatter import parse_front_matter
@@ -67,7 +66,7 @@ class BuildPages:
         return pages, self.files
 
     def prep_file(self, p):
-        path_ref = '/' + os.path.normcase(str(p.relative_to(self.config.pages_dir)))
+        path_ref = norm_path_ref(p, self.config.pages_dir)
         if any(path_match(path_ref) for path_match in self.config.ignore):
             return
 

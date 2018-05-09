@@ -380,6 +380,7 @@ def test_copy_assets_dev(tmpdir):
             'templates': {'main.jinja': 'main:\n {{ content }}'},
             'assets': {
                 'image.png': '*',
+                'favicon.ico': '*',
                 'move': {
                     'foobar.svg': 'x'
                 }
@@ -392,6 +393,7 @@ def test_copy_assets_dev(tmpdir):
     copy_assets(config)
     assert gettree(tmpdir.join('dist')) == {
         'image.png': '*',
+        'favicon.ico': '*',
         'move': {
             'foobar.svg': 'x'
         }
@@ -405,6 +407,7 @@ def test_copy_assets_prod(tmpdir):
             'templates': {'main.jinja': 'main:\n {{ content }}'},
             'assets': {
                 'image.png': '*',
+                'favicon.ico': '*',
                 'move': {
                     'foobar.svg': 'x'
                 }
@@ -417,6 +420,7 @@ def test_copy_assets_prod(tmpdir):
     copy_assets(config)
     assert gettree(tmpdir.join('dist')) == {
         'image.3389dae.png': '*',
+        'favicon.ico': '*',
         'move': {
             'foobar.9dd4e46.svg': 'x'
         }

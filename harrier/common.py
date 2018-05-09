@@ -2,6 +2,7 @@ import logging.config
 import re
 from fnmatch import translate
 from os.path import normcase
+from pathlib import Path
 from time import time
 
 import click
@@ -45,6 +46,10 @@ class PathMatch:
     @classmethod
     def validate(cls, value):
         return cls(value)
+
+
+def norm_path_ref(p: Path, rel: Path):
+    return '/' + normcase(str(p.relative_to(rel)))
 
 
 def slugify(title):

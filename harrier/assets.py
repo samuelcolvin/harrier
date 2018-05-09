@@ -12,7 +12,7 @@ from grablib.common import GrablibError
 from grablib.download import Downloader
 from pygments.formatters.html import HtmlFormatter
 
-from .common import HarrierProblem, log_complete
+from .common import HarrierProblem, log_complete, norm_path_ref
 from .config import Config, Mode
 from .extensions import ExtensionError
 
@@ -93,12 +93,12 @@ def copy_assets(config: Config):
         if not in_path.is_file():
             continue
         out_path = out_dir / in_path.relative_to(in_dir)
-        if config.mode == Mode.production:
+        path_ref = norm_path_ref(in_path, in_dir)
+        if config.mode == Mode.production and not any(path_match(path_ref) for path_match in config.no_hash):
             out_path = insert_hash(out_path, in_path.read_bytes())
         out_path.parent.mkdir(parents=True, exist_ok=True)
 
         config.extensions.load()
-        path_ref = '/' + os.path.normcase(str(in_path.relative_to(in_dir)))
         applied_extension = False
         for path_match, f in config.extensions.copy_modifiers:
             if path_match(path_ref):

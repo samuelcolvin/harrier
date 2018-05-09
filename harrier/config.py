@@ -54,9 +54,10 @@ class Config(BaseModel):
     download_aliases: Dict[str, str] = {}
 
     default_template: Optional[str] = None
+    paginate_by = 20
     defaults: Dict[PathMatch, Dict[str, Any]] = {}
     ignore: List[PathMatch] = []
-    paginate_by = 20
+    no_hash: List[PathMatch] = ['/favicon.???']
 
     webpack: WebpackConfig = WebpackConfig()
     build_time: datetime
