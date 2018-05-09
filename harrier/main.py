@@ -66,7 +66,6 @@ def build(path: StrPath, steps: Set[BuildSteps]=None, mode: Optional[Mode]=None)
         [f.result() for f in futures if f]
 
     som = dict(
-        path_lookup=get_path_lookup(config, pages),
         pages=pages,
         data=data_future and data_future.result(),
         config=config,
@@ -74,6 +73,10 @@ def build(path: StrPath, steps: Set[BuildSteps]=None, mode: Optional[Mode]=None)
 
     if BuildSteps.extensions in steps:
         apply_page_generator(som, config)
+
+    som['path_lookup'] = get_path_lookup(config, pages)
+
+    if BuildSteps.extensions in steps:
         som = apply_modifiers(som, config.extensions.som_modifiers)
 
     if som['pages'] is not None:
