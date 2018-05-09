@@ -127,7 +127,7 @@ class PageGeneratorModel(BaseModel):
 def apply_page_generator(som, config):
     from .build import get_page_data
     if not config.extensions.generate_pages:
-        return
+        return {}
     new_pages = {}
     for ext in config.extensions.generate_pages:
         for d in ext(som):
@@ -137,6 +137,7 @@ def apply_page_generator(som, config):
             path_ref = final_data.pop('path_ref')
             new_pages[path_ref] = final_data
     som['pages'].update(new_pages)
+    return new_pages
 
 
 class modify:

@@ -151,7 +151,8 @@ def update_site(args: UpdateArgs):  # noqa: C901 (ignore complexity)
                 log_complete(start, 'pages built', len(args.pages))
                 args.templates = args.templates or any(change != Change.deleted for change, _ in args.pages)
 
-            apply_page_generator(SOM, config)
+            extra_pages = apply_page_generator(SOM, config)
+            to_update = to_update | set(extra_pages.keys())
             SOM = apply_modifiers(SOM, config.extensions.som_modifiers)
             content_templates([SOM['pages'][k] for k in SOM['pages'] if k in to_update], config)
 
@@ -179,7 +180,7 @@ def is_within(location: Path, directory: Path):
 
 class HarrierWatcher(DefaultWatcher):
     def __init__(self, root_path):
-        self._used_paths = str(CONFIG.pages_dir), str(CONFIG.theme_dir)
+        self._used_paths = str(CONFIG.pages_dir), str(CONFIG.theme_dir), str(CONFIG.data_dir)
         super().__init__(root_path)
 
     def should_watch_dir(self, entry):
