@@ -276,13 +276,8 @@ THIS_DIR = Path(__file__).parent
 def add_extra_pages(som):
     config: Config = som['config']
     yield {
-        'path_ref': '/extra/index.html',
-        'outfile': THIS_DIR / 'dist/extra/index.html',
-        'infile': THIS_DIR / 'pages/extra.md',
-        'uri': '/extra',
-        'pass_through': False,
+        'path': Path('extra/index.md'),
         'content': '# this is a test\\n\\nwith of generating pages dynamically',
-        'template': None,
     }
     """
     })

@@ -1,10 +1,12 @@
 import logging
 from enum import Enum
 from importlib.util import module_from_spec, spec_from_file_location
+from pathlib import Path
 from types import FunctionType
 
 from jinja2 import (contextfilter, contextfunction, environmentfilter, environmentfunction, evalcontextfilter,
                     evalcontextfunction)
+from pydantic import BaseModel
 
 from .common import HarrierProblem, PathMatch
 
@@ -115,15 +117,24 @@ def apply_modifiers(obj, ext):
     return obj
 
 
+class PageGeneratorModel(BaseModel):
+    path: Path
+    content: str
+    extra_data: dict = {}
+
+
 def apply_page_generator(som, config):
+    from .build import get_page_data
     if not config.extensions.generate_pages:
         return
     new_pages = {}
     for ext in config.extensions.generate_pages:
-        for p in ext(som):
-            # TODO validate that the data is correct here
-            path_ref = p.pop('path_ref')
-            new_pages[path_ref] = p
+        for d in ext(som):
+            m = PageGeneratorModel.parse_obj(d)
+            m.path = config.pages_dir / m.path
+            final_data = get_page_data(m.path, config=config, content=m.content, **m.extra_data)
+            path_ref = final_data.pop('path_ref')
+            new_pages[path_ref] = final_data
     som['pages'].update(new_pages)
 
 
