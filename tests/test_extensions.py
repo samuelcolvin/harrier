@@ -309,3 +309,42 @@ def add_extra_pages(som):
         'index.html': 'hello\n',
         'binary_file': 'xxx',
     }
+
+
+def test_generate_pages_invalid(tmpdir):
+    mktree(tmpdir, {
+        'pages': {
+            'index.html': 'hello',
+        },
+        'extensions.py': """
+from pathlib import Path
+from harrier.extensions import modify
+
+@modify.generate_pages
+def add_extra_pages(som):
+    config: Config = som['config']
+    yield {
+        'path': Path('extra/index.md'),
+    }
+    """
+    })
+    with pytest.raises(ExtensionError):
+        build(str(tmpdir))
+
+
+def test_generate_pages_error(tmpdir):
+    mktree(tmpdir, {
+        'pages': {
+            'index.html': 'hello',
+        },
+        'extensions.py': """
+from pathlib import Path
+from harrier.extensions import modify
+
+@modify.generate_pages
+def add_extra_pages(som):
+    raise RuntimeError('xx')
+    """
+    })
+    with pytest.raises(ExtensionError):
+        build(str(tmpdir))
