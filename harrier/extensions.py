@@ -3,6 +3,7 @@ from enum import Enum
 from importlib.util import module_from_spec, spec_from_file_location
 from pathlib import Path
 from types import FunctionType
+from typing import Optional
 
 from jinja2 import (contextfilter, contextfunction, environmentfilter, environmentfunction, evalcontextfilter,
                     evalcontextfunction)
@@ -119,8 +120,8 @@ def apply_modifiers(obj, ext):
 
 class PageGeneratorModel(BaseModel):
     path: Path
-    content: str
-    extra_data: dict = {}
+    content: Optional[str]
+    data: dict = {}
 
 
 def apply_page_generator(som, config):
@@ -132,7 +133,8 @@ def apply_page_generator(som, config):
         for d in ext(som):
             m = PageGeneratorModel.parse_obj(d)
             m.path = config.pages_dir / m.path
-            final_data = get_page_data(m.path, config=config, content=m.content, **m.extra_data)
+            final_data = get_page_data(m.path, config=config, file_content=m.content, **m.data)
+            debug(final_data)
             path_ref = final_data.pop('path_ref')
             new_pages[path_ref] = final_data
     som['pages'].update(new_pages)

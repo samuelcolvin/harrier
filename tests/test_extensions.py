@@ -270,7 +270,7 @@ def test_generate_pages(tmpdir):
         'extensions.py': """
 from pathlib import Path
 from harrier.extensions import modify
-THIS_DIR = Path(__file__).parent
+THIS_DIR = Path(__file__).parent.resolve()
 
 @modify.generate_pages
 def add_extra_pages(som):
@@ -278,6 +278,19 @@ def add_extra_pages(som):
     yield {
         'path': Path('extra/index.md'),
         'content': '# this is a test\\n\\nwith of generating pages dynamically',
+    }
+    yield {
+        'path': Path('more/index.html'),
+        'content': 'testing {{ page.x }}',
+        'data': {
+            'uri': '/foo-bar-whatever',
+            'x': 123,
+        }
+    }
+    (THIS_DIR / 'pages' / 'binary_file').write_bytes(b'xxx')
+    yield {
+        'path': 'binary_file',
+        'content': None,
     }
     """
     })
@@ -290,5 +303,9 @@ def add_extra_pages(som):
                 '<p>with of generating pages dynamically</p>\n'
             ),
         },
+        'foo-bar-whatever': {
+            'index.html': 'testing 123\n'
+        },
         'index.html': 'hello\n',
+        'binary_file': 'xxx',
     }

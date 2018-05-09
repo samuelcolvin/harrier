@@ -71,7 +71,7 @@ class BuildPages:
         return pages, self.files
 
 
-def get_page_data(p, *, config: Config, content: str=None, **extra_data):  # noqa: C901 (ignore complexity)
+def get_page_data(p, *, config: Config, file_content: str=None, **extra_data):  # noqa: C901 (ignore complexity)
     path_ref = norm_path_ref(p, config.pages_dir)
     if any(path_match(path_ref) for path_match in config.ignore):
         return
@@ -85,7 +85,7 @@ def get_page_data(p, *, config: Config, content: str=None, **extra_data):  # noq
         *date_args, new_name = date_match.groups()
         created = datetime(*map(int, date_args))
         name = new_name or name
-    elif content is not None:
+    elif file_content is not None:
         # file will not actually exist
         created = datetime.now()
     else:
@@ -106,7 +106,7 @@ def get_page_data(p, *, config: Config, content: str=None, **extra_data):  # noq
 
     pass_through = data.get('pass_through')
     if not pass_through and (html_output or maybe_render):
-        fm_data, content = parse_front_matter(content or p.read_text())
+        fm_data, content = parse_front_matter(file_content if file_content is not None else p.read_text())
         if html_output or fm_data:
             data['content'] = content
             fm_data and data.update(fm_data)
