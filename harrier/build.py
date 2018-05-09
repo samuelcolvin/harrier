@@ -61,7 +61,6 @@ class BuildPages:
                     logger.exception('%s: error building SOM for page', p)
                     raise
                 if v:
-                    # logger.debug('added %s pass_through: %s, outfile %s', p, pass_through, fd.outfile)
                     self.files += 1
                     if not v['pass_through']:
                         self.template_files += 1
@@ -128,12 +127,6 @@ def get_page_data(p, *, config: Config, file_content: str=None, **extra_data):  
         except KeyError as e:
             raise KeyError(f'missing format variable "{e.args[0]}" for "{uri}"')
 
-    if data.get('output', True):
-        outfile = config.dist_dir / data['uri'][1:]
-        if html_output and outfile.suffix != '.html':
-            outfile /= 'index.html'
-        data['outfile'] = outfile
-
     for path_match, f in config.extensions.page_modifiers:
         if path_match(path_ref):
             try:
@@ -158,7 +151,6 @@ class FileData(BaseModel):
     created: datetime
     uri: str
     template: Optional[str]
-    outfile: Path = None
 
     @validator('uri')
     def validate_uri(cls, v):

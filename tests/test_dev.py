@@ -371,3 +371,33 @@ def test_dev_data(tmpdir, mocker, loop):
             'index.html': '2\n',
         },
     }
+
+
+def test_ignored_directory(tmpdir, mocker, loop):
+    async def awatch_alt(*args, **kwargs):
+        yield {(Change.modified, str(tmpdir.join('pages/ignored.html')))}
+
+    asyncio.set_event_loop(loop)
+    mktree(tmpdir, {
+        'pages': {
+            'foobar.html': '1',
+            'ignored.html': '2'
+        },
+        'harrier.yaml': (
+            'ignore:\n'
+            '- /ignored.html'
+        )
+    })
+    mocker.patch('harrier.dev.awatch', side_effect=awatch_alt)
+    mocker.patch('harrier.dev.Server', return_value=MockServer())
+
+    assert not tmpdir.join('dist').check()
+
+    dev(str(tmpdir), 8000)
+
+    # debug(gettree(tmpdir.join('dist')))
+    assert gettree(tmpdir.join('dist')) == {
+        'foobar': {
+            'index.html': '1\n',
+        },
+    }

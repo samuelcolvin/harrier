@@ -19,7 +19,7 @@ from .common import HarrierProblem, log_complete
 from .config import Config, get_config
 from .data import load_data
 from .extensions import apply_modifiers, apply_page_generator
-from .render import render_pages
+from .render import get_outfile, render_pages
 
 HOST = '0.0.0.0'
 logger = logging.getLogger('harrier.dev')
@@ -138,16 +138,17 @@ def update_site(args: UpdateArgs):  # noqa: C901 (ignore complexity)
                     rel_path = '/' + str(path.relative_to(config.pages_dir))
                     if change == Change.deleted:
                         page = SOM['pages'][rel_path]
-                        page['outfile'].unlink()
+                        outfile = get_outfile(page, config)
+                        outfile.unlink()
                         if 'content_template' in page:
                             (tmp_dir / page['content_template']).unlink()
                         SOM['pages'].pop(rel_path)
                     else:
                         v = get_page_data(path, config=config)
-                        v.pop('path_ref')
-                        # TODO if v is none, remove
-                        SOM['pages'][rel_path] = v
-                        to_update.add(rel_path)
+                        if v:
+                            v.pop('path_ref')
+                            SOM['pages'][rel_path] = v
+                            to_update.add(rel_path)
                 log_complete(start, 'pages built', len(args.pages))
                 args.templates = args.templates or any(change != Change.deleted for change, _ in args.pages)
 

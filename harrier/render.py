@@ -18,15 +18,10 @@ from pygments.formatters.html import HtmlFormatter
 from pygments.lexers import get_lexer_by_name
 
 from .assets import resolve_path
+from .build import OUTPUT_HTML
 from .common import HarrierProblem, PathMatch, log_complete, slugify
 from .config import Config
 from .frontmatter import split_content
-
-# extensions where we want to do anything except just copy the file to the output dir
-OUTPUT_HTML = {'.html', '.md'}
-MAYBE_RENDER = {'.xml'}
-DATE_REGEX = re.compile(r'(\d{4})-(\d{2})-(\d{2})-?(.*)')
-URI_IS_TEMPLATE = re.compile('[{}]')
 
 logger = logging.getLogger('harrier.render')
 
@@ -83,10 +78,12 @@ class Renderer:
         logger.debug('generated %d files, copied %d files', gen, copy)
         return self.build_cache, gen + copy
 
-    def render_file(self, p):
-        if not p.get('outfile'):
+    def render_file(self, data):
+        if not data.get('output', True):
             return
-        outfile: Path = p['outfile']
+
+        outfile = get_outfile(data, self.config)
+
         out_dir = outfile.parent
         if out_dir not in self.checked_dirs:
             # this will raise an exception if somehow outfile is outside dist_dir
@@ -94,17 +91,17 @@ class Renderer:
             out_dir.mkdir(exist_ok=True, parents=True)
             self.checked_dirs.add(out_dir)
 
-        infile: Path = p['infile']
-        if 'template' in p:
-            return self.render_template(p, infile, outfile)
+        infile: Path = data['infile']
+        if 'template' in data:
+            return self.render_template(data, infile, outfile)
         else:
-            return self.copy_file(p, infile, outfile)
+            return self.copy_file(infile, outfile)
 
-    def render_template(self, p: dict, infile: Path, outfile: Path):
-        template_file = p['template']
+    def render_template(self, data: dict, infile: Path, outfile: Path):
+        template_file = data['template']
         try:
-            content_template = self.env.get_template(str(p['content_template']))
-            content = content_template.render(page=p, **self.som)
+            content_template = self.env.get_template(str(data['content_template']))
+            content = content_template.render(page=data, **self.som)
 
             content = split_content(content)
 
@@ -119,7 +116,7 @@ class Renderer:
 
             if template_file:
                 template = self.env.get_template(template_file)
-                rendered = template.render(content=content, page=p, **self.som)
+                rendered = template.render(content=content, page=data, **self.som)
             else:
                 rendered = content
             rendered = rendered.rstrip(' \t\r\n') + '\n'
@@ -142,7 +139,7 @@ class Renderer:
         v['content'] = self.md(v['content'])
         return v
 
-    def copy_file(self, p: dict, infile: Path, outfile: Path):
+    def copy_file(self, infile: Path, outfile: Path):
         if self.build_cache is not None:
             mtime = infile.stat().st_mtime
             if self.build_cache.get(infile) == mtime:
@@ -160,7 +157,8 @@ MD_EXTENSIONS = 'fenced-code', 'strikethrough', 'no-intra-emphasis', 'tables', '
 
 
 class HarrierHtmlRenderer(HtmlRenderer):
-    def blockcode(self, text, lang):
+    @staticmethod
+    def blockcode(text, lang):
         try:
             lexer = get_lexer_by_name(lang, stripall=True)
         except ClassNotFound:
@@ -173,14 +171,24 @@ class HarrierHtmlRenderer(HtmlRenderer):
         code = escape_html(text.strip())
         return f'<pre><code>{code}</code></pre>\n'
 
-    def list(self, content, is_ordered, is_block):
+    @staticmethod
+    def list(content, is_ordered, is_block):
         if not is_ordered and len(DL_REGEX.findall(content)) == len(LI_REGEX.findall(content)):
             return '<dl>\n' + DL_REGEX.sub(r'  <dt>\1</dt><dd>\2</dd>', content) + '</dl>'
         else:
             return content
 
-    def header(self, content, level):
+    @staticmethod
+    def header(content, level):
         return f'<h{level} id="{level}-{slugify(content)}">{content}</h{level}>\n'
+
+
+def get_outfile(data: dict, config: Config):
+    outfile = config.dist_dir / data['uri'][1:]
+    html_output = data['infile'].suffix in OUTPUT_HTML
+    if html_output and outfile.suffix != '.html':
+        outfile /= 'index.html'
+    return outfile
 
 
 @contextfunction

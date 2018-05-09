@@ -85,13 +85,13 @@ def test_simple_render(tmpdir):
     som = {
         'pages': {
             'foobar.md': {
-                'outfile': config.dist_dir / 'foobar.html',
+                'uri': '/foobar.html',
                 'infile': config.pages_dir / 'foobar.md',
                 'template': 'main.jinja',
                 'content_template': Path('content') / 'foobar.md',
             },
             'favicon.ico': {
-                'outfile': config.dist_dir / 'favicon.ico',
+                'uri': '/favicon.ico',
                 'infile': config.pages_dir / 'favicon.ico',
             },
         }
@@ -157,7 +157,6 @@ def test_build_simple_som(tmpdir):
             'created': CloseToNow(),
             'uri': '/foobar',
             'template': None,
-            'outfile': source_dir / 'dist/foobar/index.html',
             'content': (
                 '# hello\n'
                 '\n'
@@ -173,7 +172,6 @@ def test_build_simple_som(tmpdir):
             'created': datetime(2032, 6, 1, 0, 0),
             'uri': '/foobar/testing.html',
             'template': None,
-            'outfile': source_dir / 'dist/foobar/testing.html',
             'content': '# testing',
             'pass_through': False,
         },
@@ -183,7 +181,6 @@ def test_build_simple_som(tmpdir):
             'slug': 'image.png',
             'created': CloseToNow(),
             'uri': '/static/image.png',
-            'outfile': source_dir / 'dist/static/image.png',
             'pass_through': True,
         }
     } == pages
