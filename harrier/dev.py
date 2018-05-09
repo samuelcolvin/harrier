@@ -18,7 +18,7 @@ from .build import BuildPages, build_pages, content_templates
 from .common import HarrierProblem, log_complete
 from .config import Config, get_config
 from .data import load_data
-from .extensions import apply_modifiers
+from .extensions import apply_modifiers, apply_page_generator
 from .render import render_pages
 
 HOST = '0.0.0.0'
@@ -118,11 +118,12 @@ def update_site(args: UpdateArgs):  # noqa: C901 (ignore complexity)
                 pages=pages,
                 data=load_data(config),
                 config=config,
-                **config.dict(),
             )
+            apply_page_generator(SOM, config)
             SOM = apply_modifiers(SOM, config.extensions.som_modifiers)
             content_templates(SOM['pages'].values(), config)
         else:
+            SOM['config'] = config
             if args.data:
                 start = time()
                 SOM['data'] = load_data(config)
@@ -143,11 +144,14 @@ def update_site(args: UpdateArgs):  # noqa: C901 (ignore complexity)
                             (tmp_dir / page['content_template']).unlink()
                         SOM['pages'].pop(rel_path)
                     else:
-                        SOM['pages'][rel_path] = page_builder.prep_file(path)
+                        _, p = page_builder.prep_file(path)
+                        # TODO if p is none, remove
+                        SOM['pages'][rel_path] = p
                         to_update.add(rel_path)
                 log_complete(start, 'pages built', len(args.pages))
                 args.templates = args.templates or any(change != Change.deleted for change, _ in args.pages)
 
+            apply_page_generator(SOM, config)
             SOM = apply_modifiers(SOM, config.extensions.som_modifiers)
             content_templates([SOM['pages'][k] for k in SOM['pages'] if k in to_update], config)
 

@@ -260,3 +260,40 @@ def modify_foo(in_path, out_path, config):
     })
     with pytest.raises(ExtensionError):
         build(str(tmpdir))
+
+
+def test_generate_pages(tmpdir):
+    mktree(tmpdir, {
+        'pages': {
+            'index.html': 'hello',
+        },
+        'extensions.py': """
+from pathlib import Path
+from harrier.extensions import modify
+THIS_DIR = Path(__file__).parent
+
+@modify.generate_pages
+def add_extra_pages(som):
+    config: Config = som['config']
+    yield {
+        'path_ref': '/extra/index.html',
+        'outfile': THIS_DIR / 'dist/extra/index.html',
+        'infile': THIS_DIR / 'pages/extra.md',
+        'uri': '/extra',
+        'pass_through': False,
+        'content': '# this is a test\\n\\nwith of generating pages dynamically',
+        'template': None,
+    }
+    """
+    })
+    build(str(tmpdir))
+    assert gettree(tmpdir.join('dist')) == {
+        'extra': {
+            'index.html': (
+                '<h1 id="1-this-is-a-test">this is a test</h1>\n'
+                '\n'
+                '<p>with of generating pages dynamically</p>\n'
+            ),
+        },
+        'index.html': 'hello\n',
+    }

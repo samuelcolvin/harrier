@@ -53,7 +53,7 @@ class BuildPages:
         for p in paths:
             if p.is_file():
                 try:
-                    v = self.prep_file(p)
+                    path_ref, v = self.prep_file(p)
                 except ExtensionError:
                     # these are logged directly
                     raise
@@ -61,14 +61,14 @@ class BuildPages:
                     logger.exception('%s: error building SOM for page', p)
                     raise
                 if v:
-                    pages['/' + str(p.relative_to(self.config.pages_dir))] = v
+                    pages[path_ref] = v
         logger.debug('Built site object model with %d files, %d files to render', self.files, self.template_files)
         return pages, self.files
 
     def prep_file(self, p):
         path_ref = norm_path_ref(p, self.config.pages_dir)
         if any(path_match(path_ref) for path_match in self.config.ignore):
-            return
+            return path_ref, None
 
         data, pass_through = self.get_page_data(p, path_ref)
 
@@ -92,7 +92,7 @@ class BuildPages:
         if not pass_through:
             self.template_files += 1
 
-        return final_data
+        return path_ref, final_data
 
     def get_page_data(self, p, path_ref):  # noqa: C901 (ignore complexity)
         html_output = p.suffix in OUTPUT_HTML

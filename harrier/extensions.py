@@ -22,6 +22,7 @@ class ExtensionError(HarrierProblem):
 class ExtType(str, Enum):
     config_modifiers = 'config_modifiers'
     som_modifiers = 'som_modifiers'
+    generate_pages = 'generate_pages'
     page_modifiers = 'page_modifiers'
     copy_modifiers = 'copy_modifiers'
     template_filters = 'template_filters'
@@ -43,6 +44,7 @@ class Extensions:
     def _set_extensions(self):
         self.config_modifiers = self._extensions[ExtType.config_modifiers]
         self.som_modifiers = self._extensions[ExtType.som_modifiers]
+        self.generate_pages = self._extensions[ExtType.generate_pages]
         self.page_modifiers = self._extensions[ExtType.page_modifiers]
         self.copy_modifiers = self._extensions[ExtType.copy_modifiers]
         self.template_filters = self._extensions[ExtType.template_filters]
@@ -62,6 +64,7 @@ class Extensions:
         self._extensions = {
             ExtType.config_modifiers: [],
             ExtType.som_modifiers: [],
+            ExtType.generate_pages: [],
             ExtType.page_modifiers: [],
             ExtType.copy_modifiers: [],
             ExtType.template_filters: {},
@@ -112,6 +115,18 @@ def apply_modifiers(obj, ext):
     return obj
 
 
+def apply_page_generator(som, config):
+    if not config.extensions.generate_pages:
+        return
+    new_pages = {}
+    for ext in config.extensions.generate_pages:
+        for p in ext(som):
+            # TODO validate that the data is correct here
+            path_ref = p.pop('path_ref')
+            new_pages[path_ref] = p
+    som['pages'].update(new_pages)
+
+
 class modify:
     @staticmethod
     def config(f):
@@ -121,6 +136,11 @@ class modify:
     @staticmethod
     def som(f):
         f.__extension__ = ExtType.som_modifiers
+        return f
+
+    @staticmethod
+    def generate_pages(f):
+        f.__extension__ = ExtType.generate_pages
         return f
 
     @classmethod
