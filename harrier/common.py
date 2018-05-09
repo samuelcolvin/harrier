@@ -31,9 +31,6 @@ class PathMatch:
     def __call__(self, path: str):
         return self._regex.match(path)
 
-    def __eq__(self, other):
-        return self.raw == getattr(other, 'raw', None)
-
     def __hash__(self):
         return hash(self.raw)
 

@@ -95,9 +95,6 @@ class Extensions:
         ext = self._extensions and {k.value: v for k, v in self._extensions.items()}
         return f'<Extensions {repr(ext) if ext else "not loaded"}>'
 
-    def __eq__(self, other):
-        return self._extensions == getattr(other, '_extensions', other)
-
 
 def apply_modifiers(obj, ext):
     original_type = type(obj)
