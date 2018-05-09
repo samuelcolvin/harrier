@@ -14,7 +14,7 @@ from .common import completed_logger
 from .config import Mode, get_config
 from .data import load_data
 from .dev import adev
-from .extensions import apply_modifiers
+from .extensions import apply_modifiers, apply_page_generator
 from .render import render_pages
 
 logger = logging.getLogger('harrier.main')
@@ -69,9 +69,11 @@ def build(path: StrPath, steps: Set[BuildSteps]=None, mode: Optional[Mode]=None)
         path_lookup=get_path_lookup(config, pages),
         pages=pages,
         data=data_future and data_future.result(),
+        config=config,
     )
 
     if BuildSteps.extensions in steps:
+        apply_page_generator(som, config)
         som = apply_modifiers(som, config.extensions.som_modifiers)
 
     if som['pages'] is not None:

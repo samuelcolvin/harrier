@@ -53,7 +53,7 @@ class BuildPages:
         for p in paths:
             if p.is_file():
                 try:
-                    v = self.prep_file(p)
+                    v = get_page_data(p, config=self.config)
                 except ExtensionError:
                     # these are logged directly
                     raise
@@ -61,93 +61,94 @@ class BuildPages:
                     logger.exception('%s: error building SOM for page', p)
                     raise
                 if v:
-                    pages['/' + str(p.relative_to(self.config.pages_dir))] = v
+                    # logger.debug('added %s pass_through: %s, outfile %s', p, pass_through, fd.outfile)
+                    self.files += 1
+                    if not v['pass_through']:
+                        self.template_files += 1
+                    path_ref = v.pop('path_ref')
+                    pages[path_ref] = v
         logger.debug('Built site object model with %d files, %d files to render', self.files, self.template_files)
         return pages, self.files
 
-    def prep_file(self, p):
-        path_ref = norm_path_ref(p, self.config.pages_dir)
-        if any(path_match(path_ref) for path_match in self.config.ignore):
-            return
 
-        data, pass_through = self.get_page_data(p, path_ref)
+def get_page_data(p, *, config: Config, file_content: str=None, **extra_data):  # noqa: C901 (ignore complexity)
+    path_ref = norm_path_ref(p, config.pages_dir)
+    if any(path_match(path_ref) for path_match in config.ignore):
+        return
 
-        for path_match, f in self.config.extensions.page_modifiers:
-            if path_match(path_ref):
-                try:
-                    data = f(data, config=self.config)
-                except Exception as e:
-                    logger.exception('%s error running page extension %s', p, f.__name__)
-                    raise ExtensionError(str(e)) from e
-                if not isinstance(data, dict):
-                    logger.error('%s extension "%s" did not return a dict', p, f.__name__)
-                    raise ExtensionError(f'extension "{f.__name__}" did not return a dict')
+    html_output = p.suffix in OUTPUT_HTML
+    maybe_render = p.suffix in MAYBE_RENDER
+    name = p.stem if html_output else p.name
 
-        fd = FileData(**data)
-        final_data = fd.dict(exclude={'template', 'render'} if pass_through else set())
-        final_data['pass_through'] = bool(pass_through)
+    date_match = DATE_REGEX.match(name)
+    if date_match:
+        *date_args, new_name = date_match.groups()
+        created = datetime(*map(int, date_args))
+        name = new_name or name
+    elif file_content is not None:
+        # file will not actually exist
+        created = datetime.now()
+    else:
+        created = p.stat().st_mtime
 
-        # logger.debug('added %s pass_through: %s, outfile %s', p, pass_through, fd.outfile)
-        self.files += 1
-        if not pass_through:
-            self.template_files += 1
+    data = {
+        'path_ref': path_ref,
+        'infile': p,
+        'template': config.default_template,
+        'title': name,
+        'slug': '' if html_output and p.stem == 'index' else slugify(name),
+        'created': created,
+    }
 
-        return final_data
+    for path_match, defaults in config.defaults.items():
+        if path_match(path_ref):
+            data.update(defaults)
 
-    def get_page_data(self, p, path_ref):  # noqa: C901 (ignore complexity)
-        html_output = p.suffix in OUTPUT_HTML
-        maybe_render = p.suffix in MAYBE_RENDER
-        name = p.stem if html_output else p.name
+    pass_through = data.get('pass_through')
+    if not pass_through and (html_output or maybe_render):
+        fm_data, content = parse_front_matter(file_content if file_content is not None else p.read_text())
+        if html_output or fm_data:
+            data['content'] = content
+            fm_data and data.update(fm_data)
 
-        date_match = DATE_REGEX.match(name)
-        if date_match:
-            *date_args, new_name = date_match.groups()
-            created = datetime(*map(int, date_args))
-            name = new_name or name
+    if 'content' not in data:
+        pass_through = True
+
+    data.update(extra_data)
+    uri = data.get('uri')
+    if not uri:
+        parents = str(p.parent.relative_to(config.pages_dir)).split('/')
+        if parents == ['.']:
+            data['uri'] = '/' + data['slug']
         else:
-            created = p.stat().st_mtime
+            data['uri'] = '/' + '/'.join([slugify(p) for p in parents] + [data['slug']])
+    elif URI_IS_TEMPLATE.search(uri):
+        try:
+            data['uri'] = slugify(uri.format(**data))
+        except KeyError as e:
+            raise KeyError(f'missing format variable "{e.args[0]}" for "{uri}"')
 
-        data = {
-            'infile': p,
-            'template': self.config.default_template,
-            'title': name,
-            'slug': '' if html_output and p.stem == 'index' else slugify(name),
-            'created': created,
-        }
+    if data.get('output', True):
+        outfile = config.dist_dir / data['uri'][1:]
+        if html_output and outfile.suffix != '.html':
+            outfile /= 'index.html'
+        data['outfile'] = outfile
 
-        for path_match, defaults in self.config.defaults.items():
-            if path_match(path_ref):
-                data.update(defaults)
-
-        pass_through = data.get('pass_through')
-        if not pass_through and (html_output or maybe_render):
-            fm_data, content = parse_front_matter(p.read_text())
-            if html_output or fm_data:
-                data['content'] = content
-                fm_data and data.update(fm_data)
-
-        if 'content' not in data:
-            pass_through = True
-
-        uri = data.get('uri')
-        if not uri:
-            parents = str(p.parent.relative_to(self.config.pages_dir)).split('/')
-            if parents == ['.']:
-                data['uri'] = '/' + data['slug']
-            else:
-                data['uri'] = '/' + '/'.join([slugify(p) for p in parents] + [data['slug']])
-        elif URI_IS_TEMPLATE.search(uri):
+    for path_match, f in config.extensions.page_modifiers:
+        if path_match(path_ref):
             try:
-                data['uri'] = slugify(uri.format(**data))
-            except KeyError as e:
-                raise KeyError(f'missing format variable "{e.args[0]}" for "{uri}"')
+                data = f(data, config=config)
+            except Exception as e:
+                logger.exception('%s error running page extension %s', p, f.__name__)
+                raise ExtensionError(str(e)) from e
+            if not isinstance(data, dict):
+                logger.error('%s extension "%s" did not return a dict', p, f.__name__)
+                raise ExtensionError(f'extension "{f.__name__}" did not return a dict')
 
-        if data.get('output', True):
-            outfile = self.config.dist_dir / data['uri'][1:]
-            if html_output and outfile.suffix != '.html':
-                outfile /= 'index.html'
-            data['outfile'] = outfile
-        return data, pass_through
+    fd = FileData(**data)
+    final_data = fd.dict(exclude={'template'} if pass_through else set())
+    final_data['pass_through'] = bool(pass_through)
+    return final_data
 
 
 class FileData(BaseModel):

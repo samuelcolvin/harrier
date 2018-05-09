@@ -1,10 +1,13 @@
 import logging
 from enum import Enum
 from importlib.util import module_from_spec, spec_from_file_location
+from pathlib import Path
 from types import FunctionType
+from typing import Optional
 
 from jinja2 import (contextfilter, contextfunction, environmentfilter, environmentfunction, evalcontextfilter,
                     evalcontextfunction)
+from pydantic import BaseModel, ValidationError
 
 from .common import HarrierProblem, PathMatch
 
@@ -22,6 +25,7 @@ class ExtensionError(HarrierProblem):
 class ExtType(str, Enum):
     config_modifiers = 'config_modifiers'
     som_modifiers = 'som_modifiers'
+    generate_pages = 'generate_pages'
     page_modifiers = 'page_modifiers'
     copy_modifiers = 'copy_modifiers'
     template_filters = 'template_filters'
@@ -43,6 +47,7 @@ class Extensions:
     def _set_extensions(self):
         self.config_modifiers = self._extensions[ExtType.config_modifiers]
         self.som_modifiers = self._extensions[ExtType.som_modifiers]
+        self.generate_pages = self._extensions[ExtType.generate_pages]
         self.page_modifiers = self._extensions[ExtType.page_modifiers]
         self.copy_modifiers = self._extensions[ExtType.copy_modifiers]
         self.template_filters = self._extensions[ExtType.template_filters]
@@ -62,6 +67,7 @@ class Extensions:
         self._extensions = {
             ExtType.config_modifiers: [],
             ExtType.som_modifiers: [],
+            ExtType.generate_pages: [],
             ExtType.page_modifiers: [],
             ExtType.copy_modifiers: [],
             ExtType.template_filters: {},
@@ -112,6 +118,40 @@ def apply_modifiers(obj, ext):
     return obj
 
 
+class PageGeneratorModel(BaseModel):
+    path: Path
+    content: Optional[str]
+    data: dict = {}
+
+
+def run_ext(ext, som):
+    try:
+        yield from ext(som)
+    except Exception as e:
+        logger.exception('error running extension %s', ext.__name__)
+        raise ExtensionError(str(e)) from e
+
+
+def apply_page_generator(som, config):
+    from .build import get_page_data
+    if not config.extensions.generate_pages:
+        return {}
+    new_pages = {}
+    for ext in config.extensions.generate_pages:
+        for d in run_ext(ext, som):
+            try:
+                m = PageGeneratorModel.parse_obj(d)
+            except ValidationError as e:
+                logger.error('invalid response from extensions %s:\n%s', ext.__name__, e.display_errors)
+                raise ExtensionError(f'{ext.__name__} response error') from e
+            m.path = config.pages_dir / m.path
+            final_data = get_page_data(m.path, config=config, file_content=m.content, **m.data)
+            path_ref = final_data.pop('path_ref')
+            new_pages[path_ref] = final_data
+    som['pages'].update(new_pages)
+    return new_pages
+
+
 class modify:
     @staticmethod
     def config(f):
@@ -121,6 +161,11 @@ class modify:
     @staticmethod
     def som(f):
         f.__extension__ = ExtType.som_modifiers
+        return f
+
+    @staticmethod
+    def generate_pages(f):
+        f.__extension__ = ExtType.generate_pages
         return f
 
     @classmethod

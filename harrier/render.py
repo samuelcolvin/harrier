@@ -70,7 +70,6 @@ class Renderer:
             inline_css=inline_css,
         )
         self.env.globals.update(self.config.extensions.template_functions)
-        self.som['config'] = config
         self.checked_dirs = set()
 
     def run(self):

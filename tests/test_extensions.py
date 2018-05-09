@@ -260,3 +260,91 @@ def modify_foo(in_path, out_path, config):
     })
     with pytest.raises(ExtensionError):
         build(str(tmpdir))
+
+
+def test_generate_pages(tmpdir):
+    mktree(tmpdir, {
+        'pages': {
+            'index.html': 'hello',
+        },
+        'extensions.py': """
+from pathlib import Path
+from harrier.extensions import modify
+THIS_DIR = Path(__file__).parent.resolve()
+
+@modify.generate_pages
+def add_extra_pages(som):
+    config: Config = som['config']
+    yield {
+        'path': Path('extra/index.md'),
+        'content': '# this is a test\\n\\nwith of generating pages dynamically',
+    }
+    yield {
+        'path': Path('more/index.html'),
+        'content': 'testing {{ page.x }}',
+        'data': {
+            'uri': '/foo-bar-whatever',
+            'x': 123,
+        }
+    }
+    (THIS_DIR / 'pages' / 'binary_file').write_bytes(b'xxx')
+    yield {
+        'path': 'binary_file',
+        'content': None,
+    }
+    """
+    })
+    build(str(tmpdir))
+    assert gettree(tmpdir.join('dist')) == {
+        'extra': {
+            'index.html': (
+                '<h1 id="1-this-is-a-test">this is a test</h1>\n'
+                '\n'
+                '<p>with of generating pages dynamically</p>\n'
+            ),
+        },
+        'foo-bar-whatever': {
+            'index.html': 'testing 123\n'
+        },
+        'index.html': 'hello\n',
+        'binary_file': 'xxx',
+    }
+
+
+def test_generate_pages_invalid(tmpdir):
+    mktree(tmpdir, {
+        'pages': {
+            'index.html': 'hello',
+        },
+        'extensions.py': """
+from pathlib import Path
+from harrier.extensions import modify
+
+@modify.generate_pages
+def add_extra_pages(som):
+    config: Config = som['config']
+    yield {
+        'path': Path('extra/index.md'),
+    }
+    """
+    })
+    with pytest.raises(ExtensionError):
+        build(str(tmpdir))
+
+
+def test_generate_pages_error(tmpdir):
+    mktree(tmpdir, {
+        'pages': {
+            'index.html': 'hello',
+        },
+        'extensions.py': """
+from pathlib import Path
+from harrier.extensions import modify
+
+@modify.generate_pages
+def add_extra_pages(som):
+    raise RuntimeError('xx')
+    """
+    })
+    with pytest.raises(ExtensionError):
+        build(str(tmpdir))

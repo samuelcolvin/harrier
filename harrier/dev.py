@@ -14,11 +14,11 @@ from pydantic import BaseModel
 from watchgod import Change, DefaultWatcher, awatch
 
 from .assets import copy_assets, get_path_lookup, run_grablib, start_webpack_watch
-from .build import BuildPages, build_pages, content_templates
+from .build import build_pages, content_templates, get_page_data
 from .common import HarrierProblem, log_complete
 from .config import Config, get_config
 from .data import load_data
-from .extensions import apply_modifiers
+from .extensions import apply_modifiers, apply_page_generator
 from .render import render_pages
 
 HOST = '0.0.0.0'
@@ -118,11 +118,12 @@ def update_site(args: UpdateArgs):  # noqa: C901 (ignore complexity)
                 pages=pages,
                 data=load_data(config),
                 config=config,
-                **config.dict(),
             )
+            apply_page_generator(SOM, config)
             SOM = apply_modifiers(SOM, config.extensions.som_modifiers)
             content_templates(SOM['pages'].values(), config)
         else:
+            SOM['config'] = config
             if args.data:
                 start = time()
                 SOM['data'] = load_data(config)
@@ -132,7 +133,6 @@ def update_site(args: UpdateArgs):  # noqa: C901 (ignore complexity)
             to_update = set()
             if args.pages:
                 start = time()
-                page_builder = BuildPages(config)
                 tmp_dir = config.get_tmp_dir()
                 for change, path in args.pages:
                     rel_path = '/' + str(path.relative_to(config.pages_dir))
@@ -143,11 +143,16 @@ def update_site(args: UpdateArgs):  # noqa: C901 (ignore complexity)
                             (tmp_dir / page['content_template']).unlink()
                         SOM['pages'].pop(rel_path)
                     else:
-                        SOM['pages'][rel_path] = page_builder.prep_file(path)
+                        v = get_page_data(path, config=config)
+                        v.pop('path_ref')
+                        # TODO if v is none, remove
+                        SOM['pages'][rel_path] = v
                         to_update.add(rel_path)
                 log_complete(start, 'pages built', len(args.pages))
                 args.templates = args.templates or any(change != Change.deleted for change, _ in args.pages)
 
+            extra_pages = apply_page_generator(SOM, config)
+            to_update = to_update | set(extra_pages.keys())
             SOM = apply_modifiers(SOM, config.extensions.som_modifiers)
             content_templates([SOM['pages'][k] for k in SOM['pages'] if k in to_update], config)
 
@@ -175,7 +180,7 @@ def is_within(location: Path, directory: Path):
 
 class HarrierWatcher(DefaultWatcher):
     def __init__(self, root_path):
-        self._used_paths = str(CONFIG.pages_dir), str(CONFIG.theme_dir)
+        self._used_paths = str(CONFIG.pages_dir), str(CONFIG.theme_dir), str(CONFIG.data_dir)
         super().__init__(root_path)
 
     def should_watch_dir(self, entry):

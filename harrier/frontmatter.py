@@ -1,9 +1,11 @@
+import logging
 import re
 
 from ruamel.yaml import YAMLError
 
 from .common import HarrierProblem, yaml
 
+logger = logging.getLogger('harrier.frontmatter')
 FRONT_MATTER_START_REGEX = re.compile(r'---[ \t]*(.*?)\n---[ \t]*\n', re.S)
 FRONT_MATTER_DIVIDER_REGEX = re.compile(r'\n?^--- ?([.\w_-]+) ?---[ \t]*\n', re.S | re.M)
 FRONT_MATTER_DIVIDER_EXTRA_REGEX = re.compile(r'(.*?)\n---[ \t]*\n', re.S | re.M)
@@ -16,6 +18,7 @@ def parse_front_matter(s, regex=FRONT_MATTER_START_REGEX):
     try:
         data = yaml.load(m.group(1)) or {}
     except YAMLError as e:
+        logger.error('error parsing YAML: %s', e)
         raise HarrierProblem(f'error parsing YAML: {e}') from e
     content = s[m.end():]
     return data, content
