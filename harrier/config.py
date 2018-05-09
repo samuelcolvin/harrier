@@ -56,6 +56,7 @@ class Config(BaseModel):
     default_template: Optional[str] = None
     defaults: Dict[PathMatch, Dict[str, Any]] = {}
     ignore: List[PathMatch] = []
+    paginate_by = 20
 
     webpack: WebpackConfig = WebpackConfig()
     build_time: datetime

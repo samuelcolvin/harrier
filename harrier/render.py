@@ -10,7 +10,7 @@ from time import time
 from types import GeneratorType
 
 from devtools import debug, pformat
-from jinja2 import Environment, FileSystemLoader, contextfunction
+from jinja2 import Environment, FileSystemLoader, contextfilter, contextfunction
 from misaka import HtmlRenderer, Markdown, escape_html
 from pygments import highlight
 from pygments.formatters import ClassNotFound
@@ -60,6 +60,7 @@ class Renderer:
             tojson=json_filter,
             debug=debug_filter,
             markdown=self.md,
+            paginate=paginate_filter,
         )
         self.env.filters.update(self.config.extensions.template_filters)
 
@@ -254,3 +255,10 @@ def debug_filter(c, html=True):
     if html:
         output = f'<pre style="{STYLES}">\n{escape(output, quote=False)}\n</pre>'
     return output
+
+
+@contextfilter
+def paginate_filter(ctx, v, page=1, per_page=None):
+    per_page = per_page or ctx['config'].paginate_by
+    start = (page - 1) * per_page
+    return list(v)[start:start + per_page]

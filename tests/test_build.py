@@ -7,7 +7,7 @@ from pytest_toolbox import gettree, mktree
 from pytest_toolbox.comparison import CloseToNow
 
 from harrier.build import FileData, build_pages, content_templates
-from harrier.common import HarrierProblem, PathMatch
+from harrier.common import HarrierProblem
 from harrier.config import Config, Mode
 from harrier.main import build
 from harrier.render import render_pages
@@ -144,91 +144,49 @@ def test_build_simple_som(tmpdir):
         }
     )
 
-    som = config.dict()
-    som['pages'] = build_pages(config)
-    content_templates(som['pages'].values(), config)
+    pages = build_pages(config)
+    content_templates(pages.values(), config)
     source_dir = Path(tmpdir)
     # debug(som)
     assert {
-        'source_dir': source_dir,
-        'config_path': None,
-        'build_time': CloseToNow(),
-        'extensions': {
-            'config_modifiers': [],
-            'som_modifiers': [],
-            'page_modifiers': [],
-            'copy_modifiers': [],
-            'template_filters': {},
-            'template_functions': {},
+        '/foobar.md': {
+            'infile': source_dir / 'pages/foobar.md',
+            'content_template': 'content/foobar.md',
+            'title': 'foobar',
+            'slug': 'foobar',
+            'created': CloseToNow(),
+            'uri': '/foobar',
+            'template': None,
+            'outfile': source_dir / 'dist/foobar/index.html',
+            'content': (
+                '# hello\n'
+                '\n'
+                'this is a test foo: {{ foo }}'
+            ),
+            'pass_through': False,
         },
-        'mode': Mode.production,
-        'pages_dir': source_dir / 'pages',
-        'theme_dir': source_dir / 'theme',
-        'data_dir': source_dir / 'data',
-        'dist_dir': source_dir / 'dist',
-        'dist_dir_sass': Path('theme'),
-        'dist_dir_assets': Path('.'),
-        'tmp_dir': source_dir / 'tmp',
-        'download': {},
-        'download_aliases': {},
-        'default_template': None,
-        'defaults': {
-            PathMatch('/posts/*'): {
-                'uri': '/foobar/{slug}.html',
-            },
+        '/posts/2032-06-01-testing.html': {
+            'infile': source_dir / 'pages/posts/2032-06-01-testing.html',
+            'content_template': 'content/posts/2032-06-01-testing.html',
+            'title': 'testing',
+            'slug': 'testing',
+            'created': datetime(2032, 6, 1, 0, 0),
+            'uri': '/foobar/testing.html',
+            'template': None,
+            'outfile': source_dir / 'dist/foobar/testing.html',
+            'content': '# testing',
+            'pass_through': False,
         },
-        'ignore': [],
-        'webpack': {
-            'cli': None,
-            'entry': source_dir / 'theme/js/index.js',
-            'output_path': source_dir / 'dist/theme',
-            'dev_output_filename': 'main.js',
-            'prod_output_filename': 'main.[hash].js',
-            'config': None,
-            'run': False,
-        },
-        'foo': 'bar',
-        'pages': {
-            '/foobar.md': {
-                'infile': source_dir / 'pages/foobar.md',
-                'content_template': 'content/foobar.md',
-                'title': 'foobar',
-                'slug': 'foobar',
-                'created': CloseToNow(),
-                'uri': '/foobar',
-                'template': None,
-                'outfile': source_dir / 'dist/foobar/index.html',
-                'content': (
-                    '# hello\n'
-                    '\n'
-                    'this is a test foo: {{ foo }}'
-                ),
-                'pass_through': False,
-            },
-            '/posts/2032-06-01-testing.html': {
-                'infile': source_dir / 'pages/posts/2032-06-01-testing.html',
-                'content_template': 'content/posts/2032-06-01-testing.html',
-                'title': 'testing',
-                'slug': 'testing',
-                'created': datetime(2032, 6, 1, 0, 0),
-                'uri': '/foobar/testing.html',
-                'template': None,
-                'outfile': source_dir / 'dist/foobar/testing.html',
-                'content': '# testing',
-                'pass_through': False,
-            },
-            '/static/image.png': {
-                'infile': source_dir / 'pages/static/image.png',
-                'title': 'image.png',
-                'slug': 'image.png',
-                'created': CloseToNow(),
-                'uri': '/static/image.png',
-                'outfile': source_dir / 'dist/static/image.png',
-                'pass_through': True,
-            }
-
-        },
-    } == som
+        '/static/image.png': {
+            'infile': source_dir / 'pages/static/image.png',
+            'title': 'image.png',
+            'slug': 'image.png',
+            'created': CloseToNow(),
+            'uri': '/static/image.png',
+            'outfile': source_dir / 'dist/static/image.png',
+            'pass_through': True,
+        }
+    } == pages
 
 
 def test_render_error(tmpdir, caplog):

@@ -8,7 +8,7 @@ from pytest_toolbox.comparison import RegexStr
 from harrier.build import FileData
 from harrier.config import Mode
 from harrier.main import build
-from harrier.render import json_filter
+from harrier.render import json_filter, paginate_filter
 
 
 def test_build_multi_part(tmpdir):
@@ -348,10 +348,17 @@ def test_list_dd(tmpdir):
             '<p>this is some <strong>markdown</strong></p>\n'
         )
     ),
+    (
+        '{% for p in [1,2,3,4,5]|paginate(2) %}{{ p }}|{% endfor %}',
+        (
+            '4|5|\n'
+        )
+    ),
 ])
 def test_jinja_functions(input, output, tmpdir):
     mktree(tmpdir, {
-        'pages/index.html': input
+        'pages/index.html': input,
+        'harrier.yml': 'paginate_by: 3',
     })
     build(tmpdir, mode=Mode.production)
     # debug(tmpdir.join('dist/index.html').read_text('utf8'))
@@ -442,3 +449,12 @@ def test_jinja_format(tmpdir):
         'index.html': '3.14\n',
         'date.txt': 'Jun 02, 2032\n'
     }
+
+
+def test_paginate_filter():
+    v = ['a', 'b', 'c', 'd', 'e']
+    ctx = {'config': type('Config', (), {'paginate_by': 20})}
+    assert paginate_filter(ctx, v) == v
+    assert paginate_filter(ctx, v, 2) == []
+    assert paginate_filter(ctx, v, 1, 2) == ['a', 'b']
+    assert paginate_filter(ctx, v, 2, 2) == ['c', 'd']
