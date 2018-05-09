@@ -39,6 +39,7 @@ def load_data(config: Config):
             try:
                 data[key] = ext_lookup[p.suffix](p)
             except (ValueError, YAMLError) as e:
+                logger.error('error parsing file %s: %s', p, e)
                 raise HarrierProblem(f'error reading {p} {e.__class__.__name__}: {e}') from e
             count += 1
     log_complete(start, 'data loaded', count)

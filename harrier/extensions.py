@@ -134,7 +134,6 @@ def apply_page_generator(som, config):
             m = PageGeneratorModel.parse_obj(d)
             m.path = config.pages_dir / m.path
             final_data = get_page_data(m.path, config=config, file_content=m.content, **m.data)
-            debug(final_data)
             path_ref = final_data.pop('path_ref')
             new_pages[path_ref] = final_data
     som['pages'].update(new_pages)
