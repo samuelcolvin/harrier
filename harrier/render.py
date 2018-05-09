@@ -4,14 +4,12 @@ import json
 import logging
 import re
 import shutil
-from decimal import Decimal
 from html import escape
 from pathlib import Path
 from time import time
 from types import GeneratorType
-from uuid import UUID
 
-from devtools import debug
+from devtools import debug, pformat
 from jinja2 import Environment, FileSystemLoader, contextfunction
 from misaka import HtmlRenderer, Markdown, escape_html
 from pygments import highlight
@@ -58,8 +56,8 @@ class Renderer:
         self.env.filters.update(
             glob=page_glob,
             slugify=slugify,
-            format=jinja_format,
-            anyjson=json_filter,
+            format=format_filter,
+            tojson=json_filter,
             debug=debug_filter,
             markdown=self.md,
         )
@@ -212,7 +210,7 @@ def page_glob(pages, *globs, test='path'):
             yield page
 
 
-def jinja_format(s, *args, **kwargs):
+def format_filter(s, *args, **kwargs):
     return s.format(*args, **kwargs)
 
 
@@ -221,8 +219,7 @@ def isoformat(o):
 
 
 class UniversalEncoder(json.JSONEncoder):
-    ENCODER_BY_TYPE = {
-        UUID: str,
+    ENCODE_BY_TYPE = {
         datetime.datetime: isoformat,
         datetime.date: isoformat,
         datetime.time: isoformat,
@@ -230,14 +227,10 @@ class UniversalEncoder(json.JSONEncoder):
         frozenset: list,
         GeneratorType: list,
         bytes: lambda o: o.decode(),
-        Decimal: str,
     }
 
     def default(self, obj):
-        try:
-            encoder = self.ENCODER_BY_TYPE[type(obj)]
-        except KeyError:
-            return repr(obj)
+        encoder = self.ENCODE_BY_TYPE.get(type(obj), str)
         return encoder(obj)
 
 
@@ -252,11 +245,12 @@ def lenient_len(v):
         return '-'
 
 
-def debug_filter(content):
-    debug(content)
-    return (
-        f'<pre style="white-space:pre-wrap;background:#444;color:white;border-radius:8px;padding:10px;">\n'
-        f'  type: {escape(str(type(content)))}\n'
-        f'length: {lenient_len(content)}\n'
-        f'  json: {escape(json_filter(content, indent=2), quote=False)}\n'
-        f'</pre>')
+STYLES = 'white-space:pre-wrap;background:#444;color:white;border-radius:5px;padding:10px;font-size:13px'
+
+
+def debug_filter(c, html=True):
+    output = f'{pformat(debug.format(c).arguments[0].value)} (type={c.__class__.__name__} length={lenient_len(c)})'
+    print('debug filter:', output)
+    if html:
+        output = f'<pre style="{STYLES}">\n{escape(output, quote=False)}\n</pre>'
+    return output

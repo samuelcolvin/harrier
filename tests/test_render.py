@@ -310,31 +310,36 @@ def test_list_dd(tmpdir):
 
 @pytest.mark.parametrize('input,output', [
     (
-        '{{ [1,2,3]|anyjson }}',
-        '[1, 2, 3]\n'
+        '{{ [1,2,3]|batch(2)|tojson }}',
+        '[[1, 2], [3]]\n'
     ),
     (
-        '{{ [1,2,3]|debug }}',
+        '{{ [1,2,3,"hello"]|debug }}',
         (
-            '<pre style="white-space:pre-wrap;background:#444;color:white;border-radius:8px;padding:10px;">\n'
-            "  type: &lt;class &#x27;list&#x27;&gt;\n"
-            'length: 3\n'
-            '  json: [\n'
-            '  1,\n'
-            '  2,\n'
-            '  3\n'
-            ']\n'
+            '<pre '
+            'style="white-space:pre-wrap;background:#444;color:white;border-radius:5px;padding:10px;font-size:13px">'
+            '\n[\n'
+            '    1,\n'
+            '    2,\n'
+            '    3,\n'
+            "    'hello',\n"
+            '] (type=list length=4)\n'
             '</pre>\n'
         )
     ),
     (
-        '{{ 123|debug }}',
+        '{{ [1,2,3]|batch(2)|debug(html=False) }}',
         (
-            '<pre style="white-space:pre-wrap;background:#444;color:white;border-radius:8px;padding:10px;">\n'
-            "  type: &lt;class &#x27;int&#x27;&gt;\n"
-            'length: -\n'
-            '  json: 123\n'
-            '</pre>\n'
+            '(\n'
+            '    [1, 2],\n'
+            '    [3],\n'
+            ') (type=generator length=-)\n'
+        )
+    ),
+    (
+        '{{ 3|debug(html=False) }}',
+        (
+            '3 (type=int length=-)\n'
         )
     ),
     (
@@ -349,7 +354,8 @@ def test_jinja_functions(input, output, tmpdir):
         'pages/index.html': input
     })
     build(tmpdir, mode=Mode.production)
-    assert tmpdir.join('dist/index.html').read_text('utf8') == output
+    # debug(tmpdir.join('dist/index.html').read_text('utf8'))
+    assert tmpdir.join('dist/index.html').read_text('utf8') == output.replace('{tmpdir}', str(tmpdir))
 
 
 @pytest.mark.parametrize('input,output', [
@@ -427,8 +433,8 @@ def test_pages_function(infile, outfile, tmpdir):
 def test_jinja_format(tmpdir):
     mktree(tmpdir, {
         'pages': {
-            'index.html': '{{"{:0.2f}".format(3.1415)}}',
-            '2032-06-02-date.txt': '---\nx: 1\n---\n{{ "{:%b %d, %Y}".format(page.created) }}',
+            'index.html': '{{"{:0.2f}"|format(3.1415)}}',
+            '2032-06-02-date.txt': '---\nx: 1\n---\n{{ "{:%b %d, %Y}"|format(page.created) }}',
         },
     })
     build(tmpdir, mode=Mode.production)
