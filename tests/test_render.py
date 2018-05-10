@@ -391,6 +391,15 @@ def test_jinja_functions(input, output, tmpdir):
         '\n'
         '<p>some <strong>2</strong></p>\n'
     ),
+    (
+        '{% markdown %}\n'
+        '    this is code:\n\n'
+        '        7 = 4 + 3\n\n'
+        '{% endmarkdown %}\n',
+
+        '<p>this is code:</p>\n'
+        '<pre><code>7 = 4 + 3</code></pre>\n'
+    ),
 ])
 def test_jinja_md_extensions(input, output, tmpdir):
     mktree(tmpdir, {
