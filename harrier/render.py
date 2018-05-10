@@ -6,11 +6,13 @@ import re
 import shutil
 from html import escape
 from pathlib import Path
+from textwrap import dedent
 from time import time
 from types import GeneratorType
 
 from devtools import debug, pformat
-from jinja2 import Environment, FileSystemLoader, contextfilter, contextfunction
+from jinja2 import Environment, FileSystemLoader, contextfilter, contextfunction, nodes
+from jinja2.ext import Extension
 from misaka import HtmlRenderer, Markdown, escape_html
 from pygments import highlight
 from pygments.formatters import ClassNotFound
@@ -47,7 +49,8 @@ class Renderer:
         template_dirs = [str(self.config.get_tmp_dir()), str(self.config.theme_dir / 'templates')]
         logger.debug('template directories: %s', ', '.join(template_dirs))
 
-        self.env = Environment(loader=FileSystemLoader(template_dirs), extensions=['jinja2.ext.loopcontrols'])
+        extensions = 'jinja2.ext.loopcontrols', MarkdownExtension
+        self.env = Environment(loader=FileSystemLoader(template_dirs), extensions=extensions)
         self.env.filters.update(
             glob=page_glob,
             slugify=slugify,
@@ -269,3 +272,17 @@ def paginate_filter(ctx, v, page=1, per_page=None):
     per_page = per_page or ctx['config'].paginate_by
     start = (page - 1) * per_page
     return list(v)[start:start + per_page]
+
+
+class MarkdownExtension(Extension):
+    tags = {'markdown'}
+
+    def parse(self, parser):
+        lineno = next(parser.stream).lineno
+        body = parser.parse_statements(['name:endmarkdown'], drop_needle=True)
+        return nodes.CallBlock(self.call_method('_to_markdown'), [], [], body).set_lineno(lineno)
+
+    def _to_markdown(self, caller):
+        s = dedent(caller().strip('\r\n'))
+        md = self.environment.filters['markdown']
+        return md(s)

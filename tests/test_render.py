@@ -367,6 +367,42 @@ def test_jinja_functions(input, output, tmpdir):
 
 @pytest.mark.parametrize('input,output', [
     (
+        'this is **before**\n'
+        '{% markdown %}\n'
+        '  # whatever\n'
+        '  some **content**\n'
+        '{% endmarkdown %}\n'
+        'this is **after**\n',
+
+        'this is **before**\n'
+        '<h1 id="1-whatever">whatever</h1>\n'
+        '\n'
+        '<p>some <strong>content</strong></p>\n'
+        '\n'
+        'this is **after**\n'
+    ),
+    (
+        '{% markdown %}\n'
+        '  # whatever\n'
+        '  some **{{ 1 + 1 }}**\n'
+        '{% endmarkdown %}\n',
+
+        '<h1 id="1-whatever">whatever</h1>\n'
+        '\n'
+        '<p>some <strong>2</strong></p>\n'
+    ),
+])
+def test_jinja_md_extensions(input, output, tmpdir):
+    mktree(tmpdir, {
+        'pages/index.html': input,
+    })
+    build(tmpdir, mode=Mode.production)
+    # debug(tmpdir.join('dist/index.html').read_text('utf8'))
+    assert tmpdir.join('dist/index.html').read_text('utf8') == output
+
+
+@pytest.mark.parametrize('input,output', [
+    (
         {'x': datetime(2032, 6, 1)},
         '{"x": "2032-06-01T00:00:00"}'
     ),
