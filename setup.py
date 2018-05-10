@@ -52,6 +52,7 @@ setup(
         'grablib>=0.7.3',
         'libsass>=0.10.1',
         'misaka>=2.1.0',
+        'pillow>=5.1.0',
         'pydantic>=0.8',
         'ruamel.yaml>=0.15.37',
         'watchgod>=0.1.1',

@@ -4,6 +4,7 @@ import json
 import logging
 import re
 import shutil
+from collections import namedtuple
 from html import escape
 from pathlib import Path
 from textwrap import dedent
@@ -14,6 +15,7 @@ from devtools import debug, pformat
 from jinja2 import Environment, FileSystemLoader, contextfilter, contextfunction, nodes
 from jinja2.ext import Extension
 from misaka import HtmlRenderer, Markdown, escape_html
+from PIL import Image
 from pygments import highlight
 from pygments.formatters import ClassNotFound
 from pygments.formatters.html import HtmlFormatter
@@ -66,6 +68,9 @@ class Renderer:
             url=resolve_url,
             resolve_url=resolve_url,
             inline_css=inline_css,
+            shape=shape,
+            width=width,
+            height=height,
         )
         self.env.globals.update(self.config.extensions.template_functions)
         self.checked_dirs = set()
@@ -225,6 +230,41 @@ def format_filter(s, *args, **kwargs):
     return s.format(*args, **kwargs)
 
 
+IMAGE_SIZE_CACHE = {}
+Shape = namedtuple('Shape', ['width', 'height'])
+
+
+@contextfunction
+def shape(ctx, path):
+    global IMAGE_SIZE_CACHE
+    config: Config = ctx['config']
+    path = resolve_path(path, ctx['path_lookup'], None)
+    path = config.dist_dir / Path(path[1:])
+    cache_key = f'{path}:{path.stat().st_mtime}'
+    v = IMAGE_SIZE_CACHE.get(cache_key)
+    if not v:
+        v = Shape(*Image.open(path).size)
+        IMAGE_SIZE_CACHE[cache_key] = v
+    return v
+
+
+@contextfunction
+def width(ctx, path):
+    return shape(ctx, path).width
+
+
+@contextfunction
+def height(ctx, path):
+    return shape(ctx, path).height
+
+
+@contextfilter
+def paginate_filter(ctx, v, page=1, per_page=None):
+    per_page = per_page or ctx['config'].paginate_by
+    start = (page - 1) * per_page
+    return list(v)[start:start + per_page]
+
+
 def isoformat(o):
     return o.isoformat()
 
@@ -261,17 +301,9 @@ STYLES = 'white-space:pre-wrap;background:#444;color:white;border-radius:5px;pad
 
 def debug_filter(c, html=True):
     output = f'{pformat(debug.format(c).arguments[0].value)} (type={c.__class__.__name__} length={lenient_len(c)})'
-    print('debug filter:', output)
     if html:
         output = f'<pre style="{STYLES}">\n{escape(output, quote=False)}\n</pre>'
     return output
-
-
-@contextfilter
-def paginate_filter(ctx, v, page=1, per_page=None):
-    per_page = per_page or ctx['config'].paginate_by
-    start = (page - 1) * per_page
-    return list(v)[start:start + per_page]
 
 
 class MarkdownExtension(Extension):
