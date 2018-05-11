@@ -12,7 +12,7 @@ from grablib.common import GrablibError
 from grablib.download import Downloader
 from pygments.formatters.html import HtmlFormatter
 
-from .common import HarrierProblem, log_complete, norm_path_ref
+from .common import HarrierProblem, clean_uri, log_complete, norm_path_ref
 from .config import Config, Mode
 from .extensions import ExtensionError
 
@@ -202,12 +202,12 @@ def get_path_lookup(config: Config, pages=None):
             rel_path = str(p.relative_to(config.dist_dir))
             path_name = re.sub('\.[a-f0-9]{7,20}\.', '.', rel_path)
             path_name = re.sub('\.[a-f0-9]{7,20}$', '', path_name)
-            d[path_name] = rel_path, False
+            d[path_name] = clean_uri(rel_path, config), False
     if pages:
         for p in pages.values():
             if p.get('output', True):
-                uri = p['uri'].strip('/')
-                d[uri] = uri, True
+                uri = p['uri']
+                d[uri.strip('/')] = uri, True
     return d
 
 
@@ -217,6 +217,6 @@ def resolve_path(path, path_lookup, config):
         path, is_html = p
         if not is_html and config and config.mode == Mode.development:
             path += f'?t={config.build_time:%s}'
-        return '/' + path
+        return path
     else:
         raise KeyError(f'Path "{path}" does not exist')

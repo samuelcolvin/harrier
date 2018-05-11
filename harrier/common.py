@@ -59,6 +59,15 @@ def slugify(title):
     return name.strip('_-')
 
 
+def clean_uri(uri, config):
+    if uri == '':
+        return '/'
+    uri = uri.strip('/')
+    if config.apply_trailing_slash and '.' not in uri.rsplit('/', 1)[-1]:
+        uri += '/'
+    return '/' + uri
+
+
 class ColourHandler(logging.Handler):  # pragma: no cover
     formats = {
         logging.DEBUG: {'fg': 'white', 'dim': True},

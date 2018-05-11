@@ -465,9 +465,9 @@ def test_file_data_ok():
         '{% endfor %}\n',
 
         '<a href="/">index</a>\n'
-        '<a href="/foobar">foobar</a>\n'
+        '<a href="/foobar/">foobar</a>\n'
         '<a href="/robots.txt">robots.txt</a>\n'
-        '<a href="/testing">testing</a>\n'
+        '<a href="/testing/">testing</a>\n'
     ),
     (
         '{% for page in pages|glob("*.txt") -%}\n'
@@ -482,7 +482,7 @@ def test_file_data_ok():
         '{% endfor %}\n',
 
         '<a href="/">index</a>\n'
-        '<a href="/testing">testing</a>\n'
+        '<a href="/testing/">testing</a>\n'
     ),
 ])
 def test_pages_function(infile, outfile, tmpdir):

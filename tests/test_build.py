@@ -34,7 +34,7 @@ def test_full_build(tmpdir):
             'index.html': (
                 '/foobar.3389dae.png\n'
                 '/theme/main.a1ac3a7.css\n'
-                '/another\n'
+                '/another/\n'
             ),
         },
         'another': {
@@ -155,7 +155,7 @@ def test_build_simple_som(tmpdir):
             'title': 'foobar',
             'slug': 'foobar',
             'created': CloseToNow(),
-            'uri': '/foobar',
+            'uri': '/foobar/',
             'template': None,
             'content': (
                 '# hello\n'

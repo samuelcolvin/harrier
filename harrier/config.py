@@ -55,6 +55,7 @@ class Config(BaseModel):
 
     default_template: Optional[str] = None
     paginate_by = 20
+    apply_trailing_slash = True
     defaults: Dict[PathMatch, Dict[str, Any]] = {}
     ignore: List[PathMatch] = []
     no_hash: List[PathMatch] = ['/favicon.???']
