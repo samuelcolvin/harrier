@@ -520,3 +520,20 @@ def test_paginate_filter():
     assert paginate_filter(ctx, v, 2) == []
     assert paginate_filter(ctx, v, 1, 2) == ['a', 'b']
     assert paginate_filter(ctx, v, 2, 2) == ['c', 'd']
+
+
+def test_no_trailing_slash(tmpdir):
+    mktree(tmpdir, {
+        'pages': {
+            'index.html': '<a href="{{ url("other") }}">link to other</a>',
+            'other.html': 'xxx'
+        },
+        'harrier.yml': 'apply_trailing_slash: false'
+    })
+    build(tmpdir, mode=Mode.production)
+    assert gettree(tmpdir.join('dist')) == {
+        'other': {
+            'index.html': 'xxx\n',
+        },
+        'index.html': '<a href="/other">link to other</a>\n',
+    }
