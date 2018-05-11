@@ -7,7 +7,7 @@ from typing import Optional
 
 from pydantic import BaseModel, validator
 
-from .common import URI_NOT_ALLOWED, log_complete, norm_path_ref, slugify
+from .common import URI_NOT_ALLOWED, clean_uri, log_complete, norm_path_ref, slugify
 from .config import Config
 from .extensions import ExtensionError
 from .frontmatter import parse_front_matter
@@ -118,15 +118,17 @@ def get_page_data(p, *, config: Config, file_content: str=None, **extra_data):  
     if not uri:
         parents = str(p.parent.relative_to(config.pages_dir)).split('/')
         if parents == ['.']:
-            data['uri'] = '/' + data['slug']
+            uri = data['slug']
         else:
-            data['uri'] = '/' + '/'.join([slugify(p) for p in parents] + [data['slug']])
+            uri = '/'.join([slugify(p) for p in parents] + [data['slug']])
+
     elif URI_IS_TEMPLATE.search(uri):
         try:
-            data['uri'] = slugify(uri.format(**data))
+            uri = slugify(uri.format(**data))
         except KeyError as e:
             raise KeyError(f'missing format variable "{e.args[0]}" for "{uri}"')
 
+    data['uri'] = clean_uri(uri, config)
     for path_match, f in config.extensions.page_modifiers:
         if path_match(path_ref):
             try:
