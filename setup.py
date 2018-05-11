@@ -55,6 +55,6 @@ setup(
         'pillow>=5.1.0',
         'pydantic>=0.8',
         'ruamel.yaml>=0.15.37',
-        'watchgod>=0.1.1',
+        'watchgod>=0.2.0',
     ]
 )
