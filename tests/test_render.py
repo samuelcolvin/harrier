@@ -2,6 +2,7 @@ from datetime import datetime
 from pathlib import Path
 
 import pytest
+from PIL import Image
 from pytest_toolbox import gettree, mktree
 from pytest_toolbox.comparison import RegexStr
 
@@ -354,15 +355,76 @@ def test_list_dd(tmpdir):
             '4|5|\n'
         )
     ),
+    (
+        "{{ width('image.png') }} {{ height('image.png') }}",
+        (
+            '60 30\n'
+        )
+    ),
+    (
+        "{{ width('image.png') }} {{ width('image.png') }} {{ width('image.png') }}",
+        (
+            '60 60 60\n'
+        )
+    ),
 ])
 def test_jinja_functions(input, output, tmpdir):
     mktree(tmpdir, {
         'pages/index.html': input,
+        'theme/assets': {},
         'harrier.yml': 'paginate_by: 3',
     })
+    img = Image.new('RGB', (60, 30), (255, 255, 255))
+    img.save(str(tmpdir.join('theme/assets/image.png')), 'PNG')
+
     build(tmpdir, mode=Mode.production)
     # debug(tmpdir.join('dist/index.html').read_text('utf8'))
     assert tmpdir.join('dist/index.html').read_text('utf8') == output.replace('{tmpdir}', str(tmpdir))
+
+
+@pytest.mark.parametrize('input,output', [
+    (
+        'this is **before**\n'
+        '{% markdown %}\n'
+        '  # whatever\n'
+        '  some **content**\n'
+        '{% endmarkdown %}\n'
+        'this is **after**\n',
+
+        'this is **before**\n'
+        '<h1 id="1-whatever">whatever</h1>\n'
+        '\n'
+        '<p>some <strong>content</strong></p>\n'
+        '\n'
+        'this is **after**\n'
+    ),
+    (
+        '{% markdown %}\n'
+        '  # whatever\n'
+        '  some **{{ 1 + 1 }}**\n'
+        '{% endmarkdown %}\n',
+
+        '<h1 id="1-whatever">whatever</h1>\n'
+        '\n'
+        '<p>some <strong>2</strong></p>\n'
+    ),
+    (
+        '{% markdown %}\n'
+        '    this is code:\n\n'
+        '        7 = 4 + 3\n\n'
+        '{% endmarkdown %}\n',
+
+        '<p>this is code:</p>\n'
+        '<pre><code>7 = 4 + 3</code></pre>\n'
+    ),
+])
+def test_jinja_md_extensions(input, output, tmpdir):
+    mktree(tmpdir, {
+        'pages/index.html': input,
+    })
+    build(tmpdir, mode=Mode.production)
+    # debug(tmpdir.join('dist/index.html').read_text('utf8'))
+    assert tmpdir.join('dist/index.html').read_text('utf8') == output
 
 
 @pytest.mark.parametrize('input,output', [
