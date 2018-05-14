@@ -152,7 +152,7 @@ def test_build_simple_som(tmpdir):
         '/foobar.md': {
             'infile': source_dir / 'pages/foobar.md',
             'content_template': 'content/foobar.md',
-            'title': 'foobar',
+            'title': 'Foobar',
             'slug': 'foobar',
             'created': CloseToNow(),
             'uri': '/foobar/',
@@ -167,7 +167,7 @@ def test_build_simple_som(tmpdir):
         '/posts/2032-06-01-testing.html': {
             'infile': source_dir / 'pages/posts/2032-06-01-testing.html',
             'content_template': 'content/posts/2032-06-01-testing.html',
-            'title': 'testing',
+            'title': 'Testing',
             'slug': 'testing',
             'created': datetime(2032, 6, 1, 0, 0),
             'uri': '/foobar/testing.html',

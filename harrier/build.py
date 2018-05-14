@@ -94,7 +94,7 @@ def get_page_data(p, *, config: Config, file_content: str=None, **extra_data):  
         'path_ref': path_ref,
         'infile': p,
         'template': config.default_template,
-        'title': name,
+        'title': name.title() if html_output else name,
         'slug': '' if html_output and p.stem == 'index' else slugify(name),
         'created': created,
     }
