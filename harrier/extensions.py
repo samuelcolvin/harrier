@@ -134,22 +134,21 @@ def run_ext(ext, som):
 
 def apply_page_generator(som, config):
     from .build import get_page_data
-    if not config.extensions.generate_pages:
-        return {}
-    new_pages = {}
-    for ext in config.extensions.generate_pages:
-        for d in run_ext(ext, som):
-            try:
-                m = PageGeneratorModel.parse_obj(d)
-            except ValidationError as e:
-                logger.error('invalid response from extensions %s:\n%s', ext.__name__, e.display_errors)
-                raise ExtensionError(f'{ext.__name__} response error') from e
-            m.path = config.pages_dir / m.path
-            final_data = get_page_data(m.path, config=config, file_content=m.content, **m.data)
-            path_ref = final_data.pop('path_ref')
-            new_pages[path_ref] = final_data
-    som['pages'].update(new_pages)
-    return new_pages
+    path_refs = set()
+    if config.extensions.generate_pages:
+        for ext in config.extensions.generate_pages:
+            for d in run_ext(ext, som):
+                try:
+                    m = PageGeneratorModel.parse_obj(d)
+                except ValidationError as e:
+                    logger.error('invalid response from extensions %s:\n%s', ext.__name__, e.display_errors)
+                    raise ExtensionError(f'{ext.__name__} response error') from e
+                m.path = config.pages_dir / m.path
+                final_data = get_page_data(m.path, config=config, file_content=m.content, **m.data)
+                path_ref = final_data.pop('path_ref')
+                som['pages'][path_ref] = final_data
+                path_refs.add(path_ref)
+    return path_refs
 
 
 class modify:

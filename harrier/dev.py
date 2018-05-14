@@ -153,7 +153,8 @@ def update_site(args: UpdateArgs):  # noqa: C901 (ignore complexity)
                 args.templates = args.templates or any(change != Change.deleted for change, _ in args.pages)
 
             extra_pages = apply_page_generator(SOM, config)
-            to_update = to_update | set(extra_pages.keys())
+            debug(to_update, extra_pages)
+            to_update = to_update | extra_pages
             SOM = apply_modifiers(SOM, config.extensions.som_modifiers)
             content_templates([SOM['pages'][k] for k in SOM['pages'] if k in to_update], config)
 
