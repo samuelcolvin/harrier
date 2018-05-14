@@ -11,12 +11,15 @@ def test_ok(tmpdir):
         'pages/foobar.md': '# hello',
         'theme/templates': '{{ content }}',
         'data': {
-            'path/to/foo.csv': (
-                'fruit, colour, price\n'
-                'apple, green, 1\n'
-                'banana, yellow, 2\n'
-                'raspberry, red, 3\n'
-            ),
+            'path/to': {
+                'foo.csv': (
+                    'fruit, colour, price\n'
+                    'apple, green, 1\n'
+                    'banana, yellow, 2\n'
+                    'raspberry, red, 3\n'
+                ),
+                'other.json': '[1,2,3]',
+            },
             'happy people.json': '{"name": "spanner", "v": 123}',
             'sp$am.yaml': (
                 'a: B\n'
@@ -29,26 +32,31 @@ def test_ok(tmpdir):
     config = Config(source_dir=tmpdir)
     data = load_data(config)
     assert data == {
-        'path_to_foo': [
-            {
-                'fruit': 'apple',
-                'colour': 'green',
-                'price': '1',
-            },
-            {
-                'fruit': 'banana',
-                'colour': 'yellow',
-                'price': '2',
-            },
-            {
-                'fruit': 'raspberry',
-                'colour': 'red',
-                'price': '3',
-            },
-        ],
         'happy_people': {
             'name': 'spanner',
-            'v': 123
+            'v': 123,
+        },
+        'path': {
+            'to': {
+                'other': [1, 2, 3],
+                'foo': [
+                    {
+                        'fruit': 'apple',
+                        'colour': 'green',
+                        'price': '1',
+                    },
+                    {
+                        'fruit': 'banana',
+                        'colour': 'yellow',
+                        'price': '2',
+                    },
+                    {
+                        'fruit': 'raspberry',
+                        'colour': 'red',
+                        'price': '3',
+                    },
+                ],
+            },
         },
         'spam': {
             'a': 'B',
@@ -76,12 +84,13 @@ def test_duplicate(tmpdir, caplog):
     config = Config(source_dir=tmpdir)
     data = load_data(config)
     assert data == {
-        'path_to_foo': {
-            'name': 'spanner',
-            'v': 123
+        'path': {
+            'to': {
+                'foo': {'name': 'spanner', 'v': 123}
+            }
         }
     }
-    assert 'duplicate data key "path_to_foo"' in caplog.text
+    assert 'duplicate data key "path.to.foo"' in caplog.text
 
 
 def test_invalid_yaml(tmpdir):

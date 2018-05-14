@@ -15,6 +15,10 @@ csv_dialect = csv.excel
 csv_dialect.skipinitialspace = True
 
 
+def simplify(key):
+    return re.sub('\W', '', re.sub('[\- ]', '_', key))
+
+
 def load_data(config: Config):
     start = time()
     d = config.data_dir
@@ -30,14 +34,20 @@ def load_data(config: Config):
     count = 0
     for ext in ext_lookup:
         for p in d.glob(f'**/*{ext}'):
-            key = re.sub('[-/ ]', '_', str(p.relative_to(d).with_suffix('')))
-            key = re.sub('\W', '', key)
-            if key in data:
-                logger.warning('duplicate data key "%s", ignoring data in "%s", please rename', key, p)
+            parts = [simplify(k) for k in p.relative_to(d).with_suffix('').parts]
+            *parents, key = parts
+            data_ = data
+            for parent in parents:
+                if parent not in data_:
+                    data_[parent] = {}
+                data_ = data_[parent]
+
+            if key in data_:
+                logger.warning('duplicate data key "%s", ignoring data in "%s", please rename', '.'.join(parts), p)
                 continue
             logger.debug('reading data from "%s" as "%s"', p, key)
             try:
-                data[key] = ext_lookup[p.suffix](p)
+                data_[key] = ext_lookup[p.suffix](p)
             except (ValueError, YAMLError) as e:
                 logger.error('error parsing file %s: %s', p, e)
                 raise HarrierProblem(f'error reading {p} {e.__class__.__name__}: {e}') from e
