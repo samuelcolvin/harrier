@@ -13,7 +13,8 @@ def test_extensions_ok(tmpdir):
         'pages': {
             'foo.md': '# foo',
             'bar.html': '{{ 4|add_one }} {{ dynamic }}',
-            'spam.html': 'before'
+            'spam.html': 'before',
+            'splat.html': '{{ 3 is two }} {{ 2 is two }}',
         },
         'theme/templates/main.jinja': '{{ content }}',
         'extensions.py': """
@@ -37,6 +38,10 @@ def change_pages(site):
 @template.filter
 def add_one(v):
     return v + 1
+
+@template.test
+def two(v):
+    return v == 2
         """
     })
 
@@ -50,7 +55,10 @@ def add_one(v):
         },
         'spam': {
             'index.html': 'after\n',
-        }
+        },
+        'splat': {
+            'index.html': 'False True\n',
+        },
     }
 
 

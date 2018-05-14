@@ -30,6 +30,7 @@ class ExtType(str, Enum):
     copy_modifiers = 'copy_modifiers'
     template_filters = 'template_filters'
     template_functions = 'template_functions'
+    template_tests = 'template_tests'
 
 
 class Extensions:
@@ -52,6 +53,7 @@ class Extensions:
         self.copy_modifiers = self._extensions[ExtType.copy_modifiers]
         self.template_filters = self._extensions[ExtType.template_filters]
         self.template_functions = self._extensions[ExtType.template_functions]
+        self.template_tests = self._extensions[ExtType.template_tests]
 
     @classmethod
     def get_validators(cls):
@@ -72,6 +74,7 @@ class Extensions:
             ExtType.copy_modifiers: [],
             ExtType.template_filters: {},
             ExtType.template_functions: {},
+            ExtType.template_tests: {},
         }
         if self.path.exists():
             spec = spec_from_file_location('extensions', self.path)
@@ -95,6 +98,8 @@ class Extensions:
                     self._extensions[ExtType.template_filters][attr_name] = attr
                 elif any(getattr(attr, n, False) is True for n in function_attrs):
                     self._extensions[ExtType.template_functions][attr_name] = attr
+                elif getattr(attr, test_attr, False):
+                    self._extensions[ExtType.template_tests][attr_name] = attr
         self._set_extensions()
 
     def __repr__(self):
@@ -192,6 +197,7 @@ class modify:
 
 filter_attrs = 'contextfilter', 'evalcontextfilter', 'environmentfilter', '__vanilla_filter__'
 function_attrs = 'contextfunction', 'evalcontextfunction', 'environmentfunction', '__vanilla_function__'
+test_attr = '__vanilla_test__'
 
 
 class template:
@@ -210,4 +216,9 @@ class template:
     @staticmethod
     def function(f):
         f.__vanilla_function__ = True
+        return f
+
+    @staticmethod
+    def test(f):
+        f.__vanilla_test__ = True
         return f

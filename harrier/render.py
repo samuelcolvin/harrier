@@ -73,6 +73,7 @@ class Renderer:
             height=height,
         )
         self.env.globals.update(self.config.extensions.template_functions)
+        self.env.tests.update(self.config.extensions.template_tests)
         self.checked_dirs = set()
 
     def run(self):
