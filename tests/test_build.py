@@ -123,6 +123,78 @@ def test_simple_render(tmpdir):
     assert gettree(tmpdir.join('dist')) != expected_tree
 
 
+def test_build_default_placeholders(tmpdir):
+    mktree(tmpdir, {
+        'dist/theme/assets/whatever.1234567.png': '**',
+        'pages': {
+            'foobar.md': '# hello\n\nthis is a test foo: {{ foo }}',
+            'posts/2032-06-01-testing.html': '# testing',
+            'static/image.png': '*',
+        },
+        'theme/templates/main.jinja': 'main, content:\n\n {{ content }}',
+    })
+    config = Config(
+        source_dir=str(tmpdir),
+        tmp_dir=str(tmpdir.join('tmp')),
+        foo='bar',
+        defaults={
+            '/posts/*': {
+                'uri': '/foobar/{slug}.html',
+                'test_attr': 'brain_j',
+                'foo_title': '@title',
+                'attrs': {
+                    'extra_attr': '@test_attr',
+                }
+            }
+        }
+    )
+
+    pages = build_pages(config)
+    content_templates(pages.values(), config)
+    source_dir = Path(tmpdir)
+    assert {
+               '/foobar.md': {
+                   'infile': source_dir / 'pages/foobar.md',
+                   'content_template': 'content/foobar.md',
+                   'title': 'Foobar',
+                   'slug': 'foobar',
+                   'created': CloseToNow(),
+                   'uri': '/foobar/',
+                   'template': None,
+                   'content': (
+                       '# hello\n'
+                       '\n'
+                       'this is a test foo: {{ foo }}'
+                   ),
+                   'pass_through': False,
+               },
+               '/posts/2032-06-01-testing.html': {
+                   'infile': source_dir / 'pages/posts/2032-06-01-testing.html',
+                   'content_template': 'content/posts/2032-06-01-testing.html',
+                   'title': 'Testing',
+                   'slug': 'testing',
+                   'created': datetime(2032, 6, 1, 0, 0),
+                   'uri': '/foobar/testing.html',
+                   'foo_title': 'Testing',
+                   'test_attr': 'brain_j',
+                   'attrs': {
+                       'extra_attr': 'brain_j',
+                   },
+                   'template': None,
+                   'content': '# testing',
+                   'pass_through': False,
+               },
+               '/static/image.png': {
+                   'infile': source_dir / 'pages/static/image.png',
+                   'title': 'image.png',
+                   'slug': 'image.png',
+                   'created': CloseToNow(),
+                   'uri': '/static/image.png',
+                   'pass_through': True,
+               }
+           } == pages
+
+
 def test_build_simple_som(tmpdir):
     mktree(tmpdir, {
         'dist/theme/assets/whatever.1234567.png': '**',

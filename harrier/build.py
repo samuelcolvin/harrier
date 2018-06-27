@@ -99,9 +99,18 @@ def get_page_data(p, *, config: Config, file_content: str=None, **extra_data):  
         'created': created,
     }
 
+    def _update_placeholders(d):
+        for key, v in d.items():
+            if isinstance(v, dict):
+                _update_placeholders(v)
+            else:
+                if isinstance(v, str) and v.startswith('@'):
+                    d[key] = data[v.lstrip('@')]
+
     for path_match, defaults in config.defaults.items():
         if path_match(path_ref):
             data.update(defaults)
+            _update_placeholders(data)
 
     pass_through = data.get('pass_through')
     if not pass_through and (html_output or maybe_render):
