@@ -99,9 +99,25 @@ def get_page_data(p, *, config: Config, file_content: str=None, **extra_data):  
         'created': created,
     }
 
+    regex = re.compile(r'{{ ?(\w+).?}}')
+
+    def _replace(m):
+        return data[m.group(1)]
+
+    def _update_placeholders(d):
+        if isinstance(d, str) and '{{' in d:
+            return regex.sub(_replace, d)
+        elif isinstance(d, dict):
+            return {k: _update_placeholders(v) for k, v in d.items()}
+        elif isinstance(d, list):
+            return [_update_placeholders(v) for v in d]
+        else:
+            return d
+
     for path_match, defaults in config.defaults.items():
         if path_match(path_ref):
             data.update(defaults)
+            data = _update_placeholders(data)
 
     pass_through = data.get('pass_through')
     if not pass_through and (html_output or maybe_render):
