@@ -100,12 +100,22 @@ def get_page_data(p, *, config: Config, file_content: str=None, **extra_data):  
     }
 
     def _update_placeholders(d):
-        for key, v in d.items():
-            if isinstance(v, dict):
-                _update_placeholders(v)
-            else:
-                if isinstance(v, str) and v.startswith('@'):
-                    d[key] = data[v.lstrip('@')]
+        re_pattern = r'{{ ?(\w+).?}}'
+
+        def replace(v):
+            if isinstance(v, str) and '{{' in v:
+                matches = re.findall(re_pattern, v)
+                for m in matches:
+                    v = v.replace('{{ %s }}' % m, data[m])
+            return v
+
+        for key, val in d.items():
+            if isinstance(val, dict):
+                _update_placeholders(val)
+            elif isinstance(val, list):
+                d[key] = [replace(_val) for _val in val]
+            elif isinstance(val, str):
+                d[key] = replace(val)
 
     for path_match, defaults in config.defaults.items():
         if path_match(path_ref):

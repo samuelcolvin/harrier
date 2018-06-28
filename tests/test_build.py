@@ -140,11 +140,13 @@ def test_build_default_placeholders(tmpdir):
         defaults={
             '/posts/*': {
                 'uri': '/foobar/{slug}.html',
-                'test_attr': 'brain_j',
-                'foo_title': '@title',
-                'attrs': {
-                    'extra_attr': '@test_attr',
-                }
+                'test_attr': 'Brain J',
+                'str_attr': '{{ title }}-{{ test_attr }}',
+                'dict_attrs': {
+                    'd_attr': '{{ test_attr }}',
+                    'd_foo': 'foo',
+                },
+                'list_attrs': ['foo', 'bar', '{{ title }}'],
             }
         }
     )
@@ -153,46 +155,48 @@ def test_build_default_placeholders(tmpdir):
     content_templates(pages.values(), config)
     source_dir = Path(tmpdir)
     assert {
-               '/foobar.md': {
-                   'infile': source_dir / 'pages/foobar.md',
-                   'content_template': 'content/foobar.md',
-                   'title': 'Foobar',
-                   'slug': 'foobar',
-                   'created': CloseToNow(),
-                   'uri': '/foobar/',
-                   'template': None,
-                   'content': (
-                       '# hello\n'
-                       '\n'
-                       'this is a test foo: {{ foo }}'
-                   ),
-                   'pass_through': False,
-               },
-               '/posts/2032-06-01-testing.html': {
-                   'infile': source_dir / 'pages/posts/2032-06-01-testing.html',
-                   'content_template': 'content/posts/2032-06-01-testing.html',
-                   'title': 'Testing',
-                   'slug': 'testing',
-                   'created': datetime(2032, 6, 1, 0, 0),
-                   'uri': '/foobar/testing.html',
-                   'foo_title': 'Testing',
-                   'test_attr': 'brain_j',
-                   'attrs': {
-                       'extra_attr': 'brain_j',
-                   },
-                   'template': None,
-                   'content': '# testing',
-                   'pass_through': False,
-               },
-               '/static/image.png': {
-                   'infile': source_dir / 'pages/static/image.png',
-                   'title': 'image.png',
-                   'slug': 'image.png',
-                   'created': CloseToNow(),
-                   'uri': '/static/image.png',
-                   'pass_through': True,
-               }
-           } == pages
+        '/foobar.md': {
+            'infile': source_dir / 'pages/foobar.md',
+            'content_template': 'content/foobar.md',
+            'title': 'Foobar',
+            'slug': 'foobar',
+            'created': CloseToNow(),
+            'uri': '/foobar/',
+            'template': None,
+            'content': (
+                '# hello\n'
+                '\n'
+                'this is a test foo: {{ foo }}'
+            ),
+            'pass_through': False,
+        },
+        '/posts/2032-06-01-testing.html': {
+            'infile': source_dir / 'pages/posts/2032-06-01-testing.html',
+            'content_template': 'content/posts/2032-06-01-testing.html',
+            'title': 'Testing',
+            'slug': 'testing',
+            'created': datetime(2032, 6, 1, 0, 0),
+            'uri': '/foobar/testing.html',
+            'str_attr': 'Testing-Brain J',
+            'test_attr': 'Brain J',
+            'dict_attrs': {
+                'd_attr': 'Brain J',
+                'd_foo': 'foo'
+            },
+            'list_attrs': ['foo', 'bar', 'Testing'],
+            'template': None,
+            'content': '# testing',
+            'pass_through': False,
+        },
+        '/static/image.png': {
+            'infile': source_dir / 'pages/static/image.png',
+            'title': 'image.png',
+            'slug': 'image.png',
+            'created': CloseToNow(),
+            'uri': '/static/image.png',
+            'pass_through': True,
+        }
+    } == pages
 
 
 def test_build_simple_som(tmpdir):
