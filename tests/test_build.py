@@ -147,6 +147,10 @@ def test_build_default_placeholders(tmpdir):
                     'd_foo': 'foo',
                 },
                 'list_attrs': ['foo', 'bar', '{{ title }}'],
+                'list_of_dicts_attr': [{
+                    'a_key': '{{ title }}-{{ test_attr }}',
+                    'b_key': 'foo bar',
+                }]
             }
         }
     )
@@ -184,6 +188,10 @@ def test_build_default_placeholders(tmpdir):
                 'd_foo': 'foo'
             },
             'list_attrs': ['foo', 'bar', 'Testing'],
+            'list_of_dicts_attr': [{
+                'a_key': 'Testing-Brain J',
+                'b_key': 'foo bar',
+            }],
             'template': None,
             'content': '# testing',
             'pass_through': False,
