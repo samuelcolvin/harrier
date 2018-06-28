@@ -146,7 +146,7 @@ def apply_page_generator(som, config):
                 try:
                     m = PageGeneratorModel.parse_obj(d)
                 except ValidationError as e:
-                    logger.error('invalid response from extensions %s:\n%s', ext.__name__, e.display_errors)
+                    logger.error('invalid response from extensions %s:\n%s', ext.__name__, e.errors())
                     raise ExtensionError(f'{ext.__name__} response error') from e
                 m.path = config.pages_dir / m.path
                 final_data = get_page_data(m.path, config=config, file_content=m.content, **m.data)

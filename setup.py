@@ -46,14 +46,14 @@ setup(
     install_requires=[
         'Jinja2>=2.8',
         'Pygments>=2.2.0',
-        'aiohttp-devtools>=0.9',
+        'aiohttp-devtools>=0.10',
         'click>=6.2',
         'devtools>=0.3',
-        'grablib>=0.7.3',
-        'libsass>=0.10.1',
+        'grablib>=0.7.4',
+        'libsass>=0.14.5',
         'misaka>=2.1.0',
         'pillow>=5.1.0',
-        'pydantic>=0.8',
+        'pydantic>=0.10',
         'ruamel.yaml>=0.15.37',
         'watchgod>=0.2.0',
     ]
