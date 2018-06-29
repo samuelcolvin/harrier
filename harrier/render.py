@@ -162,7 +162,7 @@ class Renderer:
 
 DL_REGEX = re.compile('<li>(.*?)::(.*?)</li>', re.S)
 LI_REGEX = re.compile('<li>(.*?)</li>', re.S)
-MD_EXTENSIONS = 'fenced-code', 'strikethrough', 'no-intra-emphasis', 'tables', 'underline'
+MD_EXTENSIONS = 'fenced-code', 'strikethrough', 'no-intra-emphasis', 'tables'
 
 
 class HarrierHtmlRenderer(HtmlRenderer):
@@ -184,12 +184,18 @@ class HarrierHtmlRenderer(HtmlRenderer):
     def list(content, is_ordered, is_block):
         if not is_ordered and len(DL_REGEX.findall(content)) == len(LI_REGEX.findall(content)):
             return '<dl>\n' + DL_REGEX.sub(r'  <dt>\1</dt><dd>\2</dd>', content) + '</dl>'
+        elif is_ordered:
+            return f'<ol>\n{content}</ol>'
         else:
-            return content
+            return f'<ul>\n{content}</ul>'
 
     @staticmethod
     def header(content, level):
         return f'<h{level} id="{level}-{slugify(content)}">{content}</h{level}>\n'
+
+    @staticmethod
+    def triple_emphasis(content):
+        return f'<u>{content}</u>'
 
 
 def get_outfile(data: dict, config: Config):

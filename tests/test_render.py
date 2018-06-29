@@ -257,56 +257,92 @@ def test_render_code_lang(tmpdir):
     )
 
 
-def test_render_code_unknown_lang(tmpdir):
+@pytest.mark.parametrize('input,output', [
+    (
+        '_this should be emphasised_',
+        '<p><em>this should be emphasised</em></p>\n'
+    ),
+    (
+        (
+            'testing\n\n'
+            '```notalanguage\n'
+            'x = 4\n'
+            '```\n'
+        ),
+        (
+            '<p>testing</p>\n'
+            '<pre><code>x = 4</code></pre>\n'
+        )
+    ),
+    (
+        '___this should be underlined___',
+        '<p><u>this should be underlined</u></p>\n'
+    ),
+    (
+        '***this should be underlined***',
+        '<p><u>this should be underlined</u></p>\n'
+    ),
+    (
+        (
+            '* foo\n'
+            '* bar\n'
+            '* spam\n'
+        ),
+        (
+            '<ul>\n'
+            '<li>foo</li>\n'
+            '<li>bar</li>\n'
+            '<li>spam</li>\n'
+            '</ul>\n'
+        )
+    ),
+    (
+        (
+            '1. i am\n'
+            '2. ordered\n'
+            '2. with numbers\n'
+        ),
+        (
+            '<ol>\n'
+            '<li>i am</li>\n'
+            '<li>ordered</li>\n'
+            '<li>with numbers</li>\n'
+            '</ol>\n'
+        )
+    ),
+    (
+        (
+            '* whatever\n'
+            '* thing:: other\n'
+        ),
+        (
+            '<ul>\n'
+            '<li>whatever</li>\n'
+            '<li>thing:: other</li>\n'
+            '</ul>\n'
+        )
+    ),
+    (
+        (
+            '* name:: whatever\n'
+            '* thing:: other\n'
+        ),
+        (
+            '<dl>\n'
+            '  <dt>name</dt><dd> whatever</dd>\n'
+            '  <dt>thing</dt><dd> other</dd>\n'
+            '</dl>\n'
+        )
+    )
+])
+def test_markdown_extensions(input, output, tmpdir):
     mktree(tmpdir, {
         'pages': {
-            'foobar.md': (
-                'testing\n\n'
-                '```notalanguage\n'
-                'x = 4\n'
-                '```\n'
-            ),
+            'foobar.md': input,
         },
     })
     build(tmpdir, mode=Mode.production)
-    assert tmpdir.join('dist/foobar/index.html').read_text('utf8') == (
-        '<p>testing</p>\n'
-        '<pre><code>x = 4</code></pre>\n'
-    )
-
-
-def test_list_not_dd(tmpdir):
-    mktree(tmpdir, {
-        'pages': {
-            'foobar.md': (
-                '* whatever\n'
-                '* thing:: other\n'
-            ),
-        },
-    })
-    build(tmpdir, mode=Mode.production)
-    assert tmpdir.join('dist/foobar/index.html').read_text('utf8') == (
-        '<li>whatever</li>\n'
-        '<li>thing:: other</li>\n'
-    )
-
-
-def test_list_dd(tmpdir):
-    mktree(tmpdir, {
-        'pages': {
-            'foobar.md': (
-                '* name:: whatever\n'
-                '* thing:: other\n'
-            ),
-        },
-    })
-    build(tmpdir, mode=Mode.production)
-    assert tmpdir.join('dist/foobar/index.html').read_text('utf8') == (
-        '<dl>\n'
-        '  <dt>name</dt><dd> whatever</dd>\n'
-        '  <dt>thing</dt><dd> other</dd>\n'
-        '</dl>\n'
-    )
+    assert tmpdir.join('dist/foobar/index.html').read_text('utf8') == output
 
 
 @pytest.mark.parametrize('input,output', [
