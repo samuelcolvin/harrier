@@ -1,7 +1,7 @@
 import pytest
 
 from harrier.common import HarrierProblem
-from harrier.frontmatter import parse_front_matter, split_content
+from harrier.frontmatter import parse_front_matter, parse_yaml, split_content
 
 
 def test_simple_front_matter():
@@ -13,6 +13,15 @@ the content"""
     obj, content = parse_front_matter(s)
     assert obj == {'happy': True}
     assert content == 'the content'
+
+
+def test_simple_raw_yaml():
+    s = """\
+happy: True
+"""
+    obj, content = parse_yaml(s)
+    assert obj == {'happy': True}
+    assert content == ''
 
 
 def test_no_front_matter():
@@ -38,6 +47,14 @@ not valid
 the content"""
     with pytest.raises(HarrierProblem):
         parse_front_matter(s)
+
+
+def test_bad_raw_yaml():
+    s = """\
+foobar:
+not valid"""
+    with pytest.raises(HarrierProblem):
+        parse_yaml(s)
 
 
 def test_empty_front_matter():

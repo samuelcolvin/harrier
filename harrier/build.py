@@ -10,10 +10,11 @@ from pydantic import BaseModel, validator
 from .common import URI_NOT_ALLOWED, clean_uri, log_complete, norm_path_ref, slugify
 from .config import Config
 from .extensions import ExtensionError
-from .frontmatter import parse_front_matter
+from .frontmatter import parse_front_matter, parse_yaml
 
 # extensions where we want to do anything except just copy the file to the output dir
-OUTPUT_HTML = {'.html', '.md'}
+OUTPUT_HTML = {'.html', '.md', '.yml', '.yaml'}
+YAML_FILE = {'.yml', '.yaml'}
 MAYBE_RENDER = {'.xml', '.txt'}
 DATE_REGEX = re.compile(r'(\d{4})-(\d{2})-(\d{2})-?(.*)')
 URI_IS_TEMPLATE = re.compile('[{}]')
@@ -121,7 +122,11 @@ def get_page_data(p, *, config: Config, file_content: str=None, **extra_data):  
 
     pass_through = data.get('pass_through')
     if not pass_through and (html_output or maybe_render):
-        fm_data, content = parse_front_matter(file_content if file_content is not None else p.read_text())
+        s = file_content if file_content is not None else p.read_text()
+        if p.suffix in YAML_FILE:
+            fm_data, content = parse_yaml(s)
+        else:
+            fm_data, content = parse_front_matter(s)
         if html_output or fm_data:
             data['content'] = content
             fm_data and data.update(fm_data)
