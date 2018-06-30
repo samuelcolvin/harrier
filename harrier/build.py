@@ -9,7 +9,7 @@ from pydantic import BaseModel, validator
 
 from .common import URI_NOT_ALLOWED, clean_uri, log_complete, norm_path_ref, slugify
 from .config import Config
-from .extensions import ExtensionError
+from .extensions import ExtensionError, HarrierProblem
 from .frontmatter import parse_front_matter, parse_yaml
 
 # extensions where we want to do anything except just copy the file to the output dir
@@ -55,7 +55,7 @@ class BuildPages:
             if p.is_file():
                 try:
                     v = get_page_data(p, config=self.config)
-                except ExtensionError:
+                except HarrierProblem:
                     # these are logged directly
                     raise
                 except Exception:
@@ -105,20 +105,24 @@ def get_page_data(p, *, config: Config, file_content: str=None, **extra_data):  
     def _replace(m):
         return data[m.group(1)]
 
-    def _update_placeholders(d):
+    def _apply_placeholders(d):
         if isinstance(d, str) and '{{' in d:
             return regex.sub(_replace, d)
         elif isinstance(d, dict):
-            return {k: _update_placeholders(v) for k, v in d.items()}
+            return {k: _apply_placeholders(v) for k, v in d.items()}
         elif isinstance(d, list):
-            return [_update_placeholders(v) for v in d]
+            return [_apply_placeholders(v) for v in d]
         else:
             return d
 
     for path_match, defaults in config.defaults.items():
         if path_match(path_ref):
             data.update(defaults)
-            data = _update_placeholders(data)
+            try:
+                data = _apply_placeholders(data)
+            except KeyError as e:
+                logger.exception('%s key error applying placeholders: "%s"', p, e)
+                raise HarrierProblem(f'Placeholder key error "{e}"') from e
 
     pass_through = data.get('pass_through')
     if not pass_through and (html_output or maybe_render):
