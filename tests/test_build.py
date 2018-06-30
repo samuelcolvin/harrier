@@ -21,7 +21,8 @@ def test_full_build(tmpdir):
                 '{{ resolve_url("theme/main.css") }}\n'
                 '{{ resolve_url("another") }}\n'
             ),
-            'another.md': '# Hello'
+            'another.md': '# Hello',
+            'third.yaml': 'content: "hello there"',
         },
         'theme': {
             'sass/main.scss': 'body {width: 10px + 10px;}',
@@ -42,6 +43,9 @@ def test_full_build(tmpdir):
         },
         'theme': {
             'main.a1ac3a7.css': 'body{width:20px}\n',
+        },
+        'third': {
+            'index.html': 'hello there\n'
         },
         'foobar.3389dae.png': '*',
     }
@@ -295,6 +299,27 @@ def test_uri_key_error(tmpdir, caplog):
     with pytest.raises(KeyError):
         build(tmpdir, mode=Mode.production)
     assert 'missing format variable "foo" for "{foo}/whatever"' in caplog.text
+
+
+def test_yaml_render(tmpdir):
+    mktree(tmpdir, {
+        'pages': {
+            'test.yml': (
+                'template: foobar.jinja\n'
+                'foo:\n'
+                '  bar: 42\n'
+            ),
+        },
+        'theme': {
+            'templates/foobar.jinja': 'foo bar: {{ page.foo.bar }}',
+        },
+    })
+    build(tmpdir, mode=Mode.production)
+    assert gettree(tmpdir.join('dist')) == {
+        'test': {
+            'index.html': 'foo bar: 42\n'
+        }
+    }
 
 
 def test_file_data_no_slash():

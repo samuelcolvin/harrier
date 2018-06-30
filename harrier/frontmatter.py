@@ -11,6 +11,18 @@ FRONT_MATTER_DIVIDER_REGEX = re.compile(r'\n?^--- ?([.\w_-]+) ?---[ \t]*\n', re.
 FRONT_MATTER_DIVIDER_EXTRA_REGEX = re.compile(r'(.*?)\n---[ \t]*\n', re.S | re.M)
 
 
+def parse_yaml(s):
+    """
+    parse a yaml file like it's a front matter file
+    """
+    try:
+        data = yaml.load(s) or {}
+    except YAMLError as e:
+        logger.error('error parsing YAML: %s', e)
+        raise HarrierProblem(f'error parsing YAML: {e}') from e
+    return data, data.get('content', '')
+
+
 def parse_front_matter(s, regex=FRONT_MATTER_START_REGEX):
     m = regex.match(s)
     if not m:
