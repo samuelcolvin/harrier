@@ -170,7 +170,6 @@ def test_inline_css_dev(tmpdir):
         },
     })
     build(tmpdir, mode=Mode.development)
-    mtime = tmpdir.join('theme/sass/main.scss').stat().mtime
     assert gettree(tmpdir.join('dist')) == {
         'foo': {
             'index.html': (
@@ -181,7 +180,7 @@ def test_inline_css_dev(tmpdir):
             ),
         },
         'bar': {
-            'index.html': f'/theme/main.css?t={mtime:0.0f}\n',
+            'index.html': RegexStr(r'/theme/main.css\?t=\d+\n'),
         },
         'theme': {
             'main.css.map': RegexStr('{.*'),
