@@ -125,13 +125,9 @@ def test_simple_render(tmpdir):
 
 def test_build_default_placeholders(tmpdir):
     mktree(tmpdir, {
-        'dist/theme/assets/whatever.1234567.png': '**',
         'pages': {
-            'foobar.md': '# hello\n\nthis is a test foo: {{ foo }}',
             'posts/2032-06-01-testing.html': '# testing',
-            'static/image.png': '*',
         },
-        'theme/templates/main.jinja': 'main, content:\n\n {{ content }}',
     })
     config = Config(
         source_dir=str(tmpdir),
@@ -159,21 +155,6 @@ def test_build_default_placeholders(tmpdir):
     content_templates(pages.values(), config)
     source_dir = Path(tmpdir)
     assert {
-        '/foobar.md': {
-            'infile': source_dir / 'pages/foobar.md',
-            'content_template': 'content/foobar.md',
-            'title': 'Foobar',
-            'slug': 'foobar',
-            'created': CloseToNow(),
-            'uri': '/foobar/',
-            'template': None,
-            'content': (
-                '# hello\n'
-                '\n'
-                'this is a test foo: {{ foo }}'
-            ),
-            'pass_through': False,
-        },
         '/posts/2032-06-01-testing.html': {
             'infile': source_dir / 'pages/posts/2032-06-01-testing.html',
             'content_template': 'content/posts/2032-06-01-testing.html',
@@ -196,15 +177,28 @@ def test_build_default_placeholders(tmpdir):
             'content': '# testing',
             'pass_through': False,
         },
-        '/static/image.png': {
-            'infile': source_dir / 'pages/static/image.png',
-            'title': 'image.png',
-            'slug': 'image.png',
-            'created': CloseToNow(),
-            'uri': '/static/image.png',
-            'pass_through': True,
-        }
     } == pages
+
+
+def test_placeholders_error(tmpdir):
+    mktree(tmpdir, {
+        'pages': {
+            'posts/2032-06-01-testing.html': '# testing',
+        },
+    })
+    config = Config(
+        source_dir=str(tmpdir),
+        tmp_dir=str(tmpdir.join('tmp')),
+        foo='bar',
+        defaults={
+            '/posts/*': {
+                'testing': '{{ title }}-{{ foobar }}',
+            }
+        }
+    )
+
+    with pytest.raises(HarrierProblem):
+        build_pages(config)
 
 
 def test_build_simple_som(tmpdir):
