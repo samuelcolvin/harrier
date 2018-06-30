@@ -202,21 +202,22 @@ def get_path_lookup(config: Config, pages=None):
             rel_path = str(p.relative_to(config.dist_dir))
             path_name = re.sub('\.[a-f0-9]{7,20}\.', '.', rel_path)
             path_name = re.sub('\.[a-f0-9]{7,20}$', '', path_name)
-            d[path_name] = clean_uri(rel_path, config), False
+            d[path_name] = clean_uri(rel_path, config), False, f'{p.stat().st_mtime:0.0f}'
+    last_mod = f'{config.build_time:%s}'
     if pages:
         for p in pages.values():
             if p.get('output', True):
                 uri = p['uri']
-                d[uri.strip('/')] = uri, True
+                d[uri.strip('/')] = uri, True, last_mod
     return d
 
 
 def resolve_path(path, path_lookup, config):
     p = path_lookup.get(path.strip('/'))
     if p:
-        path, is_html = p
+        path, is_html, last_mod = p
         if not is_html and config and config.mode == Mode.development:
-            path += f'?t={config.build_time:%s}'
+            path += f'?t=' + last_mod
         return path
     else:
         raise KeyError(f'Path "{path}" does not exist')

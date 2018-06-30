@@ -160,7 +160,7 @@ def update_site(args: UpdateArgs):  # noqa: C901 (ignore complexity)
         SOM['path_lookup'] = get_path_lookup(config, SOM['pages'])
         if args.templates:
             global BUILD_CACHE
-            BUILD_CACHE = render_pages(config, SOM)
+            BUILD_CACHE = render_pages(config, SOM, build_cache=BUILD_CACHE)
     except HarrierProblem as e:
         logger.debug('error during build %s %s %s', traceback.format_exc(), e.__class__.__name__, e)
         logger.warning('%sbuild failed in %0.3fs', log_prefix, time() - start_time)

@@ -169,7 +169,8 @@ def test_inline_css_dev(tmpdir):
             'sass/main.scss': 'body {width: 10px + 10px;}',
         },
     })
-    som = build(tmpdir, mode=Mode.development)
+    build(tmpdir, mode=Mode.development)
+    mtime = tmpdir.join('theme/sass/main.scss').stat().mtime
     assert gettree(tmpdir.join('dist')) == {
         'foo': {
             'index.html': (
@@ -180,7 +181,7 @@ def test_inline_css_dev(tmpdir):
             ),
         },
         'bar': {
-            'index.html': f'/theme/main.css?t={som["config"].build_time:%s}\n',
+            'index.html': f'/theme/main.css?t={mtime:0.0f}\n',
         },
         'theme': {
             'main.css.map': RegexStr('{.*'),

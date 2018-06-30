@@ -38,7 +38,7 @@ def render_pages(config: Config, som: dict, build_cache=None):
 
 
 class Renderer:
-    __slots__ = 'config', 'som', 'build_cache', 'md', 'env', 'checked_dirs', 'ctx'
+    __slots__ = 'config', 'som', 'build_cache', 'md', 'env', 'checked_dirs', 'ctx', 'to_gen', 'to_copy'
 
     def __init__(self, config: Config, som: dict, build_cache: dict=None):
         self.config = config
@@ -75,15 +75,19 @@ class Renderer:
         self.env.globals.update(self.config.extensions.template_functions)
         self.env.tests.update(self.config.extensions.template_tests)
         self.checked_dirs = set()
+        self.to_gen = []
+        self.to_copy = []
 
     def run(self):
-        gen, copy = 0, 0
         for p in self.som['pages'].values():
-            action = self.render_file(p)
-            if action == 1:
-                gen += 1
-            elif action == 2:
-                copy += 1
+            self.render_file(p)
+
+        for outfile, content in self.to_gen:
+            outfile.write_bytes(content)
+        for infile, outfile in self.to_copy:
+            shutil.copy(infile, outfile)
+        gen, copy = len(self.to_gen), len(self.to_copy)
+
         logger.debug('generated %d files, copied %d files', gen, copy)
         return self.build_cache, gen + copy
 
@@ -141,8 +145,7 @@ class Renderer:
                     return
                 else:
                     self.build_cache[infile] = out_hash
-            outfile.write_bytes(rendered_b)
-            return 1
+            self.to_gen.append((outfile, rendered_b))
 
     def _md_content(self, v):
         v['content'] = self.md(v['content'])
@@ -156,8 +159,7 @@ class Renderer:
                 return
             else:
                 self.build_cache[infile] = mtime
-        shutil.copy(infile, outfile)
-        return 2
+        self.to_copy.append((infile, outfile))
 
 
 DL_REGEX = re.compile('<li>(.*?)::(.*?)</li>', re.S)

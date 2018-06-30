@@ -300,6 +300,7 @@ def test_resolve_sass_path_dev(tmpdir):
     config = get_config(str(tmpdir))
     config.mode = Mode.development
     assets_grablib(config)
+    mtime = tmpdir.join('theme/sass/main.scss').stat().mtime
     assert gettree(tmpdir.join('dist')) == {
         'assets': {
             'image.png': '*',
@@ -308,10 +309,10 @@ def test_resolve_sass_path_dev(tmpdir):
             'main.css.map': RegexStr('{.*'),
             'main.css': (
                 "body {\n"
-                "  content: '/assets/image.png?t=%s'; }\n"
+                "  content: '/assets/image.png?t=%0.0f'; }\n"
                 "\n"
                 "/*# sourceMappingURL=main.css.map */"
-            ) % f'{config.build_time:%s}',
+            ) % mtime,
             '.src': {
                 'main.scss': 'body {content: resolve_path("/assets/image.png")}',
             },
