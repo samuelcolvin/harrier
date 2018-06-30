@@ -7,9 +7,9 @@ from typing import Optional
 
 from pydantic import BaseModel, validator
 
-from .common import URI_NOT_ALLOWED, clean_uri, log_complete, norm_path_ref, slugify
+from .common import URI_NOT_ALLOWED, HarrierProblem, clean_uri, log_complete, norm_path_ref, slugify
 from .config import Config
-from .extensions import ExtensionError, HarrierProblem
+from .extensions import ExtensionError
 from .frontmatter import parse_front_matter, parse_yaml
 
 # extensions where we want to do anything except just copy the file to the output dir
@@ -20,6 +20,10 @@ DATE_REGEX = re.compile(r'(\d{4})-(\d{2})-(\d{2})-?(.*)')
 URI_IS_TEMPLATE = re.compile('[{}]')
 
 logger = logging.getLogger('harrier.build')
+
+
+class PlaceHolderError(HarrierProblem):
+    pass
 
 
 def build_pages(config: Config):
@@ -55,7 +59,7 @@ class BuildPages:
             if p.is_file():
                 try:
                     v = get_page_data(p, config=self.config)
-                except HarrierProblem:
+                except(ExtensionError, PlaceHolderError):
                     # these are logged directly
                     raise
                 except Exception:
@@ -122,7 +126,7 @@ def get_page_data(p, *, config: Config, file_content: str=None, **extra_data):  
                 data = _apply_placeholders(data)
             except KeyError as e:
                 logger.exception('%s key error applying placeholders: "%s"', p, e)
-                raise HarrierProblem(f'Placeholder key error "{e}"') from e
+                raise PlaceHolderError(f'Placeholder key error "{e}"') from e
 
     pass_through = data.get('pass_through')
     if not pass_through and (html_output or maybe_render):
