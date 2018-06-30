@@ -22,9 +22,7 @@ def test_full_build(tmpdir):
                 '{{ resolve_url("another") }}\n'
             ),
             'another.md': '# Hello',
-            'third.yaml': (
-                'content: "hello there"\n'
-            ),
+            'third.yaml': 'content: "hello there"',
         },
         'theme': {
             'sass/main.scss': 'body {width: 10px + 10px;}',
@@ -306,7 +304,7 @@ def test_uri_key_error(tmpdir, caplog):
 def test_yaml_render(tmpdir):
     mktree(tmpdir, {
         'pages': {
-            'test.yaml': (
+            'test.yml': (
                 'template: foobar.jinja\n'
                 'foo:\n'
                 '  bar: 42\n'

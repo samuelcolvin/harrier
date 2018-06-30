@@ -13,7 +13,7 @@ FRONT_MATTER_DIVIDER_EXTRA_REGEX = re.compile(r'(.*?)\n---[ \t]*\n', re.S | re.M
 
 def parse_yaml(s):
     """
-    parse a yaml file like it's a front matter
+    parse a yaml file like it's a front matter file
     """
     try:
         data = yaml.load(s) or {}
