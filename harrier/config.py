@@ -7,7 +7,7 @@ from itertools import product
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-from pydantic import BaseModel, validator
+from pydantic import BaseModel, Extra, validator
 from ruamel.yaml import YAMLError
 
 from .common import HarrierProblem, PathMatch, yaml
@@ -61,7 +61,7 @@ class Config(BaseModel):
     no_hash: List[PathMatch] = ['/favicon.???']
 
     webpack: WebpackConfig = WebpackConfig()
-    build_time: datetime
+    build_time: datetime = None
 
     @validator('source_dir')
     def resolve_source_dir(cls, v):
@@ -142,7 +142,7 @@ class Config(BaseModel):
         webpack.output_path = values['dist_dir'] / webpack.output_path
         return webpack
 
-    @validator('build_time', pre=True)
+    @validator('build_time', pre=True, always=True)
     def set_build_time(cls, v):
         return datetime.utcnow()
 
@@ -154,7 +154,7 @@ class Config(BaseModel):
             return Path(tempfile.gettempdir()) / f'harrier-{path_hash}'
 
     class Config:
-        allow_extra = True
+        extra = Extra.allow
         validate_all = True
 
 

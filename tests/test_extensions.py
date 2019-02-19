@@ -333,6 +333,7 @@ def add_extra_pages(som):
     config: Config = som['config']
     yield {
         'path': Path('extra/index.md'),
+        'content': [1, 2, 3],
     }
     """
     })
