@@ -230,8 +230,8 @@ def test_grablib(tmpdir):
         },
         'harrier.yml': (
             f'download:\n'
-            f"  'https://cdn.rawgit.com/samuelcolvin/ae6d04dadbb4d552d365f440d3ac8015/raw/"
-            f"cda04f66c71e4a5f418e78d111d651ae3a2e3784/demo.scss': '_demo.scss'"
+            f"  'https://gist.githubusercontent.com/samuelcolvin/ae6d04dadbb4d552d365f440d3ac8015/"
+            f"raw/cda04f66c71e4a5f418e78d111d651ae3a2e3784/demo.scss': '_demo.scss'"
         )
     })
 
@@ -363,7 +363,7 @@ def test_grablib_error(tmpdir):
         },
         'harrier.yml': (
             f'download:\n'
-            f"  'https://cdn.rawgit.com/samuelcolvin/ae6d04dadbb4d552d365f440d3ac8015/raw/"
+            f"  'https://gist.githubusercontent.com/samuelcolvin/ae6d04dadbb4d552d365f440d3ac8015/raw/"
             f"cda04f66c71e4a5f418e78d111d651ae3a2e3784/demo.scss': '_demo.scss'"
         )
     })
