@@ -332,7 +332,7 @@ from harrier.extensions import modify
 THIS_DIR = Path(__file__).parent.resolve()
 
 
-@modify.post_render
+@modify.post_page_render
 def add_nofollow(page, html):
     return html.replace('google', 'foobar')
     """
