@@ -137,6 +137,8 @@ class Renderer:
             logger.exception('%s: error rendering page', infile)
             raise HarrierProblem(f'{e.__class__.__name__}: {e}') from e
         else:
+            for post_page_render in self.config.extensions.post_page_render:
+                rendered = post_page_render(page=data, html=rendered)
             rendered_b = rendered.encode()
             if self.build_cache is not None:
                 out_hash = hashlib.md5(rendered_b).digest()

@@ -319,6 +319,32 @@ def add_extra_pages(som):
     }
 
 
+def test_post_page_render(tmpdir):
+    mktree(tmpdir, {
+        'pages': {
+            'index.md': (
+                '[Whatever](https://google.com)'
+            ),
+        },
+        'extensions.py': """
+from pathlib import Path
+from harrier.extensions import modify
+THIS_DIR = Path(__file__).parent.resolve()
+
+
+@modify.post_render
+def add_nofollow(page, html):
+    return html.replace('google', 'foobar')
+    """
+    })
+    build(str(tmpdir))
+    assert gettree(tmpdir.join('dist')) == {
+        'index.html': (
+            '<p><a href="https://foobar.com">Whatever</a></p>\n'
+        ),
+    }
+
+
 def test_generate_pages_invalid(tmpdir):
     mktree(tmpdir, {
         'pages': {
