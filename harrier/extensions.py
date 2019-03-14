@@ -27,6 +27,7 @@ class ExtType(str, Enum):
     som_modifiers = 'som_modifiers'
     generate_pages = 'generate_pages'
     page_modifiers = 'page_modifiers'
+    post_page_render = 'post_page_render'
     copy_modifiers = 'copy_modifiers'
     template_filters = 'template_filters'
     template_functions = 'template_functions'
@@ -50,6 +51,7 @@ class Extensions:
         self.som_modifiers = self._extensions[ExtType.som_modifiers]
         self.generate_pages = self._extensions[ExtType.generate_pages]
         self.page_modifiers = self._extensions[ExtType.page_modifiers]
+        self.post_page_render = self._extensions[ExtType.post_page_render]
         self.copy_modifiers = self._extensions[ExtType.copy_modifiers]
         self.template_filters = self._extensions[ExtType.template_filters]
         self.template_functions = self._extensions[ExtType.template_functions]
@@ -71,6 +73,7 @@ class Extensions:
             ExtType.som_modifiers: [],
             ExtType.generate_pages: [],
             ExtType.page_modifiers: [],
+            ExtType.post_page_render: [],
             ExtType.copy_modifiers: [],
             ExtType.template_filters: {},
             ExtType.template_functions: {},
@@ -170,6 +173,11 @@ class modify:
     @staticmethod
     def generate_pages(f):
         f.__extension__ = ExtType.generate_pages
+        return f
+
+    @staticmethod
+    def post_page_render(f):
+        f.__extension__ = ExtType.post_page_render
         return f
 
     @classmethod
