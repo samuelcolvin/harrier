@@ -59,6 +59,21 @@ def slugify(title):
     return name.strip('_-')
 
 
+ALLOWED_TITLE_VALS = re.compile(r'[^a-z0-9_\-]')
+HEADING_RE = re.compile(r'&(?:#\d{2,}|[a-z0-9]{2,});')
+
+
+def heading_slugify(title):
+    """
+    For slugifying headings to be made into ids
+    """
+    title = title.replace(' ', '-').lower()
+    title = HEADING_RE.sub('', title)
+    title = ALLOWED_TITLE_VALS.sub('', title)
+    title = re.sub('-{2,}', '-', title)
+    return title.strip('_-')
+
+
 def clean_uri(uri, config):
     if uri == '':
         return '/'

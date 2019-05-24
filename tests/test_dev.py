@@ -33,7 +33,7 @@ def test_dev_simple(tmpdir, mocker, loop):
     asyncio.set_event_loop(loop)
     mktree(tmpdir, {
         'pages': {
-            'foobar.md': '# hello\n {{ config.foo }}',
+            'foobar.md': "# hello you're awesome/cool\n {{ config.foo }}",
             'features/whatever.md': '## Foo',
         },
         'harrier.yml': 'foo: 1'
@@ -44,10 +44,9 @@ def test_dev_simple(tmpdir, mocker, loop):
 
     dev(str(tmpdir), 25698)
 
-    # debug(gettree(tmpdir.join('dist')))
     assert gettree(tmpdir.join('dist')) == {
         'foobar': {
-            'index.html': '<h1 id="1-hello">hello</h1>\n\n<p>2</p>\n',
+            'index.html': '<h1 id="1-hello-youre-awesomecool">hello you&#39;re awesome/cool</h1>\n\n<p>2</p>\n',
         },
         'features': {
             'whatever': {
