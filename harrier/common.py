@@ -51,20 +51,20 @@ def norm_path_ref(p: Path, rel: Path):
     return '/' + normcase(str(p.relative_to(rel)))
 
 
-URI_NOT_ALLOWED = re.compile(r'[^a-zA-Z0-9_\-/.]')
-TITLE_NOT_ALLOWED = re.compile(r'[^a-z0-9_\-]')
-HEADING_RE = re.compile(r'&(?:#\d{2,}|[a-z0-9]{2,});')
+RE_URI_NOT_ALLOWED = re.compile(r'[^a-zA-Z0-9_\-/.]')
+RE_HTML_SYMBOL = re.compile(r'&(?:#\d{2,}|[a-z0-9]{2,});')
+RE_TITLE_NOT_ALLOWED = re.compile(r'[^a-z0-9_\-]')
+RE_REPEAT_DASH = re.compile(r'-{2,}')
 
 
-def slugify(v, pathy=True):
+def slugify(v, *, path_like=True):
     v = v.replace(' ', '-').lower()
-    if pathy:
-        v = URI_NOT_ALLOWED.sub('', v)
+    if path_like:
+        v = RE_URI_NOT_ALLOWED.sub('', v)
     else:
-        v = HEADING_RE.sub('', v)
-        v = TITLE_NOT_ALLOWED.sub('', v)
-    v = re.sub('-{2,}', '-', v)
-    return v.strip('_-')
+        v = RE_HTML_SYMBOL.sub('', v)
+        v = RE_TITLE_NOT_ALLOWED.sub('', v)
+    return RE_REPEAT_DASH.sub('-', v).strip('_-')
 
 
 def clean_uri(uri, config):
