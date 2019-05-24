@@ -10,7 +10,6 @@ from pydantic.validators import str_validator
 from ruamel.yaml import YAML
 
 yaml = YAML(typ='safe')
-URI_NOT_ALLOWED = re.compile(r'[^a-zA-Z0-9_\-/.]')
 completed_logger = logging.getLogger('harrier.completed')
 
 
@@ -52,11 +51,20 @@ def norm_path_ref(p: Path, rel: Path):
     return '/' + normcase(str(p.relative_to(rel)))
 
 
-def slugify(title):
-    name = title.replace(' ', '-').lower()
-    name = URI_NOT_ALLOWED.sub('', name)
-    name = re.sub('-{2,}', '-', name)
-    return name.strip('_-')
+RE_URI_NOT_ALLOWED = re.compile(r'[^a-zA-Z0-9_\-/.]')
+RE_HTML_SYMBOL = re.compile(r'&(?:#\d{2,}|[a-z0-9]{2,});')
+RE_TITLE_NOT_ALLOWED = re.compile(r'[^a-z0-9_\-]')
+RE_REPEAT_DASH = re.compile(r'-{2,}')
+
+
+def slugify(v, *, path_like=True):
+    v = v.replace(' ', '-').lower()
+    if path_like:
+        v = RE_URI_NOT_ALLOWED.sub('', v)
+    else:
+        v = RE_HTML_SYMBOL.sub('', v)
+        v = RE_TITLE_NOT_ALLOWED.sub('', v)
+    return RE_REPEAT_DASH.sub('-', v).strip('_-')
 
 
 def clean_uri(uri, config):
