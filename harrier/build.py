@@ -7,7 +7,7 @@ from typing import Optional
 
 from pydantic import BaseModel, validator
 
-from .common import URI_NOT_ALLOWED, HarrierProblem, clean_uri, log_complete, norm_path_ref, slugify
+from .common import RE_URI_NOT_ALLOWED, HarrierProblem, clean_uri, log_complete, norm_path_ref, slugify
 from .config import Config
 from .extensions import ExtensionError
 from .frontmatter import parse_front_matter, parse_yaml
@@ -187,7 +187,7 @@ class FileData(BaseModel):
     def validate_uri(cls, v):
         if not v.startswith('/'):
             raise ValueError(f'uri must start with a slash: "{v}')
-        invalid = URI_NOT_ALLOWED.findall(v)
+        invalid = RE_URI_NOT_ALLOWED.findall(v)
         if invalid:
             invalid = ', '.join(f'"{inv}"' for inv in invalid)
             raise ValueError(f'uri contains invalid characters: {invalid}')

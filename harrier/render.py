@@ -195,7 +195,7 @@ class HarrierHtmlRenderer(HtmlRenderer):
 
     @staticmethod
     def header(content, level):
-        return f'<h{level} id="{level}-{slugify(content, pathy=False)}">{content}</h{level}>\n'
+        return f'<h{level} id="{level}-{slugify(content, path_like=False)}">{content}</h{level}>\n'
 
     @staticmethod
     def triple_emphasis(content):
