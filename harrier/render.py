@@ -23,7 +23,7 @@ from pygments.lexers import get_lexer_by_name
 
 from .assets import resolve_path
 from .build import OUTPUT_HTML
-from .common import HarrierProblem, PathMatch, heading_slugify, log_complete, slugify
+from .common import HarrierProblem, PathMatch, log_complete, slugify
 from .config import Config
 from .frontmatter import split_content
 
@@ -195,7 +195,7 @@ class HarrierHtmlRenderer(HtmlRenderer):
 
     @staticmethod
     def header(content, level):
-        return f'<h{level} id="{level}-{heading_slugify(content)}">{content}</h{level}>\n'
+        return f'<h{level} id="{level}-{slugify(content, pathy=False)}">{content}</h{level}>\n'
 
     @staticmethod
     def triple_emphasis(content):

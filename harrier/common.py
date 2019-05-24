@@ -10,7 +10,6 @@ from pydantic.validators import str_validator
 from ruamel.yaml import YAML
 
 yaml = YAML(typ='safe')
-URI_NOT_ALLOWED = re.compile(r'[^a-zA-Z0-9_\-/.]')
 completed_logger = logging.getLogger('harrier.completed')
 
 
@@ -52,26 +51,20 @@ def norm_path_ref(p: Path, rel: Path):
     return '/' + normcase(str(p.relative_to(rel)))
 
 
-def slugify(title):
-    name = title.replace(' ', '-').lower()
-    name = URI_NOT_ALLOWED.sub('', name)
-    name = re.sub('-{2,}', '-', name)
-    return name.strip('_-')
-
-
-ALLOWED_TITLE_VALS = re.compile(r'[^a-z0-9_\-]')
+URI_NOT_ALLOWED = re.compile(r'[^a-zA-Z0-9_\-/.]')
+TITLE_NOT_ALLOWED = re.compile(r'[^a-z0-9_\-]')
 HEADING_RE = re.compile(r'&(?:#\d{2,}|[a-z0-9]{2,});')
 
 
-def heading_slugify(title):
-    """
-    For slugifying headings to be made into ids
-    """
-    title = title.replace(' ', '-').lower()
-    title = HEADING_RE.sub('', title)
-    title = ALLOWED_TITLE_VALS.sub('', title)
-    title = re.sub('-{2,}', '-', title)
-    return title.strip('_-')
+def slugify(v, pathy=True):
+    v = v.replace(' ', '-').lower()
+    if pathy:
+        v = URI_NOT_ALLOWED.sub('', v)
+    else:
+        v = HEADING_RE.sub('', v)
+        v = TITLE_NOT_ALLOWED.sub('', v)
+    v = re.sub('-{2,}', '-', v)
+    return v.strip('_-')
 
 
 def clean_uri(uri, config):
