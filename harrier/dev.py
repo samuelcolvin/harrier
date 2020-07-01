@@ -48,12 +48,20 @@ class Server:
         logger.debug('shutdown took %0.2fs', self.loop.time() - start)
 
 
-# CONFIG will be set before the fork so it can be used by the child process
+# CONFIG will set on the child process before update_site is called using set_config
 CONFIG: Config = None
 # SOM and BUILD_CACHE will only be set after the fork in the child process created by ProcessPoolExecutor
 SOM = None
 BUILD_CACHE = {}
 FIRST_BUILD = '__FB__'
+
+
+def set_config(main_config: Config) -> None:
+    """
+    Required for platforms where child processes are spawned not forked, e.g. macos
+    """
+    global CONFIG
+    CONFIG = main_config
 
 
 class UpdateArgs(BaseModel):
@@ -201,6 +209,7 @@ async def adev(config: Config, port: int):
     config_path = str(config.config_path or config.source_dir)
     # max_workers = 1 so the same config and som are always used to build the site
     with ProcessPoolExecutor(max_workers=1) as executor:
+        await loop.run_in_executor(executor, set_config, config)
         ret = await loop.run_in_executor(executor, update_site, UpdateArgs(config_path=config_path))
 
         logger.info('\nStarting dev server, go to http://localhost:%s', port)
