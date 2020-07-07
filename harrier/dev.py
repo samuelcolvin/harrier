@@ -10,6 +10,7 @@ from time import time
 
 from aiohttp.web_runner import AppRunner, TCPSite
 from aiohttp_devtools.runserver import serve_static
+from aiohttp_devtools.runserver.log_handlers import AuxAccessLogger
 from pydantic import BaseModel
 from watchgod import Change, DefaultWatcher, awatch
 
@@ -34,7 +35,7 @@ class Server:
 
     async def start(self):
         app, *_ = serve_static(static_path=str(self.config.dist_dir), port=self.port)
-        self.runner = AppRunner(app, access_log=None)
+        self.runner = AppRunner(app, access_log_class=AuxAccessLogger)
         await self.runner.setup()
 
         site = TCPSite(self.runner, HOST, self.port, shutdown_timeout=0.01)

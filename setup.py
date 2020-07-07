@@ -48,7 +48,7 @@ setup(
     """,
     install_requires=[
         'aiohttp>=3.6',
-        'aiohttp-devtools>=0.6',
+        'aiohttp-devtools>=0.13',
         'click>=7',
         'devtools>=0.4',
         'grablib>=0.7.4',
