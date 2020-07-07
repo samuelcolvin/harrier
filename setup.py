@@ -47,17 +47,18 @@ setup(
         harrier=harrier.cli:cli
     """,
     install_requires=[
-        'Jinja2>=2.8',
-        'Pygments>=2.2.0',
-        'aiohttp-devtools>=0.10, <=0.11',
-        'click>=6.2',
-        'devtools>=0.3',
+        'aiohttp>=3.6',
+        'aiohttp-devtools>=0.6',
+        'click>=7',
+        'devtools>=0.4',
         'grablib>=0.7.4',
-        'libsass>=0.14.5',
-        'misaka>=2.1.0',
-        'pillow>=5.1.0',
+        'Jinja2>=2.8',
+        'libsass>=0.20',
+        'misaka>=2.1',
+        'pillow>=7.2.0',
         'pydantic>=1.5.1',
-        'ruamel.yaml>=0.15.37',
-        'watchgod>=0.2.0',
+        'Pygments>=2.6',
+        'ruamel.yaml>=0.16',
+        'watchgod>=0.6.0',
     ]
 )
