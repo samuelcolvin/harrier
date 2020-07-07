@@ -58,7 +58,7 @@ class Extensions:
         self.template_tests = self._extensions[ExtType.template_tests]
 
     @classmethod
-    def get_validators(cls):
+    def __get_validators__(cls):
         yield cls.validate
 
     @classmethod

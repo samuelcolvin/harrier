@@ -38,7 +38,7 @@ class PathMatch:
         return f'<PathMatch {self.raw!r}>'
 
     @classmethod
-    def get_validators(cls):
+    def __get_validators__(cls):
         yield str_validator
         yield cls.validate
 
@@ -104,17 +104,23 @@ def log_config(verbose: bool, dev) -> dict:
         'disable_existing_loggers': True,
         'formatters': {
             'default': {
-                'format': '%(message)s'
-            },
-            'server': {
                 'format': '[%(asctime)s] %(message)s',
                 'datefmt': '%H:%M:%S',
+                'class': 'aiohttp_devtools.logs.DefaultFormatter',
+            },
+            'no_ts': {
+                'format': '%(message)s',
+                'class': 'aiohttp_devtools.logs.DefaultFormatter',
+            },
+            'aiohttp': {
+                'format': '%(message)s',
+                'class': 'aiohttp_devtools.logs.AccessFormatter',
             },
         },
         'handlers': {
             'default': {
                 'level': log_level,
-                'class': 'grablib.common.ClickHandler',
+                'class': 'aiohttp_devtools.logs.HighlightStreamHandler',
                 'formatter': 'default'
             },
             'build': {
@@ -127,10 +133,19 @@ def log_config(verbose: bool, dev) -> dict:
                 'class': 'harrier.common.ColourHandler',
                 'formatter': 'default'
             },
-            'server_logging': {
+            'no_ts': {
                 'level': log_level,
-                'class': 'aiohttp_devtools.runserver.log_handlers.AuxiliaryHandler',
-                'formatter': 'server'
+                'class': 'aiohttp_devtools.logs.HighlightStreamHandler',
+                'formatter': 'no_ts'
+            },
+            'aiohttp_access': {
+                'level': log_level,
+                'class': 'aiohttp_devtools.logs.HighlightStreamHandler',
+                'formatter': 'aiohttp'
+            },
+            'aiohttp_server': {
+                'class': 'aiohttp_devtools.logs.HighlightStreamHandler',
+                'formatter': 'aiohttp'
             },
         },
         'loggers': {
@@ -152,8 +167,17 @@ def log_config(verbose: bool, dev) -> dict:
                 'handlers': ['grablib'],
                 'level': log_level,
             },
+            'aiohttp.access': {
+                'handlers': ['aiohttp_access'],
+                'level': log_level,
+                'propagate': False,
+            },
+            'aiohttp.server': {
+                'handlers': ['aiohttp_server'],
+                'level': log_level,
+            },
             'adev.server.aux': {
-                'handlers': ['server_logging'],
+                'handlers': ['aiohttp_server'],
                 'level': log_level,
             },
         },
