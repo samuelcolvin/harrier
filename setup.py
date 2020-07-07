@@ -56,7 +56,7 @@ setup(
         'libsass>=0.14.5',
         'misaka>=2.1.0',
         'pillow>=5.1.0',
-        'pydantic==0.20',
+        'pydantic>=1.5.1',
         'ruamel.yaml>=0.15.37',
         'watchgod>=0.2.0',
     ]

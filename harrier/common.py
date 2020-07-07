@@ -38,7 +38,7 @@ class PathMatch:
         return f'<PathMatch {self.raw!r}>'
 
     @classmethod
-    def get_validators(cls):
+    def __get_validators__(cls):
         yield str_validator
         yield cls.validate
 

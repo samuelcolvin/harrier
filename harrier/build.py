@@ -194,4 +194,4 @@ class FileData(BaseModel):
         return v
 
     class Config:
-        allow_extra = True
+        extra = 'allow'
