@@ -111,8 +111,8 @@ def test_webpack_ok(tmpdir, caplog):
         },
         'mock_webpack': '*',
         'harrier.yml': (
-            f'webpack:\n'
-            f'  cli: mock_webpack'
+            'webpack:\n'
+            '  cli: mock_webpack'
         )
     })
 
@@ -127,8 +127,8 @@ def test_webpack_no_entry(tmpdir, caplog):
         'theme/templates/main.jinja': '{{ content }}',
         'mock_webpack': '*',
         'harrier.yml': (
-            f'webpack:\n'
-            f'  cli: mock_webpack'
+            'webpack:\n'
+            '  cli: mock_webpack'
         )
     })
 
@@ -146,9 +146,9 @@ def test_webpack_missing_config(tmpdir):
         },
         'mock_webpack': '*',
         'harrier.yml': (
-            f'webpack:\n'
-            f'  cli: mock_webpack\n'
-            f'  config: missing\n'
+            'webpack:\n'
+            '  cli: mock_webpack\n'
+            '  config: missing\n'
         )
     })
 

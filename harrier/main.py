@@ -34,7 +34,7 @@ class BuildSteps(str, Enum):
 ALL_STEPS = [m.value for m in BuildSteps.__members__.values()]
 
 
-def build(path: StrPath, steps: Set[BuildSteps]=None, mode: Optional[Mode]=None):
+def build(path: StrPath, steps: Set[BuildSteps] = None, mode: Optional[Mode] = None):
     completed_logger.info('building site...')
     config = get_config(path)
     if mode:
@@ -97,7 +97,7 @@ def dev(path: StrPath, port: int):
     return loop.run_until_complete(adev(config, port))
 
 
-def _empty_dir(d: Path, clean: bool=True):
+def _empty_dir(d: Path, clean: bool = True):
     if clean and d.exists():
         shutil.rmtree(d)
     d.mkdir(exist_ok=True, parents=True)

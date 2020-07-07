@@ -193,8 +193,8 @@ def test_run_webpack_cli_wrong(tmpdir, caplog):
             'js/index.js': '*',
         },
         'harrier.yml': (
-            f'webpack:\n'
-            f'  cli: /foo/bar'
+            'webpack:\n'
+            '  cli: /foo/bar'
         )
     })
 
@@ -229,9 +229,9 @@ def test_grablib(tmpdir):
             ),
         },
         'harrier.yml': (
-            f'download:\n'
-            f"  'https://gist.githubusercontent.com/samuelcolvin/ae6d04dadbb4d552d365f440d3ac8015/"
-            f"raw/cda04f66c71e4a5f418e78d111d651ae3a2e3784/demo.scss': '_demo.scss'"
+            'download:\n'
+            "  'https://gist.githubusercontent.com/samuelcolvin/ae6d04dadbb4d552d365f440d3ac8015/"
+            "raw/cda04f66c71e4a5f418e78d111d651ae3a2e3784/demo.scss': '_demo.scss'"
         )
     })
 
@@ -262,7 +262,7 @@ def test_grablib_pygments(tmpdir):
     run_grablib(config)
     assert gettree(tmpdir.join('dist')) == {
         'theme': {
-            'main.9a9caa6.css': RegexStr('div{colour:red}\.hi \.hll.*'),
+            'main.9a9caa6.css': RegexStr(r'div{colour:red}\.hi \.hll.*'),
         },
     }
 
@@ -362,9 +362,9 @@ def test_grablib_error(tmpdir):
             'sass/main.scss': 'foobar',
         },
         'harrier.yml': (
-            f'download:\n'
-            f"  'https://gist.githubusercontent.com/samuelcolvin/ae6d04dadbb4d552d365f440d3ac8015/raw/"
-            f"cda04f66c71e4a5f418e78d111d651ae3a2e3784/demo.scss': '_demo.scss'"
+            'download:\n'
+            "  'https://gist.githubusercontent.com/samuelcolvin/ae6d04dadbb4d552d365f440d3ac8015/raw/"
+            "cda04f66c71e4a5f418e78d111d651ae3a2e3784/demo.scss': '_demo.scss'"
         )
     })
 

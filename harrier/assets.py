@@ -200,8 +200,8 @@ def get_path_lookup(config: Config, pages=None):
     for p in config.dist_dir.glob('**/*'):
         if p.is_file():
             rel_path = str(p.relative_to(config.dist_dir))
-            path_name = re.sub('\.[a-f0-9]{7,20}\.', '.', rel_path)
-            path_name = re.sub('\.[a-f0-9]{7,20}$', '', path_name)
+            path_name = re.sub(r'\.[a-f0-9]{7,20}\.', '.', rel_path)
+            path_name = re.sub(r'\.[a-f0-9]{7,20}$', '', path_name)
             d[path_name] = clean_uri(rel_path, config), False, f'{p.stat().st_mtime:0.0f}'
     last_mod = f'{config.build_time:%s}'
     if pages:
@@ -217,7 +217,7 @@ def resolve_path(path, path_lookup, config):
     if p:
         path, is_html, last_mod = p
         if not is_html and config and config.mode == Mode.development:
-            path += f'?t=' + last_mod
+            path += '?t=' + last_mod
         return path
     else:
         raise KeyError(f'Path "{path}" does not exist')

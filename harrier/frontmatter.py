@@ -67,6 +67,6 @@ def split_content(s):
     if names == {'.'}:
         return [v for v in values if v['content']]
     elif '.' in names:
-        raise HarrierProblem(f'badly constructed multi-part front matter, dividers indicate a mix of list and dict')
+        raise HarrierProblem('badly constructed multi-part front matter, dividers indicate a mix of list and dict')
     else:
         return {k: v for k, v in content if v['content']}

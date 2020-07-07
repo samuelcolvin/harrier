@@ -40,7 +40,7 @@ def render_pages(config: Config, som: dict, build_cache=None):
 class Renderer:
     __slots__ = 'config', 'som', 'build_cache', 'md', 'env', 'checked_dirs', 'ctx', 'to_gen', 'to_copy'
 
-    def __init__(self, config: Config, som: dict, build_cache: dict=None):
+    def __init__(self, config: Config, som: dict, build_cache: dict = None):
         self.config = config
         self.som = som
         self.build_cache = build_cache

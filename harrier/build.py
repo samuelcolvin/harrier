@@ -75,7 +75,7 @@ class BuildPages:
         return pages, self.files
 
 
-def get_page_data(p, *, config: Config, file_content: str=None, **extra_data):  # noqa: C901 (ignore complexity)
+def get_page_data(p, *, config: Config, file_content: str = None, **extra_data):  # noqa: C901 (ignore complexity)
     path_ref = norm_path_ref(p, config.pages_dir)
     if any(path_match(path_ref) for path_match in config.ignore):
         return

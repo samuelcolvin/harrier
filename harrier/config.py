@@ -103,7 +103,7 @@ class Config(BaseModel):
     def validate_extensions(cls, v, values, **kwargs):
         p = values['source_dir'] / v
         if p.exists() and not p.is_file():
-            raise ValueError(f'"extensions" should be a python file, not directory')
+            raise ValueError('"extensions" should be a python file, not directory')
         else:
             return p
 
