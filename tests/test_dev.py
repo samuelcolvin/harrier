@@ -1,4 +1,5 @@
 import asyncio
+import sys
 from pathlib import Path
 
 import pytest
@@ -236,7 +237,14 @@ def test_webpack_terminate(tmpdir, mocker, caplog):
 
     mock_webpack = mocker.MagicMock()
     mock_webpack.returncode = None
-    mocker.patch('harrier.dev.start_webpack_watch', return_value=mock_webpack)
+
+    if sys.version_info < (3, 8):
+        return_value = asyncio.Future()
+        return_value.set_result(mock_webpack)
+    else:
+        return_value = mock_webpack
+
+    mocker.patch('harrier.dev.start_webpack_watch', return_value=return_value)
 
     assert not tmpdir.join('dist').check()
 
