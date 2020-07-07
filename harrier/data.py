@@ -16,7 +16,7 @@ csv_dialect.skipinitialspace = True
 
 
 def simplify(key):
-    return re.sub('\W', '', re.sub('[\- ]', '_', key))
+    return re.sub(r'\W', '', re.sub(r'[\- ]', '_', key))
 
 
 def load_data(config: Config):

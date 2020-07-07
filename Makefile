@@ -13,9 +13,13 @@ isort:
 
 .PHONY: lint
 lint:
-	python setup.py check -rms
 	flake8 harrier/ tests/
-	pytest harrier -p no:sugar -q
+
+.PHONY: check-dist
+check-dist:
+	python setup.py check -ms
+	python setup.py sdist
+	twine check dist/*
 
 .PHONY: test
 test:

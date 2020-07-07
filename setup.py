@@ -6,20 +6,21 @@ description = 'Static site generator'
 THIS_DIR = Path(__file__).resolve().parent
 try:
     long_description = '\n\n'.join([
-        THIS_DIR.joinpath('README.rst').read_text(),
-        # THIS_DIR.joinpath('HISTORY.rst').read_text()
+        THIS_DIR.joinpath('README.md').read_text(),
+        # THIS_DIR.joinpath('HISTORY.md').read_text()
     ])
 except FileNotFoundError:
-    long_description = description + '.\n\nSee https://TODO.com/ for documentation.'
+    long_description = description + '.\n\nSee https://harrier.helpmanual.io/ for documentation.'
 
 # avoid loading the package before requirements are installed:
 version = SourceFileLoader('version', 'harrier/version.py').load_module()
 
 setup(
     name='harrier',
-    version=str(version.VERSION),
+    version=version.VERSION,
     description=description,
     long_description=long_description,
+    long_description_content_type='text/markdown',
     classifiers=[
         'Development Status :: 4 - Beta',
         'Environment :: Console',
@@ -30,6 +31,8 @@ setup(
         'Programming Language :: Python :: 3',
         'Programming Language :: Python :: 3 :: Only',
         'Programming Language :: Python :: 3.6',
+        'Programming Language :: Python :: 3.7',
+        'Programming Language :: Python :: 3.8',
     ],
     keywords='css,sass,scss,jinja,jinja2,build,static,static site generator',
     author='Samuel Colvin',
