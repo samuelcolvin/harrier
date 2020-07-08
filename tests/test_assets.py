@@ -31,18 +31,15 @@ elif 'js/nojson.js' not in args:
 
 def test_run_webpack(tmpdir):
     webpack_path = tmpdir.join('mock_webpack')
-    mktree(tmpdir, {
-        'pages/foobar.md': '# hello',
-        'theme': {
-            'templates': {'main.jinja': 'main:\n {{ content }}'},
-            'js/index.js': '*',
+    mktree(
+        tmpdir,
+        {
+            'pages/foobar.md': '# hello',
+            'theme': {'templates': {'main.jinja': 'main:\n {{ content }}'}, 'js/index.js': '*'},
+            'mock_webpack': MOCK_WEBPACK,
+            'harrier.yml': f'webpack:\n  cli: {webpack_path}',
         },
-        'mock_webpack': MOCK_WEBPACK,
-        'harrier.yml': (
-            f'webpack:\n'
-            f'  cli: {webpack_path}'
-        )
-    })
+    )
     webpack_path.chmod(0o777)
 
     config = get_config(str(tmpdir))
@@ -51,12 +48,18 @@ def test_run_webpack(tmpdir):
     args = json.loads(tmpdir.join('webpack_args.json').read_text('utf8'))
     assert [
         f'{tmpdir}/mock_webpack',
-        '--context', f'{tmpdir}',
-        '--entry', './theme/js/index.js',
-        '--output-path', f'{tmpdir}/dist/theme',
-        '--output-filename', 'main.[hash].js',
-        '--devtool', 'source-map',
-        '--mode', 'production',
+        '--context',
+        f'{tmpdir}',
+        '--entry',
+        './theme/js/index.js',
+        '--output-path',
+        f'{tmpdir}/dist/theme',
+        '--output-filename',
+        'main.[hash].js',
+        '--devtool',
+        'source-map',
+        '--mode',
+        'production',
         '--optimize-minimize',
         '--json',
     ] == args
@@ -66,22 +69,22 @@ def test_run_webpack(tmpdir):
 
 def test_run_webpack_error(tmpdir):
     webpack_path = tmpdir.join('mock_webpack')
-    mktree(tmpdir, {
-        'pages/foobar.md': '# hello',
-        'theme': {
-            'templates': {'main.jinja': 'main:\n {{ content }}'},
-            'js/error.js': '*',
+    mktree(
+        tmpdir,
+        {
+            'pages/foobar.md': '# hello',
+            'theme': {'templates': {'main.jinja': 'main:\n {{ content }}'}, 'js/error.js': '*'},
+            'webpack_config.js': '*',
+            'mock_webpack': MOCK_WEBPACK,
+            'harrier.yml': (
+                f'mode: development\n'
+                f'webpack:\n'
+                f'  cli: {webpack_path}\n'
+                f'  entry: js/error.js\n'
+                f'  config: webpack_config.js\n'
+            ),
         },
-        'webpack_config.js': '*',
-        'mock_webpack': MOCK_WEBPACK,
-        'harrier.yml': (
-            f'mode: development\n'
-            f'webpack:\n'
-            f'  cli: {webpack_path}\n'
-            f'  entry: js/error.js\n'
-            f'  config: webpack_config.js\n'
-        )
-    })
+    )
     webpack_path.chmod(0o777)
 
     config = get_config(str(tmpdir))
@@ -90,13 +93,20 @@ def test_run_webpack_error(tmpdir):
     args = json.loads(tmpdir.join('webpack_args.json').read_text('utf8'))
     assert [
         f'{tmpdir}/mock_webpack',
-        '--context', f'{tmpdir}',
-        '--entry', './theme/js/error.js',
-        '--output-path', f'{tmpdir}/dist/theme',
-        '--output-filename', 'main.js',
-        '--devtool', 'source-map',
-        '--mode', 'development',
-        '--config', './webpack_config.js',
+        '--context',
+        f'{tmpdir}',
+        '--entry',
+        './theme/js/error.js',
+        '--output-path',
+        f'{tmpdir}/dist/theme',
+        '--output-filename',
+        'main.js',
+        '--devtool',
+        'source-map',
+        '--mode',
+        'development',
+        '--config',
+        './webpack_config.js',
         '--json',
     ] == args
     webpack_env = json.loads(tmpdir.join('webpack_env.json').read_text('utf8'))
@@ -105,19 +115,15 @@ def test_run_webpack_error(tmpdir):
 
 def test_run_webpack_json_error(tmpdir):
     webpack_path = tmpdir.join('mock_webpack')
-    mktree(tmpdir, {
-        'pages/foobar.md': '# hello',
-        'theme': {
-            'templates': {'main.jinja': 'main:\n {{ content }}'},
-            'js/nojson.js': '*',
+    mktree(
+        tmpdir,
+        {
+            'pages/foobar.md': '# hello',
+            'theme': {'templates': {'main.jinja': 'main:\n {{ content }}'}, 'js/nojson.js': '*'},
+            'mock_webpack': MOCK_WEBPACK,
+            'harrier.yml': f'webpack:\n  entry: js/nojson.js\n  cli: {webpack_path}',
         },
-        'mock_webpack': MOCK_WEBPACK,
-        'harrier.yml': (
-            f'webpack:\n'
-            f'  entry: js/nojson.js\n'
-            f'  cli: {webpack_path}'
-        )
-    })
+    )
     webpack_path.chmod(0o777)
 
     config = get_config(str(tmpdir))
@@ -127,18 +133,15 @@ def test_run_webpack_json_error(tmpdir):
 
 def test_run_webpack_no_capture(tmpdir, caplog):
     webpack_path = tmpdir.join('mock_webpack')
-    mktree(tmpdir, {
-        'pages/foobar.md': '# hello',
-        'theme': {
-            'templates': {'main.jinja': 'main:\n {{ content }}'},
-            'js/index.js': '*',
+    mktree(
+        tmpdir,
+        {
+            'pages/foobar.md': '# hello',
+            'theme': {'templates': {'main.jinja': 'main:\n {{ content }}'}, 'js/index.js': '*'},
+            'mock_webpack': MOCK_WEBPACK,
+            'harrier.yml': f'webpack:\n  cli: {webpack_path}',
         },
-        'mock_webpack': MOCK_WEBPACK,
-        'harrier.yml': (
-            f'webpack:\n'
-            f'  cli: {webpack_path}'
-        )
-    })
+    )
     webpack_path.chmod(0o777)
 
     caplog.set_level(logging.DEBUG)
@@ -150,18 +153,15 @@ def test_run_webpack_no_capture(tmpdir, caplog):
 
 async def test_start_webpack_watch(tmpdir, loop):
     webpack_path = tmpdir.join('mock_webpack')
-    mktree(tmpdir, {
-        'pages/foobar.md': '# hello',
-        'theme': {
-            'templates': {'main.jinja': 'main:\n {{ content }}'},
-            'js/index.js': '*',
+    mktree(
+        tmpdir,
+        {
+            'pages/foobar.md': '# hello',
+            'theme': {'templates': {'main.jinja': 'main:\n {{ content }}'}, 'js/index.js': '*'},
+            'mock_webpack': MOCK_WEBPACK,
+            'harrier.yml': f'webpack:\n  cli: {webpack_path}',
         },
-        'mock_webpack': MOCK_WEBPACK,
-        'harrier.yml': (
-            f'webpack:\n'
-            f'  cli: {webpack_path}'
-        )
-    })
+    )
     webpack_path.chmod(0o777)
 
     config = get_config(str(tmpdir))
@@ -173,12 +173,18 @@ async def test_start_webpack_watch(tmpdir, loop):
 
     assert [
         f'{tmpdir}/mock_webpack',
-        '--context', f'{tmpdir}',
-        '--entry', './theme/js/index.js',
-        '--output-path', f'{tmpdir}/dist/theme',
-        '--output-filename', 'main.js',
-        '--devtool', 'source-map',
-        '--mode', 'development',
+        '--context',
+        f'{tmpdir}',
+        '--entry',
+        './theme/js/index.js',
+        '--output-path',
+        f'{tmpdir}/dist/theme',
+        '--output-filename',
+        'main.js',
+        '--devtool',
+        'source-map',
+        '--mode',
+        'development',
         '--watch',
     ] == json.loads(tmpdir.join('webpack_args.json').read_text('utf8'))
     webpack_env = json.loads(tmpdir.join('webpack_env.json').read_text('utf8'))
@@ -186,31 +192,28 @@ async def test_start_webpack_watch(tmpdir, loop):
 
 
 def test_run_webpack_cli_wrong(tmpdir, caplog):
-    mktree(tmpdir, {
-        'pages/foobar.md': '# hello',
-        'theme': {
-            'templates': {'main.jinja': 'main:\n {{ content }}'},
-            'js/index.js': '*',
+    mktree(
+        tmpdir,
+        {
+            'pages/foobar.md': '# hello',
+            'theme': {'templates': {'main.jinja': 'main:\n {{ content }}'}, 'js/index.js': '*'},
+            'harrier.yml': 'webpack:\n  cli: /foo/bar',
         },
-        'harrier.yml': (
-            'webpack:\n'
-            '  cli: /foo/bar'
-        )
-    })
+    )
 
     with pytest.raises(ValidationError):
         get_config(str(tmpdir))
 
 
 def test_run_webpack_default(tmpdir, caplog):
-    mktree(tmpdir, {
-        'pages/foobar.md': '# hello',
-        'theme': {
-            'templates': {'main.jinja': 'main:\n {{ content }}'},
-            'js/index.js': '*',
+    mktree(
+        tmpdir,
+        {
+            'pages/foobar.md': '# hello',
+            'theme': {'templates': {'main.jinja': 'main:\n {{ content }}'}, 'js/index.js': '*'},
+            'node_modules/.bin/webpack-cli': MOCK_WEBPACK,
         },
-        'node_modules/.bin/webpack-cli': MOCK_WEBPACK,
-    })
+    )
     tmpdir.join('node_modules/.bin/webpack-cli').chmod(0o777)
 
     caplog.set_level(logging.DEBUG)
@@ -219,135 +222,127 @@ def test_run_webpack_default(tmpdir, caplog):
 
 
 def test_grablib(tmpdir):
-    mktree(tmpdir, {
-        'pages/foobar.md': '# hello',
-        'theme': {
-            'templates': {'main.jinja': 'main:\n {{ content }}'},
-            'sass/main.scss': (
-                '@import "DL/demo";'
-                'body {background: $foo}'
+    mktree(
+        tmpdir,
+        {
+            'pages/foobar.md': '# hello',
+            'theme': {
+                'templates': {'main.jinja': 'main:\n {{ content }}'},
+                'sass/main.scss': '@import "DL/demo";body {background: $foo}',
+            },
+            'harrier.yml': (
+                'download:\n'
+                "  'https://gist.githubusercontent.com/samuelcolvin/ae6d04dadbb4d552d365f440d3ac8015/"
+                "raw/cda04f66c71e4a5f418e78d111d651ae3a2e3784/demo.scss': '_demo.scss'"
             ),
         },
-        'harrier.yml': (
-            'download:\n'
-            "  'https://gist.githubusercontent.com/samuelcolvin/ae6d04dadbb4d552d365f440d3ac8015/"
-            "raw/cda04f66c71e4a5f418e78d111d651ae3a2e3784/demo.scss': '_demo.scss'"
-        )
-    })
+    )
 
     config = get_config(str(tmpdir))
     run_grablib(config)
     assert gettree(tmpdir.join('dist')) == {
-        'theme': {
-            'main.7cc3e19.css': 'body{background:#BAD}\n',
-        },
+        'theme': {'main.7cc3e19.css': 'body{background:#BAD}\n'},
     }
 
 
 def test_grablib_pygments(tmpdir):
-    mktree(tmpdir, {
-        'pages/foobar.md': '# hello',
-        'theme': {
-            'sass': {
-                '_other.scss': 'div {colour: red}',
-                'main.scss': (
-                    '@import "other";\n'
-                    '@import "pygments/default";\n'
-                ),
+    mktree(
+        tmpdir,
+        {
+            'pages/foobar.md': '# hello',
+            'theme': {
+                'sass': {
+                    '_other.scss': 'div {colour: red}',
+                    'main.scss': '@import "other";\n@import "pygments/default";\n',
+                },
             },
-        }
-    })
+        },
+    )
 
     config = get_config(str(tmpdir))
     run_grablib(config)
     assert gettree(tmpdir.join('dist')) == {
-        'theme': {
-            'main.9a9caa6.css': RegexStr(r'div{colour:red}\.hi \.hll.*'),
-        },
+        'theme': {'main.9a9caa6.css': RegexStr(r'div{colour:red}\.hi \.hll.*')},
     }
 
 
 def test_resolve_sass_path(tmpdir):
-    mktree(tmpdir, {
-        'pages/foobar.md': '# hello',
-        'theme': {
-            'assets/assets/image.png': '*',
-            'sass/main.scss': 'body {content: resolve_path("/assets/image.png")}',
+    mktree(
+        tmpdir,
+        {
+            'pages/foobar.md': '# hello',
+            'theme': {
+                'assets/assets/image.png': '*',
+                'sass/main.scss': 'body {content: resolve_path("/assets/image.png")}',
+            },
         },
-    })
+    )
 
     config = get_config(str(tmpdir))
     assets_grablib(config)
     assert gettree(tmpdir.join('dist')) == {
-        'theme': {
-            'main.d024f29.css': "body{content:'/assets/image.3389dae.png'}\n",
-        },
-        'assets': {
-            'image.3389dae.png': '*',
-        },
+        'theme': {'main.d024f29.css': "body{content:'/assets/image.3389dae.png'}\n"},
+        'assets': {'image.3389dae.png': '*'},
     }
 
 
 def test_resolve_sass_path_dev(tmpdir):
-    mktree(tmpdir, {
-        'pages/foobar.md': '# hello',
-        'theme': {
-            'assets/assets/image.png': '*',
-            'sass/main.scss': 'body {content: resolve_path("/assets/image.png")}',
+    mktree(
+        tmpdir,
+        {
+            'pages/foobar.md': '# hello',
+            'theme': {
+                'assets/assets/image.png': '*',
+                'sass/main.scss': 'body {content: resolve_path("/assets/image.png")}',
+            },
         },
-    })
+    )
 
     config = get_config(str(tmpdir))
     config.mode = Mode.development
     assets_grablib(config)
     mtime = tmpdir.join('theme/sass/main.scss').stat().mtime
     assert gettree(tmpdir.join('dist')) == {
-        'assets': {
-            'image.png': '*',
-        },
+        'assets': {'image.png': '*'},
         'theme': {
             'main.css.map': RegexStr('{.*'),
             'main.css': (
-                "body {\n"
-                "  content: '/assets/image.png?t=%0.0f'; }\n"
-                "\n"
-                "/*# sourceMappingURL=main.css.map */"
-            ) % mtime,
-            '.src': {
-                'main.scss': 'body {content: resolve_path("/assets/image.png")}',
-            },
+                "body {\n" "  content: '/assets/image.png?t=%0.0f'; }\n" "\n" "/*# sourceMappingURL=main.css.map */"
+            )
+            % mtime,
+            '.src': {'main.scss': 'body {content: resolve_path("/assets/image.png")}'},
         },
     }
 
 
 def test_smart_sass_url(tmpdir):
-    mktree(tmpdir, {
-        'pages/foobar.md': '# hello',
-        'theme': {
-            'assets/assets/image.png': '*',
-            'sass/main.scss': 'body {background: smart_url("assets/image.png")}',
+    mktree(
+        tmpdir,
+        {
+            'pages/foobar.md': '# hello',
+            'theme': {
+                'assets/assets/image.png': '*',
+                'sass/main.scss': 'body {background: smart_url("assets/image.png")}',
+            },
         },
-    })
+    )
 
     config = get_config(str(tmpdir))
     assets_grablib(config)
     assert gettree(tmpdir.join('dist')) == {
-        'theme': {
-            'main.28d2724.css': "body{background:url('/assets/image.3389dae.png')}\n",
-        },
-        'assets': {
-            'image.3389dae.png': '*',
-        },
+        'theme': {'main.28d2724.css': "body{background:url('/assets/image.3389dae.png')}\n"},
+        'assets': {'image.3389dae.png': '*'},
     }
 
 
 def test_sass_wrong(tmpdir):
-    mktree(tmpdir, {
-        'pages/foobar.md': '# hello',
-        'theme': {
-            'sass/main.scss': 'body {content: resolve_path("assets/image.png")}',
+    mktree(
+        tmpdir,
+        {
+            'pages/foobar.md': '# hello',
+            'theme': {'sass/main.scss': 'body {content: resolve_path("assets/image.png")}'},
         },
-    })
+    )
 
     config = get_config(str(tmpdir))
     with pytest.raises(HarrierProblem):
@@ -355,18 +350,18 @@ def test_sass_wrong(tmpdir):
 
 
 def test_grablib_error(tmpdir):
-    mktree(tmpdir, {
-        'pages/foobar.md': '# hello',
-        'theme': {
-            'templates': {'main.jinja': 'main:\n {{ content }}'},
-            'sass/main.scss': 'foobar',
+    mktree(
+        tmpdir,
+        {
+            'pages/foobar.md': '# hello',
+            'theme': {'templates': {'main.jinja': 'main:\n {{ content }}'}, 'sass/main.scss': 'foobar'},
+            'harrier.yml': (
+                'download:\n'
+                "  'https://gist.githubusercontent.com/samuelcolvin/ae6d04dadbb4d552d365f440d3ac8015/raw/"
+                "cda04f66c71e4a5f418e78d111d651ae3a2e3784/demo.scss': '_demo.scss'"
+            ),
         },
-        'harrier.yml': (
-            'download:\n'
-            "  'https://gist.githubusercontent.com/samuelcolvin/ae6d04dadbb4d552d365f440d3ac8015/raw/"
-            "cda04f66c71e4a5f418e78d111d651ae3a2e3784/demo.scss': '_demo.scss'"
-        )
-    })
+    )
 
     config = get_config(str(tmpdir))
     with pytest.raises(HarrierProblem):
@@ -375,46 +370,34 @@ def test_grablib_error(tmpdir):
 
 
 def test_copy_assets_dev(tmpdir):
-    mktree(tmpdir, {
-        'pages/foobar.md': '# hello',
-        'theme': {
-            'templates': {'main.jinja': 'main:\n {{ content }}'},
-            'assets': {
-                'image.png': '*',
-                'favicon.ico': '*',
-                'move': {
-                    'foobar.svg': 'x'
-                }
-            }
+    mktree(
+        tmpdir,
+        {
+            'pages/foobar.md': '# hello',
+            'theme': {
+                'templates': {'main.jinja': 'main:\n {{ content }}'},
+                'assets': {'image.png': '*', 'favicon.ico': '*', 'move': {'foobar.svg': 'x'}},
+            },
         },
-    })
+    )
 
     config = get_config(str(tmpdir))
     config.mode = Mode.development
     copy_assets(config)
-    assert gettree(tmpdir.join('dist')) == {
-        'image.png': '*',
-        'favicon.ico': '*',
-        'move': {
-            'foobar.svg': 'x'
-        }
-    }
+    assert gettree(tmpdir.join('dist')) == {'image.png': '*', 'favicon.ico': '*', 'move': {'foobar.svg': 'x'}}
 
 
 def test_copy_assets_prod(tmpdir):
-    mktree(tmpdir, {
-        'pages/foobar.md': '# hello',
-        'theme': {
-            'templates': {'main.jinja': 'main:\n {{ content }}'},
-            'assets': {
-                'image.png': '*',
-                'favicon.ico': '*',
-                'move': {
-                    'foobar.svg': 'x'
-                }
-            }
+    mktree(
+        tmpdir,
+        {
+            'pages/foobar.md': '# hello',
+            'theme': {
+                'templates': {'main.jinja': 'main:\n {{ content }}'},
+                'assets': {'image.png': '*', 'favicon.ico': '*', 'move': {'foobar.svg': 'x'}},
+            },
         },
-    })
+    )
 
     config = get_config(str(tmpdir))
     config.mode = Mode.production
@@ -422,7 +405,5 @@ def test_copy_assets_prod(tmpdir):
     assert gettree(tmpdir.join('dist')) == {
         'image.3389dae.png': '*',
         'favicon.ico': '*',
-        'move': {
-            'foobar.9dd4e46.svg': 'x'
-        }
+        'move': {'foobar.9dd4e46.svg': 'x'},
     }

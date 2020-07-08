@@ -68,39 +68,45 @@ the content"""
 
 
 def test_no_starting_front_matter():
-    s = (
-        '\n'
-        '---\n'
-        '---\n'
-        'the content'
-    )
+    s = '\n---\n---\nthe content'
     obj, content = parse_front_matter(s)
     assert obj is None
     assert content == s
 
 
-@pytest.mark.parametrize('s,result', [
-    ("""\
+@pytest.mark.parametrize(
+    's,result',
+    [
+        (
+            """\
 main content
 --- . ---
 another
 
 ---.---
-the third""", [{'content': 'main content'}, {'content': 'another\n'}, {'content': 'the third'}]),
-    ("""\
+the third""",
+            [{'content': 'main content'}, {'content': 'another\n'}, {'content': 'the third'}],
+        ),
+        (
+            """\
 main content
 --- foo ---
 another
 
 ---bar---
 the third""",
-     {'main': {'content': 'main content'}, 'foo': {'content': 'another\n'}, 'bar': {'content': 'the third'}}),
-    ("""\
+            {'main': {'content': 'main content'}, 'foo': {'content': 'another\n'}, 'bar': {'content': 'the third'}},
+        ),
+        (
+            """\
 --- foo ---
 another
 --- bar ---
-the third""", {'foo': {'content': 'another'}, 'bar': {'content': 'the third'}}),
-    ("""\
+the third""",
+            {'foo': {'content': 'another'}, 'bar': {'content': 'the third'}},
+        ),
+        (
+            """\
 main content
 --- . ---
 foo: 1
@@ -111,21 +117,15 @@ another
 ---.---
 x: y
 ---
-the third""", [
-        {
-            'content': 'main content',
-        },
-        {
-            'content': 'another\n',
-            'foo': 1,
-            'bar': [1, 2, 3],
-        },
-        {
-            'content': 'the third',
-            'x': 'y',
-        }
-    ]),
-    ("""\
+the third""",
+            [
+                {'content': 'main content'},
+                {'content': 'another\n', 'foo': 1, 'bar': [1, 2, 3]},
+                {'content': 'the third', 'x': 'y'},
+            ],
+        ),
+        (
+            """\
 --- . ---
 foo: 1
 ---
@@ -133,17 +133,11 @@ first
 ---.---
 foo: 2
 ---
-second""", [
-        {
-            'foo': 1,
-            'content': 'first',
-        },
-        {
-            'foo': 2,
-            'content': 'second',
-        }
-    ]),
-    ("""\
+second""",
+            [{'foo': 1, 'content': 'first'}, {'foo': 2, 'content': 'second'}],
+        ),
+        (
+            """\
 --- foo ---
 x: 1
 ---
@@ -151,17 +145,11 @@ another
 --- bar ---
 y: 2
 ---
-the third""", {
-        'foo': {
-            'content': 'another',
-            'x': 1,
-        },
-        'bar': {
-            'content': 'the third',
-            'y': 2,
-        }
-    }),
-])
+the third""",
+            {'foo': {'content': 'another', 'x': 1}, 'bar': {'content': 'the third', 'y': 2}},
+        ),
+    ],
+)
 def test_multi_part_good(s, result):
     assert split_content(s) == result
 
@@ -178,8 +166,11 @@ the third"""
         split_content(s)
 
 
-@pytest.mark.parametrize('s,result', [
-    ("""\
+@pytest.mark.parametrize(
+    's,result',
+    [
+        (
+            """\
 ---
 test: 1
 ---
@@ -190,21 +181,11 @@ this is x
 --- yy ---
 y: 2
 ---
-this is y""", {
-        'test': 1,
-        'content': {
-            'xx': {
-                'content': 'this is x',
-                'x': 1,
-            },
-            'yy': {
-                'content': 'this is y',
-                'y': 2
-            }
-        }
-    }
-    ),
-    ("""\
+this is y""",
+            {'test': 1, 'content': {'xx': {'content': 'this is x', 'x': 1}, 'yy': {'content': 'this is y', 'y': 2}}},
+        ),
+        (
+            """\
 ---
 test: 2
 ---
@@ -214,23 +195,18 @@ this is more
 --- . ---
 has_dict: true
 ---
-more""", {
-        'test': 2,
-        'content': [
+more""",
             {
-                'content': 'whatever',
+                'test': 2,
+                'content': [
+                    {'content': 'whatever'},
+                    {'content': 'this is more'},
+                    {'content': 'more', 'has_dict': True},
+                ],
             },
-            {
-                'content': 'this is more',
-            },
-            {
-                'content': 'more',
-                'has_dict': True,
-            }
-        ]
-    }
-    )
-])
+        ),
+    ],
+)
 def test_more_front_matter(s, result):
     obj, content = parse_front_matter(s)
     obj['content'] = split_content(content)

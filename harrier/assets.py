@@ -57,7 +57,7 @@ def run_grablib(config: Config):
             debug=config.mode == Mode.development,
             apply_hash=config.mode == Mode.production,
             custom_functions=custom_functions,
-            extra_importers=[(0, pygments_importer)]
+            extra_importers=[(0, pygments_importer)],
         )
         try:
             sass_gen()
@@ -76,7 +76,7 @@ PYGMENTS_PREFIX = 'pygments/'
 def pygments_importer(path: str):
     if not path.startswith(PYGMENTS_PREFIX):
         return
-    style_name = path[len(PYGMENTS_PREFIX):]
+    style_name = path[len(PYGMENTS_PREFIX) :]
     formatter = HtmlFormatter(style=style_name)
     return [(f'pygments/{style_name}.css', formatter.get_style_defs('.hi'))]
 
@@ -113,8 +113,12 @@ def copy_assets(config: Config):
         if not applied_extension:
             shutil.copy(in_path, out_path)
         copied += 1
-    logger.debug('copied %d theme assets from "%s" to "%s"',
-                 copied, in_dir.relative_to(config.source_dir), out_dir.relative_to(config.dist_dir))
+    logger.debug(
+        'copied %d theme assets from "%s" to "%s"',
+        copied,
+        in_dir.relative_to(config.source_dir),
+        out_dir.relative_to(config.dist_dir),
+    )
 
     copied and log_complete(start, 'theme assets copied', copied)
     return copied
@@ -135,21 +139,30 @@ def webpack_configuration(config: Config, watch: bool):
     # ./ is required to satisfy webpack when files are inside the "--context" directory
     args = (
         wp.cli,
-        '--context', config.source_dir,
-        '--entry', f'./{wp.entry.relative_to(config.source_dir)}',
-        '--output-path', wp.output_path,
-        output_filename and '--output-filename', output_filename,
-        '--devtool', 'source-map',
-        '--mode', config.mode.value,
+        '--context',
+        config.source_dir,
+        '--entry',
+        f'./{wp.entry.relative_to(config.source_dir)}',
+        '--output-path',
+        wp.output_path,
+        output_filename and '--output-filename',
+        output_filename,
+        '--devtool',
+        'source-map',
+        '--mode',
+        config.mode.value,
         watch and '--watch',
         prod and '--optimize-minimize',
         wp.config and '--config',
         wp.config and f'./{wp.config.relative_to(config.source_dir)}',
     )
-    env = dict(**os.environ, **{
-        'NODE_ENV': config.mode.value,
-        # 'HARRIER_CONFIG': json.dumps(config.dict())  # TODO
-    })
+    env = dict(
+        **os.environ,
+        **{
+            'NODE_ENV': config.mode.value,
+            # 'HARRIER_CONFIG': json.dumps(config.dict())  # TODO
+        },
+    )
     return [str(a) for a in args if a], env
 
 
@@ -165,18 +178,19 @@ def run_webpack(config: Config):
     capture_output = not logger.isEnabledFor(logging.DEBUG)
     if capture_output:
         kwargs.update(stdout=subprocess.PIPE, stderr=subprocess.PIPE, encoding='utf8')
-        args += '--json',
+        args += ('--json',)
     try:
         p = subprocess.run(args, **kwargs)
     except subprocess.CalledProcessError as e:
-        logger.warning('error running webpack "%s", returncode %s\nstdout: %s\nstderr: %s',
-                       cmd, e.returncode, e.output, e.stderr)
+        logger.warning(
+            'error running webpack "%s", returncode %s\nstdout: %s\nstderr: %s', cmd, e.returncode, e.output, e.stderr
+        )
         raise HarrierProblem('error running webpack') from e
     else:
         count = 1
         if capture_output:
             try:
-                output = json.loads(p.stdout[p.stdout.find('{'):])
+                output = json.loads(p.stdout[p.stdout.find('{') :])
             except ValueError:
                 # happens when the webpack config script writes to standout including a "{"
                 pass

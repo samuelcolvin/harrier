@@ -52,9 +52,9 @@ def norm_path_ref(p: Path, rel: Path):
 
 
 RE_URI_NOT_ALLOWED = re.compile(r'[^a-zA-Z0-9_\-/.]')
-RE_HTML_SYMBOL = re.compile(r'&(?:#\d{2,}|[a-z0-9]{2,});')
+RE_HTML_SYMBOL = re.compile(r'&(?:#\d{2}|[a-z0-9]{2});')
 RE_TITLE_NOT_ALLOWED = re.compile(r'[^a-z0-9_\-]')
-RE_REPEAT_DASH = re.compile(r'-{2,}')
+RE_REPEAT_DASH = re.compile(r'-{2}')
 
 
 def slugify(v, *, path_like=True):
@@ -108,73 +108,40 @@ def log_config(verbose: bool, dev) -> dict:
                 'datefmt': '%H:%M:%S',
                 'class': 'aiohttp_devtools.logs.DefaultFormatter',
             },
-            'no_ts': {
-                'format': '%(message)s',
-                'class': 'aiohttp_devtools.logs.DefaultFormatter',
-            },
-            'aiohttp': {
-                'format': '%(message)s',
-                'class': 'aiohttp_devtools.logs.AccessFormatter',
-            },
+            'no_ts': {'format': '%(message)s', 'class': 'aiohttp_devtools.logs.DefaultFormatter'},
+            'aiohttp': {'format': '%(message)s', 'class': 'aiohttp_devtools.logs.AccessFormatter'},
         },
         'handlers': {
             'no_ts': {
                 'level': log_level,
                 'class': 'aiohttp_devtools.logs.HighlightStreamHandler',
-                'formatter': 'no_ts'
+                'formatter': 'no_ts',
             },
             'build': {
                 'level': 'DEBUG' if verbose else ('WARNING' if dev else 'INFO'),
                 'class': 'grablib.common.ClickHandler',
-                'formatter': 'default'
+                'formatter': 'default',
             },
             'grablib': {
                 'level': 'INFO' if verbose else 'WARNING',
                 'class': 'harrier.common.ColourHandler',
-                'formatter': 'default'
+                'formatter': 'default',
             },
             'aiohttp_access': {
                 'level': log_level,
                 'class': 'aiohttp_devtools.logs.HighlightStreamHandler',
-                'formatter': 'aiohttp'
+                'formatter': 'aiohttp',
             },
-            'aiohttp_server': {
-                'class': 'aiohttp_devtools.logs.HighlightStreamHandler',
-                'formatter': 'aiohttp'
-            },
+            'aiohttp_server': {'class': 'aiohttp_devtools.logs.HighlightStreamHandler', 'formatter': 'aiohttp'},
         },
         'loggers': {
-            'harrier': {
-                'handlers': ['no_ts'],
-                'level': log_level,
-            },
-            'harrier.build': {
-                'handlers': ['build'],
-                'level': log_level,
-                'propagate': False,
-            },
-            'harrier.assets': {
-                'handlers': ['build'],
-                'level': log_level,
-                'propagate': False,
-            },
-            'grablib': {
-                'handlers': ['grablib'],
-                'level': log_level,
-            },
-            'aiohttp.access': {
-                'handlers': ['aiohttp_access'],
-                'level': log_level,
-                'propagate': False,
-            },
-            'aiohttp.server': {
-                'handlers': ['aiohttp_server'],
-                'level': log_level,
-            },
-            'adev.server.aux': {
-                'handlers': ['aiohttp_server'],
-                'level': log_level,
-            },
+            'harrier': {'handlers': ['no_ts'], 'level': log_level},
+            'harrier.build': {'handlers': ['build'], 'level': log_level, 'propagate': False},
+            'harrier.assets': {'handlers': ['build'], 'level': log_level, 'propagate': False},
+            'grablib': {'handlers': ['grablib'], 'level': log_level},
+            'aiohttp.access': {'handlers': ['aiohttp_access'], 'level': log_level, 'propagate': False},
+            'aiohttp.server': {'handlers': ['aiohttp_server'], 'level': log_level},
+            'adev.server.aux': {'handlers': ['aiohttp_server'], 'level': log_level},
         },
     }
 

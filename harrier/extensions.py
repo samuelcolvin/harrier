@@ -5,8 +5,14 @@ from pathlib import Path
 from types import FunctionType
 from typing import Optional
 
-from jinja2 import (contextfilter, contextfunction, environmentfilter, environmentfunction, evalcontextfilter,
-                    evalcontextfunction)
+from jinja2 import (
+    contextfilter,
+    contextfunction,
+    environmentfilter,
+    environmentfunction,
+    evalcontextfilter,
+    evalcontextfunction,
+)
 from pydantic import BaseModel, ValidationError
 
 from .common import HarrierProblem, PathMatch
@@ -121,8 +127,9 @@ def apply_modifiers(obj, ext):
 
         if not isinstance(obj, original_type):
             logger.error('extension "%s" did not return a %s object as expected', f.__name__, original_type.__name__)
-            raise ExtensionError(f'extension "{f.__name__}" did not return a {original_type.__name__} '
-                                 f'object as expected')
+            raise ExtensionError(
+                f'extension "{f.__name__}" did not return a {original_type.__name__} ' f'object as expected'
+            )
     return obj
 
 
@@ -142,6 +149,7 @@ def run_ext(ext, som):
 
 def apply_page_generator(som, config):
     from .build import get_page_data
+
     path_refs = set()
     if config.extensions.generate_pages:
         for ext in config.extensions.generate_pages:
@@ -193,13 +201,16 @@ class modify:
         if not globs:
             raise HarrierProblem(f'modify.{name} with no file globs specified')
         elif isinstance(globs[0], FunctionType):
-            raise HarrierProblem(f"modify.{name} should be used with page globs as arguments, not bare. "
-                                 f"E.g. usage should be `@modify.{name}('<file_glob>', ...)`")
+            raise HarrierProblem(
+                f"modify.{name} should be used with page globs as arguments, not bare. "
+                f"E.g. usage should be `@modify.{name}('<file_glob>', ...)`"
+            )
 
         def dec(f):
             f.__extension__ = key
             f.path_matches = [PathMatch(glob) for glob in globs]
             return f
+
         return dec
 
 

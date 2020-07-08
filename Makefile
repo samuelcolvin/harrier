@@ -1,4 +1,6 @@
 .DEFAULT_GOAL := all
+isort = isort harrier tests
+black = black -S -l 120 --target-version py37 harrier tests
 
 .PHONY: install
 install:
@@ -6,14 +8,16 @@ install:
 	pip install -U -r tests/requirements.txt
 	pip install -U -e .
 
-.PHONY: isort
-isort:
-	isort -rc -w 120 harrier
-	isort -rc -w 120 tests
+.PHONY: format
+format:
+	$(isort)
+	$(black)
 
 .PHONY: lint
 lint:
 	flake8 harrier/ tests/
+	$(isort) --check-only --df
+	$(black) --check
 
 .PHONY: check-dist
 check-dist:
