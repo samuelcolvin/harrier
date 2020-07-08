@@ -118,10 +118,10 @@ def log_config(verbose: bool, dev) -> dict:
             },
         },
         'handlers': {
-            'default': {
+            'no_ts': {
                 'level': log_level,
                 'class': 'aiohttp_devtools.logs.HighlightStreamHandler',
-                'formatter': 'default'
+                'formatter': 'no_ts'
             },
             'build': {
                 'level': 'DEBUG' if verbose else ('WARNING' if dev else 'INFO'),
@@ -132,11 +132,6 @@ def log_config(verbose: bool, dev) -> dict:
                 'level': 'INFO' if verbose else 'WARNING',
                 'class': 'harrier.common.ColourHandler',
                 'formatter': 'default'
-            },
-            'no_ts': {
-                'level': log_level,
-                'class': 'aiohttp_devtools.logs.HighlightStreamHandler',
-                'formatter': 'no_ts'
             },
             'aiohttp_access': {
                 'level': log_level,
@@ -150,7 +145,7 @@ def log_config(verbose: bool, dev) -> dict:
         },
         'loggers': {
             'harrier': {
-                'handlers': ['default'],
+                'handlers': ['no_ts'],
                 'level': log_level,
             },
             'harrier.build': {
