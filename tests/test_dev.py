@@ -33,13 +33,13 @@ def test_dev_simple(tmpdir, mocker, loop):
         yield {(Change.modified, str(tmpdir.join('harrier.yml')))}
 
     asyncio.set_event_loop(loop)
-    mktree(tmpdir, {
-        'pages': {
-            'foobar.md': "# hello you're awesome/cool\n {{ config.foo }}",
-            'features/whatever.md': '## Foo',
+    mktree(
+        tmpdir,
+        {
+            'pages': {'foobar.md': "# hello you're awesome/cool\n {{ config.foo }}", 'features/whatever.md': '## Foo'},
+            'harrier.yml': 'foo: 1',
         },
-        'harrier.yml': 'foo: 1'
-    })
+    )
     mocker.patch('harrier.dev.awatch', side_effect=awatch_alt)
 
     assert not tmpdir.join('dist').check()
@@ -50,11 +50,7 @@ def test_dev_simple(tmpdir, mocker, loop):
         'foobar': {
             'index.html': '<h1 id="1-hello-youre-awesomecool">hello you&#39;re awesome/cool</h1>\n\n<p>2</p>\n',
         },
-        'features': {
-            'whatever': {
-                'index.html': '<h2 id="2-foo">Foo</h2>\n',
-            },
-        },
+        'features': {'whatever': {'index.html': '<h2 id="2-foo">Foo</h2>\n'}},
     }
 
 
@@ -63,12 +59,7 @@ def test_dev_delete(tmpdir, mocker, loop):
         yield {(Change.deleted, str(tmpdir.join('pages/features/whatever.md')))}
 
     asyncio.set_event_loop(loop)
-    mktree(tmpdir, {
-        'pages': {
-            'foobar.md': 'hello',
-            'features/whatever.md': 'Foo',
-        },
-    })
+    mktree(tmpdir, {'pages': {'foobar.md': 'hello', 'features/whatever.md': 'Foo'}})
     mocker.patch('harrier.dev.awatch', side_effect=awatch_alt)
     mocker.patch('harrier.dev.Server', return_value=MockServer())
 
@@ -78,12 +69,8 @@ def test_dev_delete(tmpdir, mocker, loop):
 
     # debug(gettree(tmpdir.join('dist')))
     assert gettree(tmpdir.join('dist')) == {
-        'foobar': {
-            'index.html': '<p>hello</p>\n',
-        },
-        'features': {
-            'whatever': {},
-        },
+        'foobar': {'index.html': '<p>hello</p>\n'},
+        'features': {'whatever': {}},
     }
 
 
@@ -93,14 +80,15 @@ def test_extensions_error(tmpdir, mocker, loop):
         yield {(Change.modified, str(tmpdir.join('extensions.py')))}
 
     asyncio.set_event_loop(loop)
-    mktree(tmpdir, {
-        'pages': {
-            'foobar.md': '**hello**',
+    mktree(
+        tmpdir,
+        {
+            'pages': {'foobar.md': '**hello**'},
+            'theme/templates/main.jinja': 'main:\n {{ content }}',
+            'harrier.yml': 'default_template: main.jinja',
+            'extensions.py': 'x = 1',
         },
-        'theme/templates/main.jinja': 'main:\n {{ content }}',
-        'harrier.yml': 'default_template: main.jinja',
-        'extensions.py': 'x = 1'
-    })
+    )
     mocker.patch('harrier.dev.awatch', side_effect=awatch_alt)
     mocker.patch('harrier.dev.Server', return_value=MockServer())
 
@@ -109,9 +97,7 @@ def test_extensions_error(tmpdir, mocker, loop):
     assert dev(str(tmpdir), 8000) == 1
 
     assert gettree(tmpdir.join('dist')) == {
-        'foobar': {
-            'index.html': 'main:\n <p><strong>hello</strong></p>\n',
-        },
+        'foobar': {'index.html': 'main:\n <p><strong>hello</strong></p>\n'},
     }
 
 
@@ -128,11 +114,14 @@ def test_mock_executor(tmpdir, mocker):
         yield {(Change.modified, str(tmpdir.join('extensions.py')))}
         yield {(Change.modified, str(tmpdir.join('data/foobar.yml')))}
 
-    mktree(tmpdir, {
-        'pages/foobar.md': '# hello',
-        'theme/templates/main.jinja': 'main:\n {{ content }}',
-        'harrier.yml': 'foo: bar',
-    })
+    mktree(
+        tmpdir,
+        {
+            'pages/foobar.md': '# hello',
+            'theme/templates/main.jinja': 'main:\n {{ content }}',
+            'harrier.yml': 'foo: bar',
+        },
+    )
     mocker.patch('harrier.dev.awatch', side_effect=awatch_alt)
     mocker.patch('harrier.dev.Server', return_value=MockServer())
 
@@ -228,10 +217,7 @@ def test_webpack_terminate(tmpdir, mocker, caplog):
     async def awatch_alt(*args, **kwargs):
         yield {(Change.modified, str(tmpdir.join('harrier.yml')))}
 
-    mktree(tmpdir, {
-        'pages/foobar.md': '# hello',
-        'theme/templates/main.jinja': 'main:\n {{ content }}',
-    })
+    mktree(tmpdir, {'pages/foobar.md': '# hello', 'theme/templates/main.jinja': 'main:\n {{ content }}'})
     mocker.patch('harrier.dev.awatch', side_effect=awatch_alt)
     mocker.patch('harrier.dev.Server', return_value=MockServer())
 
@@ -273,10 +259,7 @@ class Entry:
 
 
 def test_harrier_watcher(tmpdir):
-    mktree(tmpdir, {
-        'pages/foobar.md': '# hello',
-        'theme/templates/main.jinja': 'main:\n {{ content }}',
-    })
+    mktree(tmpdir, {'pages/foobar.md': '# hello', 'theme/templates/main.jinja': 'main:\n {{ content }}'})
     harrier.dev.CONFIG = Config(source_dir=tmpdir)
     watcher = HarrierWatcher(Path(tmpdir))
     assert not watcher.should_watch_dir(Entry(tmpdir.join('foobar')))
@@ -292,12 +275,12 @@ def test_dev_extensions(tmpdir, mocker, loop):
         yield {(Change.modified, str(tmpdir.join('pages/foobar.html')))}
 
     asyncio.set_event_loop(loop)
-    mktree(tmpdir, {
-        'pages': {
-            'foobar.html': 'before',
-        },
-        'call': '0',
-        'extensions.py': """
+    mktree(
+        tmpdir,
+        {
+            'pages': {'foobar.html': 'before'},
+            'call': '0',
+            'extensions.py': """
 from pathlib import Path
 from harrier.extensions import modify, template
 p = Path(__file__).parent / 'call'
@@ -309,8 +292,9 @@ def change_pages(site):
     p.write_text(str(v))
     site['pages']['/foobar.html']['content'] = str(v)
     return site
-        """
-    })
+        """,
+        },
+    )
     mocker.patch('harrier.dev.awatch', side_effect=awatch_alt)
     mocker.patch('harrier.dev.Server', return_value=MockServer())
 
@@ -320,9 +304,7 @@ def change_pages(site):
 
     # debug(gettree(tmpdir.join('dist')))
     assert gettree(tmpdir.join('dist')) == {
-        'foobar': {
-            'index.html': '3\n',
-        },
+        'foobar': {'index.html': '3\n'},
     }
 
 
@@ -331,12 +313,7 @@ def test_dev_delete_image(tmpdir, mocker, loop):
         yield {(Change.deleted, str(tmpdir.join('pages/other/whatever.png')))}
 
     asyncio.set_event_loop(loop)
-    mktree(tmpdir, {
-        'pages': {
-            'foobar.html': 'hello',
-            'other/whatever.png': '*',
-        },
-    })
+    mktree(tmpdir, {'pages': {'foobar.html': 'hello', 'other/whatever.png': '*'}})
     mocker.patch('harrier.dev.awatch', side_effect=awatch_alt)
     mocker.patch('harrier.dev.Server', return_value=MockServer())
 
@@ -346,9 +323,7 @@ def test_dev_delete_image(tmpdir, mocker, loop):
 
     # debug(gettree(tmpdir.join('dist')))
     assert gettree(tmpdir.join('dist')) == {
-        'foobar': {
-            'index.html': 'hello\n',
-        },
+        'foobar': {'index.html': 'hello\n'},
         'other': {},
     }
 
@@ -359,12 +334,7 @@ def test_dev_data(tmpdir, mocker, loop):
         yield {(Change.modified, str(tmpdir.join('data/foobar.yml')))}
 
     asyncio.set_event_loop(loop)
-    mktree(tmpdir, {
-        'pages': {
-            'foobar.html': '{{ data.foobar.a }}',
-        },
-        'data/foobar.yml': 'a: 1'
-    })
+    mktree(tmpdir, {'pages': {'foobar.html': '{{ data.foobar.a }}'}, 'data/foobar.yml': 'a: 1'})
     mocker.patch('harrier.dev.awatch', side_effect=awatch_alt)
     mocker.patch('harrier.dev.Server', return_value=MockServer())
 
@@ -374,9 +344,7 @@ def test_dev_data(tmpdir, mocker, loop):
 
     # debug(gettree(tmpdir.join('dist')))
     assert gettree(tmpdir.join('dist')) == {
-        'foobar': {
-            'index.html': '2\n',
-        },
+        'foobar': {'index.html': '2\n'},
     }
 
 
@@ -385,16 +353,9 @@ def test_ignored_directory(tmpdir, mocker, loop):
         yield {(Change.modified, str(tmpdir.join('pages/ignored.html')))}
 
     asyncio.set_event_loop(loop)
-    mktree(tmpdir, {
-        'pages': {
-            'foobar.html': '1',
-            'ignored.html': '2'
-        },
-        'harrier.yaml': (
-            'ignore:\n'
-            '- /ignored.html'
-        )
-    })
+    mktree(
+        tmpdir, {'pages': {'foobar.html': '1', 'ignored.html': '2'}, 'harrier.yaml': ('ignore:\n' '- /ignored.html')}
+    )
     mocker.patch('harrier.dev.awatch', side_effect=awatch_alt)
     mocker.patch('harrier.dev.Server', return_value=MockServer())
 
@@ -404,7 +365,5 @@ def test_ignored_directory(tmpdir, mocker, loop):
 
     # debug(gettree(tmpdir.join('dist')))
     assert gettree(tmpdir.join('dist')) == {
-        'foobar': {
-            'index.html': '1\n',
-        },
+        'foobar': {'index.html': '1\n'},
     }

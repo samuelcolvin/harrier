@@ -65,12 +65,7 @@ class Renderer:
         self.env.filters.update(self.config.extensions.template_filters)
 
         self.env.globals.update(
-            url=resolve_url,
-            resolve_url=resolve_url,
-            inline_css=inline_css,
-            shape=shape,
-            width=width,
-            height=height,
+            url=resolve_url, resolve_url=resolve_url, inline_css=inline_css, shape=shape, width=width, height=height,
         )
         self.env.globals.update(self.config.extensions.template_functions)
         self.env.tests.update(self.config.extensions.template_tests)
@@ -273,7 +268,7 @@ def height(ctx, path):
 def paginate_filter(ctx, v, page=1, per_page=None):
     per_page = per_page or ctx['config'].paginate_by
     start = (page - 1) * per_page
-    return list(v)[start:start + per_page]
+    return list(v)[start : start + per_page]
 
 
 def isoformat(o):

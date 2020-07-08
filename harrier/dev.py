@@ -123,11 +123,7 @@ def update_site(args: UpdateArgs):  # noqa: C901 (ignore complexity)
 
         if full_build:
             pages = build_pages(config)
-            SOM = dict(
-                pages=pages,
-                data=load_data(config),
-                config=config,
-            )
+            SOM = dict(pages=pages, data=load_data(config), config=config,)
             apply_page_generator(SOM, config)
             SOM = apply_modifiers(SOM, config.extensions.som_modifiers)
             content_templates(SOM['pages'].values(), config)

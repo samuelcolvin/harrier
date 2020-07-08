@@ -59,7 +59,7 @@ class BuildPages:
             if p.is_file():
                 try:
                     v = get_page_data(p, config=self.config)
-                except(ExtensionError, PlaceHolderError):
+                except (ExtensionError, PlaceHolderError):
                     # these are logged directly
                     raise
                 except Exception:

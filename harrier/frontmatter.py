@@ -32,7 +32,7 @@ def parse_front_matter(s, regex=FRONT_MATTER_START_REGEX):
     except YAMLError as e:
         logger.error('error parsing YAML: %s', e)
         raise HarrierProblem(f'error parsing YAML: {e}') from e
-    content = s[m.end():]
+    content = s[m.end() :]
     return data, content
 
 
@@ -51,17 +51,13 @@ def split_content(s):
     name = 'main'
     while True:
         start, end = m.span()
-        content.append(
-            (name, _parse_section_content(s[:start]))
-        )
+        content.append((name, _parse_section_content(s[:start])))
         name = m.group(1)
         s = s[end:]
         m = FRONT_MATTER_DIVIDER_REGEX.search(s)
         if not m:
             break
-    content.append(
-        (name, _parse_section_content(s))
-    )
+    content.append((name, _parse_section_content(s)))
     names, values = zip(*content)
     names = set(names[1:])
     if names == {'.'}:

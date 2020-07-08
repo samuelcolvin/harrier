@@ -8,10 +8,7 @@ from harrier.config import get_config
 
 
 def test_ok(tmpdir):
-    mktree(tmpdir, {
-        'pages': {},
-        'theme/templates/main.jinja': '{{ content }}',
-    })
+    mktree(tmpdir, {'pages': {}, 'theme/templates/main.jinja': '{{ content }}'})
 
     config = get_config(tmpdir)
     assert config.pages_dir == Path(tmpdir.join('pages'))
@@ -19,11 +16,7 @@ def test_ok(tmpdir):
 
 
 def test_ok_file(tmpdir):
-    mktree(tmpdir, {
-        'pages': {},
-        'theme/templates/main.jinja': '{{ content }}',
-        'harrier.yml': 'foo: bar'
-    })
+    mktree(tmpdir, {'pages': {}, 'theme/templates/main.jinja': '{{ content }}', 'harrier.yml': 'foo: bar'})
 
     config = get_config(tmpdir.join('harrier.yml'))
     assert config.pages_dir == Path(tmpdir.join('pages'))
@@ -31,14 +24,14 @@ def test_ok_file(tmpdir):
 
 
 def test_no_theme_dir(tmpdir):
-    mktree(tmpdir, {
-        'pages': {
-            'foo.md': '# foo',
-            'bar.html': '{{ 4|add_one }} {{ config.dynamic }}',
+    mktree(
+        tmpdir,
+        {
+            'pages': {'foo.md': '# foo', 'bar.html': '{{ 4|add_one }} {{ config.dynamic }}'},
+            'theme': {},
+            'harrier.yml': 'default_template: main.jinja',
         },
-        'theme': {},
-        'harrier.yml': 'default_template: main.jinja'
-    })
+    )
 
     with pytest.raises(ValidationError) as exc_info:
         get_config(tmpdir)
@@ -54,9 +47,7 @@ def test_no_pages(tmpdir):
 
 
 def test_pages_not_dir(tmpdir):
-    mktree(tmpdir, {
-        'pages': '*',
-    })
+    mktree(tmpdir, {'pages': '*'})
 
     with pytest.raises(ValidationError) as exc_info:
         get_config(tmpdir)
@@ -65,11 +56,14 @@ def test_pages_not_dir(tmpdir):
 
 
 def test_dist_dir_no_parent(tmpdir):
-    mktree(tmpdir, {
-        'pages': {},
-        'theme/templates/main.jinja': '{{ content }}',
-        'harrier.yml': f'dist_dir: {tmpdir.join("foo/bar")}'
-    })
+    mktree(
+        tmpdir,
+        {
+            'pages': {},
+            'theme/templates/main.jinja': '{{ content }}',
+            'harrier.yml': f'dist_dir: {tmpdir.join("foo/bar")}',
+        },
+    )
 
     with pytest.raises(ValidationError) as exc_info:
         get_config(tmpdir)
@@ -78,11 +72,7 @@ def test_dist_dir_no_parent(tmpdir):
 
 
 def test_dist_dir_not_dir(tmpdir):
-    mktree(tmpdir, {
-        'dist': 'foobar',
-        'pages': {},
-        'theme/templates/main.jinja': '{{ content }}',
-    })
+    mktree(tmpdir, {'dist': 'foobar', 'pages': {}, 'theme/templates/main.jinja': '{{ content }}'})
 
     with pytest.raises(ValidationError) as exc_info:
         get_config(tmpdir)
@@ -91,11 +81,7 @@ def test_dist_dir_not_dir(tmpdir):
 
 
 def test_extensions_not_dir(tmpdir):
-    mktree(tmpdir, {
-        'pages': {},
-        'theme/templates/main.jinja': '{{ content }}',
-        'extensions.py': {},
-    })
+    mktree(tmpdir, {'pages': {}, 'theme/templates/main.jinja': '{{ content }}', 'extensions.py': {}})
 
     with pytest.raises(ValidationError) as exc_info:
         get_config(tmpdir)
@@ -103,18 +89,15 @@ def test_extensions_not_dir(tmpdir):
 
 
 def test_webpack_ok(tmpdir, caplog):
-    mktree(tmpdir, {
-        'pages': {},
-        'theme': {
-            'templates': {'main.jinja': '{{ content }}'},
-            'js/index.js': '*'
+    mktree(
+        tmpdir,
+        {
+            'pages': {},
+            'theme': {'templates': {'main.jinja': '{{ content }}'}, 'js/index.js': '*'},
+            'mock_webpack': '*',
+            'harrier.yml': 'webpack:\n  cli: mock_webpack',
         },
-        'mock_webpack': '*',
-        'harrier.yml': (
-            'webpack:\n'
-            '  cli: mock_webpack'
-        )
-    })
+    )
 
     config = get_config(tmpdir)
     assert config.webpack.run
@@ -122,15 +105,15 @@ def test_webpack_ok(tmpdir, caplog):
 
 
 def test_webpack_no_entry(tmpdir, caplog):
-    mktree(tmpdir, {
-        'pages': {},
-        'theme/templates/main.jinja': '{{ content }}',
-        'mock_webpack': '*',
-        'harrier.yml': (
-            'webpack:\n'
-            '  cli: mock_webpack'
-        )
-    })
+    mktree(
+        tmpdir,
+        {
+            'pages': {},
+            'theme/templates/main.jinja': '{{ content }}',
+            'mock_webpack': '*',
+            'harrier.yml': 'webpack:\n  cli: mock_webpack',
+        },
+    )
 
     config = get_config(tmpdir)
     assert not config.webpack.run
@@ -138,19 +121,15 @@ def test_webpack_no_entry(tmpdir, caplog):
 
 
 def test_webpack_missing_config(tmpdir):
-    mktree(tmpdir, {
-        'pages': {},
-        'theme': {
-            'templates': {'main.jinja': '{{ content }}'},
-            'js/index.js': '*'
+    mktree(
+        tmpdir,
+        {
+            'pages': {},
+            'theme': {'templates': {'main.jinja': '{{ content }}'}, 'js/index.js': '*'},
+            'mock_webpack': '*',
+            'harrier.yml': 'webpack:\n  cli: mock_webpack\n  config: missing\n',
         },
-        'mock_webpack': '*',
-        'harrier.yml': (
-            'webpack:\n'
-            '  cli: mock_webpack\n'
-            '  config: missing\n'
-        )
-    })
+    )
 
     with pytest.raises(ValidationError) as exc_info:
         get_config(tmpdir)
