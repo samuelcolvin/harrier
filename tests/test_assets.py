@@ -20,7 +20,7 @@ from pathlib import Path
 this_dir = Path(__file__).parent.resolve()
 (this_dir / 'webpack_args.json').write_text(json.dumps(sys.argv))
 (this_dir / 'webpack_env.json').write_text(json.dumps(dict(os.environ)))
-args = .join(sys.argv)
+args = ' '.join(sys.argv)
 print('foobar')
 if 'js/error.js' in args:
     sys.exit(2)
