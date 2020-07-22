@@ -57,7 +57,7 @@ BUILD_CACHE = {}
 FIRST_BUILD = '__FB__'
 
 
-def set_config(main_config: Config, verbose: bool) -> None:
+def set_config(main_config: Config, verbose: bool = False) -> None:
     """
     Required for platforms where child processes are spawned not forked, e.g. macos
     """
@@ -194,7 +194,7 @@ class HarrierWatcher(DefaultWatcher):
         return super().should_watch_dir(entry) and entry.path.startswith(self._used_paths)
 
 
-async def adev(config: Config, port: int, verbose: bool):
+async def adev(config: Config, port: int, verbose: bool = False):
     global CONFIG
     CONFIG = config
     stop_event = asyncio.Event()

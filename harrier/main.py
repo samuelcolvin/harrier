@@ -81,7 +81,7 @@ def build(path: StrPath, steps: Set[BuildSteps] = None, mode: Optional[Mode] = N
     return som
 
 
-def dev(path: StrPath, port: int, verbose: bool):
+def dev(path: StrPath, port: int, verbose: bool = False):
     config = get_config(path)
     config.mode = Mode.development
     logger.debug('Config:\n%s', devtools.pformat(config))
