@@ -81,16 +81,16 @@ def build(path: StrPath, steps: Set[BuildSteps] = None, mode: Optional[Mode] = N
     return som
 
 
-def dev(path: StrPath, port: int):
+def dev(path: StrPath, port: int, verbose: bool = False):
     config = get_config(path)
     config.mode = Mode.development
-    logger.debug('Config:\n%s', devtools.pformat(config.dict()))
+    logger.debug('Config:\n%s', devtools.pformat(config))
 
     _empty_dir(config.dist_dir)
     _empty_dir(config.get_tmp_dir())
 
     loop = asyncio.get_event_loop()
-    return loop.run_until_complete(adev(config, port))
+    return loop.run_until_complete(adev(config, port, verbose))
 
 
 def _empty_dir(d: Path, clean: bool = True):

@@ -61,7 +61,7 @@ def dev(path, port, verbose):
     """
     setup_logging(verbose, dev=True)
     try:
-        main.dev(path, port)
+        main.dev(path, port, verbose)
     except (HarrierProblem, ValidationError, GrablibError) as e:
         msg = 'Error: {}'
         if not verbose:

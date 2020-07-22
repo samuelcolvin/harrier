@@ -16,7 +16,7 @@ from watchgod import Change, DefaultWatcher, awatch
 
 from .assets import copy_assets, get_path_lookup, run_grablib, start_webpack_watch
 from .build import build_pages, content_templates, get_page_data
-from .common import HarrierProblem, log_complete
+from .common import HarrierProblem, log_complete, setup_logging
 from .config import Config, get_config
 from .data import load_data
 from .extensions import apply_modifiers, apply_page_generator
@@ -57,11 +57,12 @@ BUILD_CACHE = {}
 FIRST_BUILD = '__FB__'
 
 
-def set_config(main_config: Config) -> None:
+def set_config(main_config: Config, verbose: bool = False) -> None:
     """
     Required for platforms where child processes are spawned not forked, e.g. macos
     """
     global CONFIG
+    setup_logging(verbose, dev=True)
     CONFIG = main_config
 
 
@@ -193,7 +194,7 @@ class HarrierWatcher(DefaultWatcher):
         return super().should_watch_dir(entry) and entry.path.startswith(self._used_paths)
 
 
-async def adev(config: Config, port: int):
+async def adev(config: Config, port: int, verbose: bool = False):
     global CONFIG
     CONFIG = config
     stop_event = asyncio.Event()
@@ -206,7 +207,7 @@ async def adev(config: Config, port: int):
     config_path = str(config.config_path or config.source_dir)
     # max_workers = 1 so the same config and som are always used to build the site
     with ProcessPoolExecutor(max_workers=1) as executor:
-        await loop.run_in_executor(executor, set_config, config)
+        await loop.run_in_executor(executor, set_config, config, verbose)
         ret = await loop.run_in_executor(executor, update_site, UpdateArgs(config_path=config_path))
 
         logger.info('\nStarting dev server, go to http://localhost:%s', port)
