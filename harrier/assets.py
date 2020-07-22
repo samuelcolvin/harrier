@@ -81,6 +81,9 @@ def pygments_importer(path: str):
     return [(f'pygments/{style_name}.css', formatter.get_style_defs('.hi'))]
 
 
+IGNORED_FILES = {'.DS_Store'}
+
+
 def copy_assets(config: Config):
     start = time()
     in_dir = config.theme_dir / 'assets'
@@ -90,7 +93,7 @@ def copy_assets(config: Config):
     out_dir.relative_to(config.dist_dir)
     copied = 0
     for in_path in in_dir.glob('**/*'):
-        if not in_path.is_file():
+        if not in_path.is_file() or in_path.name in IGNORED_FILES:
             continue
         out_path = out_dir / in_path.relative_to(in_dir)
         path_ref = norm_path_ref(in_path, in_dir)
