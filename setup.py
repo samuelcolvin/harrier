@@ -52,7 +52,7 @@ setup(
         'click>=7',
         'devtools>=0.4',
         'grablib>=0.7.4',
-        'Jinja2>=2.8',
+        'Jinja2>=3',
         'libsass>=0.20',
         'misaka>=2.1',
         'pillow>=7.2.0',
