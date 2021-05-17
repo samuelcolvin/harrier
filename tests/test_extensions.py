@@ -181,6 +181,38 @@ def foobar(whatever):
     assert len(ext.template_filters) == 0
 
 
+def test_load_template_jinja_funcs(tmpdir):
+    mktree(
+        tmpdir,
+        {
+            'foobar.py': """
+from harrier.extensions import template
+
+@template.pass_context
+def foo(whatever):
+    return str(whatever)
+
+@template.pass_environment
+def bar(whatever):
+    return str(whatever)
+
+@template.pass_eval_context
+def oof(whatever):
+    return str(whatever)
+        """
+        },
+    )
+    ext = Extensions(Path(tmpdir.join('foobar.py')))
+    assert str(ext) == '<Extensions not loaded>'
+    ext.load()
+    assert str(ext).startswith("<Extensions {'config_modifiers'")
+    assert len(ext.config_modifiers) == 0
+    assert len(ext.som_modifiers) == 0
+    assert len(ext.page_modifiers) == 0
+    assert len(ext.template_functions) == 3
+    assert len(ext.template_filters) == 0
+
+
 def test_page_modifier_bare(tmpdir):
     mktree(
         tmpdir,
