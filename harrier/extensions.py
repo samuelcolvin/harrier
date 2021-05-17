@@ -96,9 +96,9 @@ class Extensions:
                     self._extensions[ext_type].extend([(path_match, attr) for path_match in attr.path_matches])
                 elif ext_type:
                     self._extensions[ext_type].append(attr)
-                elif getattr(attr, filter_attr, None):
+                elif getattr(attr, filter_attr, False):
                     self._extensions[ExtType.template_filters][attr_name] = attr
-                elif getattr(attr, function_attr, None) or hasattr(attr, 'jinja_pass_arg'):
+                elif getattr(attr, function_attr, False) or hasattr(attr, jinja_func_attr):
                     self._extensions[ExtType.template_functions][attr_name] = attr
                 elif getattr(attr, test_attr, False):
                     self._extensions[ExtType.template_tests][attr_name] = attr
@@ -207,6 +207,7 @@ class modify:
         return dec
 
 
+jinja_func_attr = 'jinja_pass_arg'
 filter_attr = '__vanilla_filter__'
 function_attr = '__vanilla_function__'
 test_attr = '__vanilla_test__'
