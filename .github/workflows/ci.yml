@@ -76,8 +76,8 @@ jobs:
       - name: check dist
         run: twine check dist/*
 
-      - name: check tag
-        run: PACKAGE=harrier python <(curl -Ls https://git.io/JvQsH)
+      - name: set version
+        run: VERSION_PATH='harrier/version.py' python <(curl -Ls https://git.io/JT3rm)
 
       - name: upload to pypi
         run: twine upload dist/*
