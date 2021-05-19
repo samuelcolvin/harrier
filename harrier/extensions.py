@@ -5,14 +5,7 @@ from pathlib import Path
 from types import FunctionType
 from typing import Optional
 
-from jinja2 import (
-    contextfilter,
-    contextfunction,
-    environmentfilter,
-    environmentfunction,
-    evalcontextfilter,
-    evalcontextfunction,
-)
+from jinja2 import pass_context, pass_environment, pass_eval_context
 from pydantic import BaseModel, ValidationError
 
 from .common import HarrierProblem, PathMatch
@@ -103,9 +96,9 @@ class Extensions:
                     self._extensions[ext_type].extend([(path_match, attr) for path_match in attr.path_matches])
                 elif ext_type:
                     self._extensions[ext_type].append(attr)
-                elif any(getattr(attr, n, False) is True for n in filter_attrs):
+                elif getattr(attr, filter_attr, False):
                     self._extensions[ExtType.template_filters][attr_name] = attr
-                elif any(getattr(attr, n, False) is True for n in function_attrs):
+                elif getattr(attr, function_attr, False) or hasattr(attr, jinja_func_attr):
                     self._extensions[ExtType.template_functions][attr_name] = attr
                 elif getattr(attr, test_attr, False):
                     self._extensions[ExtType.template_tests][attr_name] = attr
@@ -214,18 +207,16 @@ class modify:
         return dec
 
 
-filter_attrs = 'contextfilter', 'evalcontextfilter', 'environmentfilter', '__vanilla_filter__'
-function_attrs = 'contextfunction', 'evalcontextfunction', 'environmentfunction', '__vanilla_function__'
+jinja_func_attr = 'jinja_pass_arg'
+filter_attr = '__vanilla_filter__'
+function_attr = '__vanilla_function__'
 test_attr = '__vanilla_test__'
 
 
 class template:
-    contextfilter = contextfilter
-    evalcontextfilter = evalcontextfilter
-    environmentfilter = environmentfilter
-    contextfunction = contextfunction
-    environmentfunction = environmentfunction
-    evalcontextfunction = evalcontextfunction
+    pass_context = pass_context
+    pass_eval_context = pass_eval_context
+    pass_environment = pass_environment
 
     @staticmethod
     def filter(f):

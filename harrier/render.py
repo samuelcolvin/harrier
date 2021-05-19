@@ -12,7 +12,7 @@ from time import time
 from types import GeneratorType
 
 from devtools import debug, pformat
-from jinja2 import Environment, FileSystemLoader, contextfilter, contextfunction, nodes
+from jinja2 import Environment, FileSystemLoader, nodes, pass_context
 from jinja2.ext import Extension
 from misaka import HtmlRenderer, Markdown, escape_html
 from PIL import Image
@@ -205,12 +205,12 @@ def get_outfile(data: dict, config: Config):
     return outfile
 
 
-@contextfunction
+@pass_context
 def resolve_url(ctx, path):
     return resolve_path(path, ctx['path_lookup'], ctx['config'])
 
 
-@contextfunction
+@pass_context
 def inline_css(ctx, path):
     path = resolve_path(path, ctx['path_lookup'], None)
     real_path = Path(path[1:])
@@ -240,7 +240,7 @@ IMAGE_SIZE_CACHE = {}
 Shape = namedtuple('Shape', ['width', 'height'])
 
 
-@contextfunction
+@pass_context
 def shape(ctx, path):
     global IMAGE_SIZE_CACHE
     config: Config = ctx['config']
@@ -254,17 +254,17 @@ def shape(ctx, path):
     return v
 
 
-@contextfunction
+@pass_context
 def width(ctx, path):
     return shape(ctx, path).width
 
 
-@contextfunction
+@pass_context
 def height(ctx, path):
     return shape(ctx, path).height
 
 
-@contextfilter
+@pass_context
 def paginate_filter(ctx, v, page=1, per_page=None):
     per_page = per_page or ctx['config'].paginate_by
     start = (page - 1) * per_page
