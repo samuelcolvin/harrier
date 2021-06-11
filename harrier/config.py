@@ -25,10 +25,10 @@ class Mode(str, Enum):
 
 class WebpackConfig(BaseModel):
     cli: Path = None
-    entry: Path = 'js/index.js'
+    entry: Optional[Path] = 'js/index.js'
     output_path: Path = 'theme'
-    dev_output_filename: Optional[str] = 'main.js'
-    prod_output_filename: Optional[str] = 'main.[hash].js'
+    dev_output_filename: Optional[str] = '[name].js'
+    prod_output_filename: Optional[str] = '[name].[hash].js'
     config: Path = None
     run: bool = True
 
@@ -129,17 +129,17 @@ class Config(BaseModel):
         elif not webpack.cli.exists():
             raise ValueError(f'webpack cli path set but does not exist "{webpack.cli}", not running webpack')
 
-        webpack.entry = values['theme_dir'] / webpack.entry
-        if not webpack.entry.exists() and webpack.run:
-            logger.warning('webpack entry point "%s" does not exist, not running webpack', webpack.entry)
-            webpack.run = False
-
         if webpack.config:
             webpack.config = values['source_dir'] / webpack.config
             if not webpack.config.exists():
                 raise ValueError(f'webpack config set but does not exist "{webpack.config}", not running webpack')
-
-        webpack.output_path = values['dist_dir'] / webpack.output_path
+            logger.info('webpack config file found')
+        else:
+            webpack.entry = values['theme_dir'] / webpack.entry
+            if not webpack.entry.exists() and webpack.run:
+                logger.warning('webpack entry point "%s" does not exist, not running webpack', webpack.entry)
+                webpack.run = False
+            webpack.output_path = values['dist_dir'] / webpack.output_path
         return webpack
 
     @validator('build_time', pre=True, always=True)

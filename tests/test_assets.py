@@ -29,7 +29,7 @@ elif 'js/nojson.js' not in args:
 """
 
 
-def test_run_webpack(tmpdir):
+def test_run_webpack_no_config(tmpdir):
     webpack_path = tmpdir.join('mock_webpack')
     mktree(
         tmpdir,
@@ -50,17 +50,54 @@ def test_run_webpack(tmpdir):
         f'{tmpdir}/mock_webpack',
         '--context',
         f'{tmpdir}',
-        '--entry',
-        './theme/js/index.js',
-        '--output-path',
-        f'{tmpdir}/dist/theme',
         '--output-filename',
-        'main.[hash].js',
+        '[name].[hash].js',
         '--devtool',
         'source-map',
         '--mode',
         'production',
         '--optimize-minimize',
+        '--entry',
+        './theme/js/index.js',
+        '--output-path',
+        f'{tmpdir}/dist/theme',
+        '--json',
+    ] == args
+    webpack_env = json.loads(tmpdir.join('webpack_env.json').read_text('utf8'))
+    assert webpack_env['NODE_ENV'] == 'production'
+
+
+def test_run_webpack_with_config(tmpdir):
+    webpack_path = tmpdir.join('mock_webpack')
+    mktree(
+        tmpdir,
+        {
+            'pages/foobar.md': '# hello',
+            'theme': {'templates': {'main.jinja': 'main:\n {{ content }}'}, 'js/index.js': '*'},
+            'mock_webpack': MOCK_WEBPACK,
+            'webpack_config.js': '*',
+            'harrier.yml': f'webpack:\n  cli: {webpack_path}\n  config: webpack_config.js',
+        },
+    )
+    webpack_path.chmod(0o777)
+
+    config = get_config(str(tmpdir))
+    count = run_webpack(config)
+    assert count == 3
+    args = json.loads(tmpdir.join('webpack_args.json').read_text('utf8'))
+    assert [
+        f'{tmpdir}/mock_webpack',
+        '--context',
+        f'{tmpdir}',
+        '--output-filename',
+        '[name].[hash].js',
+        '--devtool',
+        'source-map',
+        '--mode',
+        'production',
+        '--optimize-minimize',
+        '--config',
+        './webpack_config.js',
         '--json',
     ] == args
     webpack_env = json.loads(tmpdir.join('webpack_env.json').read_text('utf8'))
@@ -74,15 +111,8 @@ def test_run_webpack_error(tmpdir):
         {
             'pages/foobar.md': '# hello',
             'theme': {'templates': {'main.jinja': 'main:\n {{ content }}'}, 'js/error.js': '*'},
-            'webpack_config.js': '*',
             'mock_webpack': MOCK_WEBPACK,
-            'harrier.yml': (
-                f'mode: development\n'
-                f'webpack:\n'
-                f'  cli: {webpack_path}\n'
-                f'  entry: js/error.js\n'
-                f'  config: webpack_config.js\n'
-            ),
+            'harrier.yml': (f'mode: development\n' f'webpack:\n' f'  cli: {webpack_path}\n' f'  entry: js/error.js\n'),
         },
     )
     webpack_path.chmod(0o777)
@@ -95,18 +125,16 @@ def test_run_webpack_error(tmpdir):
         f'{tmpdir}/mock_webpack',
         '--context',
         f'{tmpdir}',
-        '--entry',
-        './theme/js/error.js',
-        '--output-path',
-        f'{tmpdir}/dist/theme',
         '--output-filename',
-        'main.js',
+        '[name].js',
         '--devtool',
         'source-map',
         '--mode',
         'development',
-        '--config',
-        './webpack_config.js',
+        '--entry',
+        './theme/js/error.js',
+        '--output-path',
+        f'{tmpdir}/dist/theme',
         '--json',
     ] == args
     webpack_env = json.loads(tmpdir.join('webpack_env.json').read_text('utf8'))
@@ -175,17 +203,17 @@ async def test_start_webpack_watch(tmpdir, loop):
         f'{tmpdir}/mock_webpack',
         '--context',
         f'{tmpdir}',
-        '--entry',
-        './theme/js/index.js',
-        '--output-path',
-        f'{tmpdir}/dist/theme',
         '--output-filename',
-        'main.js',
+        '[name].js',
         '--devtool',
         'source-map',
         '--mode',
         'development',
         '--watch',
+        '--entry',
+        './theme/js/index.js',
+        '--output-path',
+        f'{tmpdir}/dist/theme',
     ] == json.loads(tmpdir.join('webpack_args.json').read_text('utf8'))
     webpack_env = json.loads(tmpdir.join('webpack_env.json').read_text('utf8'))
     assert webpack_env['NODE_ENV'] == 'development'

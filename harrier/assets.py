@@ -144,10 +144,6 @@ def webpack_configuration(config: Config, watch: bool):
         wp.cli,
         '--context',
         config.source_dir,
-        '--entry',
-        f'./{wp.entry.relative_to(config.source_dir)}',
-        '--output-path',
-        wp.output_path,
         output_filename and '--output-filename',
         output_filename,
         '--devtool',
@@ -156,9 +152,11 @@ def webpack_configuration(config: Config, watch: bool):
         config.mode.value,
         watch and '--watch',
         prod and '--optimize-minimize',
-        wp.config and '--config',
-        wp.config and f'./{wp.config.relative_to(config.source_dir)}',
     )
+    if wp.config:
+        args += ('--config', f'./{wp.config.relative_to(config.source_dir)}')
+    else:
+        args += ('--entry', f'./{wp.entry.relative_to(config.source_dir)}', '--output-path', wp.output_path)
     env = dict(
         **os.environ,
         **{
