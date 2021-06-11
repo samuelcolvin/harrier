@@ -154,9 +154,9 @@ def webpack_configuration(config: Config, watch: bool):
         prod and '--optimize-minimize',
     )
     if wp.config:
-        args += ('--config', f'./{wp.config.relative_to(config.source_dir)}')
+        args += '--config', f'./{wp.config.relative_to(config.source_dir)}'
     else:
-        args += ('--entry', f'./{wp.entry.relative_to(config.source_dir)}', '--output-path', wp.output_path)
+        args += '--entry', f'./{wp.entry.relative_to(config.source_dir)}', '--output-path', wp.output_path
     env = dict(
         **os.environ,
         **{
