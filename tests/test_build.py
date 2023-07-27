@@ -2,15 +2,15 @@ from datetime import datetime
 from pathlib import Path
 
 import pytest
+from dirty_equals import IsNow
 from pydantic import ValidationError
-from pytest_toolbox import gettree, mktree
-from pytest_toolbox.comparison import CloseToNow
 
 from harrier.build import FileData, build_pages, content_templates
 from harrier.common import HarrierProblem
 from harrier.config import Config, Mode
 from harrier.main import build
 from harrier.render import render_pages
+from tests.utils import gettree, mktree
 
 
 def test_full_build(tmpdir):
@@ -172,14 +172,13 @@ def test_build_simple_som(tmpdir):
     pages = build_pages(config)
     content_templates(pages.values(), config)
     source_dir = Path(tmpdir)
-    # debug(som)
     assert {
         '/foobar.md': {
             'infile': source_dir / 'pages/foobar.md',
             'content_template': 'content/foobar.md',
             'title': 'Foobar',
             'slug': 'foobar',
-            'created': CloseToNow(),
+            'created': IsNow(delta=2),
             'uri': '/foobar/',
             'template': None,
             'content': '# hello\n\nthis is a test foo: {{ foo }}',
@@ -200,7 +199,7 @@ def test_build_simple_som(tmpdir):
             'infile': source_dir / 'pages/static/image.png',
             'title': 'image.png',
             'slug': 'image.png',
-            'created': CloseToNow(),
+            'created': IsNow(delta=2),
             'uri': '/static/image.png',
             'pass_through': True,
         },

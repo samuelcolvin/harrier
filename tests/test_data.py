@@ -1,11 +1,11 @@
 from pathlib import Path
 
 import pytest
-from pytest_toolbox import mktree
 
 from harrier.common import HarrierProblem
 from harrier.config import Config
 from harrier.data import load_data
+from tests.utils import mktree
 
 
 def test_ok(tmpdir):

@@ -11,8 +11,7 @@ from time import time
 from aiohttp.web_runner import AppRunner, TCPSite
 from aiohttp_devtools.runserver import serve_static
 from pydantic import BaseModel
-from watchfiles import DefaultFilter
-from watchgod import Change, awatch
+from watchfiles import Change, DefaultFilter, awatch
 
 from .assets import copy_assets, get_path_lookup, run_grablib, start_webpack_watch
 from .build import build_pages, content_templates, get_page_data
@@ -192,7 +191,7 @@ def is_within(location: Path, directory: Path):
 class WatcherFilter(DefaultFilter):
     def __init__(self, *args, **kwargs):
         self._used_paths = str(CONFIG.pages_dir), str(CONFIG.theme_dir), str(CONFIG.data_dir)
-        super().__init__(*args, **kwargs)
+        super().__init__()
 
     def __call__(self, change, path):
         return super().__call__(change, path) and path.startswith(self._used_paths)

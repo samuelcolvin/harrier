@@ -1,11 +1,11 @@
 from pathlib import Path
 
 import pytest
-from pytest_toolbox import gettree, mktree
 
 from harrier.common import HarrierProblem
 from harrier.extensions import ExtensionError, Extensions
 from harrier.main import BuildSteps, build
+from tests.utils import gettree, mktree
 
 
 def test_extensions_ok(tmpdir):

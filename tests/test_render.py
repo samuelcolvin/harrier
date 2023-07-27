@@ -1,15 +1,16 @@
+import re
 from datetime import datetime
 from pathlib import Path
 
 import pytest
+from dirty_equals import IsStr
 from PIL import Image
-from pytest_toolbox import gettree, mktree
-from pytest_toolbox.comparison import RegexStr
 
 from harrier.build import FileData
 from harrier.config import Mode
 from harrier.main import build
 from harrier.render import json_filter, paginate_filter
+from tests.utils import gettree, mktree
 
 
 def test_build_multi_part(tmpdir):
@@ -136,9 +137,9 @@ def test_inline_css_dev(tmpdir):
     build(tmpdir, mode=Mode.development)
     assert gettree(tmpdir.join('dist')) == {
         'foo': {'index.html': 'body {\n  width: 20px; }\n\n/*# sourceMappingURL=/theme/main.css.map */\n'},
-        'bar': {'index.html': RegexStr(r'/theme/main.css\?t=\d+\n')},
+        'bar': {'index.html': IsStr(regex=r'/theme/main.css\?t=\d+\n')},
         'theme': {
-            'main.css.map': RegexStr('{.*'),
+            'main.css.map': IsStr(regex=r'{.*', regex_flags=re.DOTALL),
             'main.css': 'body {\n  width: 20px; }\n\n/*# sourceMappingURL=main.css.map */',
             '.src': {'main.scss': 'body {width: 10px + 10px;}'},
         },

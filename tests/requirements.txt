@@ -7,6 +7,7 @@ pyflakes==3.0.1
 pytest==7.4.0
 pytest-cov==4.1.0
 pytest-mock==3.11.1
+pytest-aiohttp==1.0.4
 pytest-sugar==0.9.7
-pytest-toolbox==0.4
+dirty-equals==0.6.0
 twine==4.0.2
