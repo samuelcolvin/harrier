@@ -2,9 +2,9 @@ from pathlib import Path
 
 import pytest
 from pydantic import ValidationError
-from pytest_toolbox import mktree
 
 from harrier.config import get_config
+from tests.utils import mktree
 
 
 def test_ok(tmpdir):

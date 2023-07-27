@@ -10,9 +10,8 @@ from time import time
 
 from aiohttp.web_runner import AppRunner, TCPSite
 from aiohttp_devtools.runserver import serve_static
-from aiohttp_devtools.runserver.log_handlers import AuxAccessLogger
 from pydantic import BaseModel
-from watchgod import Change, DefaultWatcher, awatch
+from watchfiles import Change, DefaultFilter, awatch
 
 from .assets import copy_assets, get_path_lookup, run_grablib, start_webpack_watch
 from .build import build_pages, content_templates, get_page_data
@@ -34,8 +33,8 @@ class Server:
         self.runner = None
 
     async def start(self):
-        app, *_ = serve_static(static_path=str(self.config.dist_dir), port=self.port)
-        self.runner = AppRunner(app, access_log_class=AuxAccessLogger)
+        app = serve_static(static_path=str(self.config.dist_dir), port=self.port)
+        self.runner = AppRunner(**app)
         await self.runner.setup()
 
         site = TCPSite(self.runner, HOST, self.port, shutdown_timeout=0.01)
@@ -124,7 +123,11 @@ def update_site(args: UpdateArgs):  # noqa: C901 (ignore complexity)
 
         if full_build:
             pages = build_pages(config)
-            SOM = dict(pages=pages, data=load_data(config), config=config,)
+            SOM = dict(
+                pages=pages,
+                data=load_data(config),
+                config=config,
+            )
             apply_page_generator(SOM, config)
             SOM = apply_modifiers(SOM, config.extensions.som_modifiers)
             content_templates(SOM['pages'].values(), config)
@@ -185,13 +188,13 @@ def is_within(location: Path, directory: Path):
         return True
 
 
-class HarrierWatcher(DefaultWatcher):
-    def __init__(self, root_path):
+class WatcherFilter(DefaultFilter):
+    def __init__(self, *args, **kwargs):
         self._used_paths = str(CONFIG.pages_dir), str(CONFIG.theme_dir), str(CONFIG.data_dir)
-        super().__init__(root_path)
+        super().__init__()
 
-    def should_watch_dir(self, entry):
-        return super().should_watch_dir(entry) and entry.path.startswith(self._used_paths)
+    def __call__(self, change, path):
+        return super().__call__(change, path) and path.startswith(self._used_paths)
 
 
 async def adev(config: Config, port: int, verbose: bool = False):
@@ -215,7 +218,7 @@ async def adev(config: Config, port: int, verbose: bool = False):
         await server.start()
 
         try:
-            async for changes in awatch(config.source_dir, stop_event=stop_event, watcher_cls=HarrierWatcher):
+            async for changes in awatch(config.source_dir, stop_event=stop_event, watch_filter=WatcherFilter()):
                 logger.debug('file changes: %s', changes)
                 args = UpdateArgs(config_path=config_path, pages=set())
                 for change, raw_path in changes:

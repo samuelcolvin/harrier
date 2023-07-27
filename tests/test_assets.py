@@ -1,16 +1,17 @@
 import asyncio
 import json
 import logging
+import re
 import sys
 
 import pytest
+from dirty_equals import IsStr
 from pydantic import ValidationError
-from pytest_toolbox import gettree, mktree
-from pytest_toolbox.comparison import RegexStr
 
 from harrier.assets import assets_grablib, copy_assets, run_grablib, run_webpack, start_webpack_watch
 from harrier.common import HarrierProblem
 from harrier.config import Mode, get_config
+from tests.utils import gettree, mktree
 
 MOCK_WEBPACK = f"""\
 #!{sys.executable}
@@ -289,7 +290,7 @@ def test_grablib_pygments(tmpdir):
 
     config = get_config(str(tmpdir))
     run_grablib(config)
-    assert gettree(tmpdir.join('dist')) == {'theme': {'main.65f8be0.css': RegexStr(r'div{colour:red}pre.*')}}
+    assert gettree(tmpdir.join('dist')) == {'theme': {'main.f124ec7.css': IsStr(regex=r'div{colour:red}pre.*')}}
 
 
 def test_resolve_sass_path(tmpdir):
@@ -331,10 +332,8 @@ def test_resolve_sass_path_dev(tmpdir):
     assert gettree(tmpdir.join('dist')) == {
         'assets': {'image.png': '*'},
         'theme': {
-            'main.css.map': RegexStr('{.*'),
-            'main.css': (
-                "body {\n" "  content: '/assets/image.png?t=%0.0f'; }\n" "\n" "/*# sourceMappingURL=main.css.map */"
-            )
+            'main.css.map': IsStr(regex=r'{.*', regex_flags=re.DOTALL),
+            'main.css': ("body {\n  content: '/assets/image.png?t=%0.0f'; }\n\n/*# sourceMappingURL=main.css.map */")
             % mtime,
             '.src': {'main.scss': 'body {content: resolve_path("/assets/image.png")}'},
         },

@@ -34,7 +34,7 @@ class ExtType(str, Enum):
 
 
 class Extensions:
-    def __init__(self, path):
+    def __init__(self, path: str):
         self.path = path
         self._extensions = {}
 
@@ -57,8 +57,10 @@ class Extensions:
         self.template_tests = self._extensions[ExtType.template_tests]
 
     @classmethod
-    def __get_validators__(cls):
-        yield cls.validate
+    def __get_pydantic_core_schema__(cls, *args):
+        from pydantic_core import core_schema
+
+        return core_schema.no_info_plain_validator_function(cls.validate)
 
     @classmethod
     def validate(cls, value):

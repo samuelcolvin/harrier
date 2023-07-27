@@ -5,9 +5,9 @@ from datetime import datetime
 from enum import Enum
 from itertools import product
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Union
 
-from pydantic import BaseModel, Extra, validator
+from pydantic import BaseModel, ConfigDict, Extra, field_validator
 from ruamel.yaml import YAMLError
 
 from .common import HarrierProblem, PathMatch, yaml
@@ -36,54 +36,54 @@ class WebpackConfig(BaseModel):
         validate_all = True
 
 
-class Config(BaseModel):
-    source_dir: Path
-    config_path: Path = None
+class Config(BaseModel, extra=Extra.allow):
+    source_dir: Path = Path('/')
+    config_path: Union[Path, None] = None
     mode: Mode = Mode.production
-    pages_dir: Path = 'pages'
+    pages_dir: Path = Path('pages')
     extensions: Extensions = 'extensions.py'
-    theme_dir: Path = 'theme'
-    data_dir: Path = 'data'
+    theme_dir: Path = Path('theme')
+    data_dir: Path = Path('data')
 
-    dist_dir: Path = 'dist'
-    dist_dir_sass: Path = 'theme'
-    dist_dir_assets: Path = '.'
-    tmp_dir: Path = None
+    dist_dir: Path = Path('dist')
+    dist_dir_sass: Path = Path('theme')
+    dist_dir_assets: Path = Path('.')
+    tmp_dir: Union[Path, None] = None
 
     download: Dict[str, Any] = {}
     download_aliases: Dict[str, str] = {}
 
     default_template: Optional[str] = None
-    paginate_by = 20
-    apply_trailing_slash = True
+    paginate_by: int = 20
+    apply_trailing_slash: bool = True
     defaults: Dict[PathMatch, Dict[str, Any]] = {}
     ignore: List[PathMatch] = []
     no_hash: List[PathMatch] = ['/favicon.???']
 
     webpack: WebpackConfig = WebpackConfig()
-    build_time: datetime = None
+    build_time: Union[datetime, None] = None
 
-    @validator('source_dir')
+    @field_validator('source_dir')
     def resolve_source_dir(cls, v):
         return v.resolve(strict=True)
 
-    @validator('pages_dir', 'theme_dir', 'data_dir')
-    def resolve_relative_paths(cls, v, values, **kwargs):
-        return (values['source_dir'] / v).resolve()
+    @field_validator('pages_dir', 'theme_dir', 'data_dir')
+    def resolve_relative_paths(cls, v, info):
+        return (info.data['source_dir'] / v).resolve()
 
-    @validator('pages_dir')
-    def is_dir(cls, v, field, **kwargs):
+    @field_validator('pages_dir')
+    def is_dir(cls, v, info):
         if not v.exists():
-            raise ValueError(f'{field.name} directory "{v}" does not exist')
+            raise ValueError(f'{info.field_name} directory "{v}" does not exist')
         elif not v.is_dir():
-            raise ValueError(f'{field.name} "{v}" is not a directory')
+            raise ValueError(f'{info.field_name} "{v}" is not a directory')
         else:
             return v
 
-    @validator('dist_dir')
-    def check_dist_dir(cls, p, values, **kwargs):
+    @field_validator('dist_dir')
+    def check_dist_dir(cls, p, info):
         if not p.is_absolute():
-            p = (values['source_dir'] / p).resolve()
+            p = (info.data['source_dir'] / p).resolve()
         if not p.parent.exists():
             raise ValueError(f'dist_dir "{p}" parent directory does not exist')
         elif p.exists() and not p.is_dir():
@@ -91,38 +91,38 @@ class Config(BaseModel):
         else:
             return p
 
-    @validator('default_template')
-    def theme_templates(cls, v, values, **kwargs):
-        templates_dir = values['theme_dir'] / 'templates'
+    @field_validator('default_template')
+    def theme_templates(cls, v, info):
+        templates_dir = info.data['theme_dir'] / 'templates'
         if not v or templates_dir.is_dir():
             return v
         else:
             raise ValueError(f'default-template set but template directory "{templates_dir}" does not exist')
 
-    @validator('extensions', pre=True)
-    def validate_extensions(cls, v, values, **kwargs):
-        p = values['source_dir'] / v
+    @field_validator('extensions', mode='before')
+    def validate_extensions(cls, v, info):
+        p = info.data['source_dir'] / v
         if p.exists() and not p.is_file():
             raise ValueError('"extensions" should be a python file, not directory')
         else:
             return p
 
-    @validator('webpack')
-    def validate_webpack(cls, v, *, values, **kwargs):
+    @field_validator('webpack')
+    def validate_webpack(cls, v, info):
         webpack: WebpackConfig = v
         if not webpack.run:
             return webpack
 
-        if {'source_dir', 'theme_dir', 'source_dir', 'dist_dir'} - values.keys():
+        if {'source_dir', 'theme_dir', 'source_dir', 'dist_dir'} - info.data.keys():
             # some values are missing, can't validate properly
             return webpack
 
         if webpack.cli is None:
-            default_cli = values['source_dir'] / 'node_modules/.bin/webpack-cli'
+            default_cli = info.data['source_dir'] / 'node_modules/.bin/webpack-cli'
             if default_cli.exists():
                 webpack.cli = default_cli
         elif not webpack.cli.is_absolute():
-            webpack.cli = values['source_dir'] / webpack.cli
+            webpack.cli = info.data['source_dir'] / webpack.cli
 
         if not webpack.cli:
             webpack.run = False
@@ -130,19 +130,19 @@ class Config(BaseModel):
             raise ValueError(f'webpack cli path set but does not exist "{webpack.cli}", not running webpack')
 
         if webpack.config:
-            webpack.config = values['source_dir'] / webpack.config
+            webpack.config = info.data['source_dir'] / webpack.config
             if not webpack.config.exists():
                 raise ValueError(f'webpack config set but does not exist "{webpack.config}", not running webpack')
             logger.info('webpack config file found')
         else:
-            webpack.entry = values['theme_dir'] / webpack.entry
+            webpack.entry = info.data['theme_dir'] / webpack.entry
             if not webpack.entry.exists() and webpack.run:
                 logger.warning('webpack entry point "%s" does not exist, not running webpack', webpack.entry)
                 webpack.run = False
-            webpack.output_path = values['dist_dir'] / webpack.output_path
+            webpack.output_path = info.data['dist_dir'] / webpack.output_path
         return webpack
 
-    @validator('build_time', pre=True, always=True)
+    @field_validator('build_time', mode='before')
     def set_build_time(cls, v):
         return datetime.utcnow()
 
@@ -153,9 +153,7 @@ class Config(BaseModel):
             path_hash = hashlib.md5(b'%s' % self.source_dir).hexdigest()
             return Path(tempfile.gettempdir()) / f'harrier-{path_hash}'
 
-    class Config:
-        extra = Extra.allow
-        validate_all = True
+    model_config = ConfigDict(validate_default=True, arbitrary_types_allowed=True)
 
 
 def load_config_file(config_path: Path):

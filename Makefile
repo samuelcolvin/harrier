@@ -1,6 +1,6 @@
 .DEFAULT_GOAL := all
 isort = isort harrier tests
-black = black -S -l 120 --target-version py37 harrier tests
+black = black -S -l 120 --target-version py310 harrier tests
 
 .PHONY: install
 install:

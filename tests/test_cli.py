@@ -1,9 +1,11 @@
+import re
+
 from click.testing import CliRunner
-from pytest_toolbox import gettree, mktree
-from pytest_toolbox.comparison import RegexStr
+from dirty_equals import IsStr
 
 from harrier.cli import cli
 from harrier.common import HarrierProblem
+from tests.utils import gettree, mktree
 
 
 def test_blank():
@@ -112,14 +114,13 @@ def test_steps_sass_dev(tmpdir, mocker):
     mock_mod = mocker.patch('harrier.main.apply_modifiers', side_effect=lambda obj, mod: obj)
 
     result = CliRunner().invoke(cli, ['build', str(tmpdir), '-s', 'sass', '-s', 'extensions', '--dev'])
-    print(result.output)
     assert result.exit_code == 0
     assert 'Built site object model with 1 files, 1 files to render' not in result.output
     assert 'Config:' not in result.output
     assert gettree(tmpdir.join('dist')) == {
         'theme': {
-            'main.css': ('body {\n' '  width: 20px; }\n' '\n' '/*# sourceMappingURL=main.css.map */'),
-            'main.css.map': RegexStr('{.*'),
+            'main.css': 'body {\n' '  width: 20px; }\n' '\n' '/*# sourceMappingURL=main.css.map */',
+            'main.css.map': IsStr(regex=r'{.*', regex_flags=re.DOTALL),
             '.src': {'main.scss': 'body {width: 10px + 10px;}'},
         },
     }

@@ -3,13 +3,13 @@ import sys
 from pathlib import Path
 
 import pytest
-from pytest_toolbox import gettree, mktree
-from watchgod import Change
+from watchfiles import Change
 
 import harrier.dev
 from harrier.config import Config
-from harrier.dev import HarrierWatcher
+from harrier.dev import WatcherFilter
 from harrier.main import dev
+from tests.utils import gettree, mktree
 
 
 class MockServer:
@@ -260,12 +260,12 @@ class Entry:
 
 def test_harrier_watcher(tmpdir):
     mktree(tmpdir, {'pages/foobar.md': '# hello', 'theme/templates/main.jinja': 'main:\n {{ content }}'})
-    harrier.dev.CONFIG = Config(source_dir=tmpdir)
-    watcher = HarrierWatcher(Path(tmpdir))
-    assert not watcher.should_watch_dir(Entry(tmpdir.join('foobar')))
-    assert not watcher.should_watch_dir(Entry(tmpdir.join('__pycache__')))
-    assert watcher.should_watch_dir(Entry(tmpdir.join('pages')))
-    assert watcher.should_watch_dir(Entry(tmpdir.join('pages/whatever')))
+    harrier.dev.CONFIG = Config(source_dir=Path(tmpdir))
+    watcher = WatcherFilter(Path(tmpdir))
+    assert not watcher(Change.modified, str(tmpdir.join('foobar')))
+    assert not watcher(Change.modified, str(tmpdir.join('__pycache__')))
+    assert watcher(Change.modified, str(tmpdir.join('pages')))
+    assert watcher(Change.modified, str(tmpdir.join('pages/whatever')))
     harrier.dev.CONFIG = None
 
 
