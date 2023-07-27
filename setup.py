@@ -27,6 +27,8 @@ setup(
         'Programming Language :: Python',
         'Programming Language :: Python :: 3',
         'Programming Language :: Python :: 3 :: Only',
+        'Programming Language :: Python :: 3.8',
+        'Programming Language :: Python :: 3.9',
         'Programming Language :: Python :: 3.10',
         'Programming Language :: Python :: 3.11',
     ],
@@ -36,7 +38,7 @@ setup(
     url='https://github.com/samuelcolvin/harrier',
     license='MIT',
     packages=['harrier'],
-    python_requires='>=3.10',
+    python_requires='>=3.8',
     zip_safe=True,
     entry_points="""
         [console_scripts]
