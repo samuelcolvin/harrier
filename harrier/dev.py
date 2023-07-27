@@ -34,7 +34,7 @@ class Server:
 
     async def start(self):
         app = serve_static(static_path=str(self.config.dist_dir), port=self.port)
-        self.runner = AppRunner(**app)
+        self.runner = AppRunner(app['app'])
         await self.runner.setup()
 
         site = TCPSite(self.runner, HOST, self.port, shutdown_timeout=0.01)
