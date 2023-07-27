@@ -1,3 +1,5 @@
+from pathlib import Path
+
 import pytest
 from pytest_toolbox import mktree
 
@@ -23,7 +25,7 @@ def test_ok(tmpdir):
         },
     )
 
-    config = Config(source_dir=tmpdir)
+    config = Config(source_dir=Path(tmpdir))
     data = load_data(config)
     assert data == {
         'happy_people': {'name': 'spanner', 'v': 123},
@@ -56,7 +58,7 @@ def test_duplicate(tmpdir, caplog):
         },
     )
 
-    config = Config(source_dir=tmpdir)
+    config = Config(source_dir=Path(tmpdir))
     data = load_data(config)
     assert data == {'path': {'to': {'foo': {'name': 'spanner', 'v': 123}}}}
     assert 'duplicate data key "path.to.foo"' in caplog.text
@@ -67,6 +69,6 @@ def test_invalid_yaml(tmpdir):
         tmpdir, {'pages/foobar.md': '# hello', 'theme/templates': '{{ content }}', 'data': {'foo.yaml': '1 : 2 : 3'}}
     )
 
-    config = Config(source_dir=tmpdir)
+    config = Config(source_dir=Path(tmpdir))
     with pytest.raises(HarrierProblem):
         load_data(config)

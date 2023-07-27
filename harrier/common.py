@@ -6,7 +6,6 @@ from pathlib import Path
 from time import time
 
 import click
-from pydantic.validators import str_validator
 from ruamel.yaml import YAML
 
 yaml = YAML(typ='safe')
@@ -38,9 +37,9 @@ class PathMatch:
         return f'<PathMatch {self.raw!r}>'
 
     @classmethod
-    def __get_validators__(cls):
-        yield str_validator
-        yield cls.validate
+    def __get_pydantic_core_schema__(cls, *args):
+        from pydantic_core import core_schema
+        return core_schema.no_info_after_validator_function(cls.validate, core_schema.str_schema())
 
     @classmethod
     def validate(cls, value):

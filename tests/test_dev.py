@@ -8,7 +8,7 @@ from watchgod import Change
 
 import harrier.dev
 from harrier.config import Config
-from harrier.dev import HarrierWatcher
+from harrier.dev import WatcherFilter
 from harrier.main import dev
 
 
@@ -260,8 +260,8 @@ class Entry:
 
 def test_harrier_watcher(tmpdir):
     mktree(tmpdir, {'pages/foobar.md': '# hello', 'theme/templates/main.jinja': 'main:\n {{ content }}'})
-    harrier.dev.CONFIG = Config(source_dir=tmpdir)
-    watcher = HarrierWatcher(Path(tmpdir))
+    harrier.dev.CONFIG = Config(source_dir=Path(tmpdir))
+    watcher = WatcherFilter(Path(tmpdir))
     assert not watcher.should_watch_dir(Entry(tmpdir.join('foobar')))
     assert not watcher.should_watch_dir(Entry(tmpdir.join('__pycache__')))
     assert watcher.should_watch_dir(Entry(tmpdir.join('pages')))

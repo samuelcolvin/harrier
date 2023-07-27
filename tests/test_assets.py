@@ -289,7 +289,7 @@ def test_grablib_pygments(tmpdir):
 
     config = get_config(str(tmpdir))
     run_grablib(config)
-    assert gettree(tmpdir.join('dist')) == {'theme': {'main.65f8be0.css': RegexStr(r'div{colour:red}pre.*')}}
+    assert gettree(tmpdir.join('dist')) == {'theme': {'main.f124ec7.css': RegexStr(r'div{colour:red}pre.*')}}
 
 
 def test_resolve_sass_path(tmpdir):
