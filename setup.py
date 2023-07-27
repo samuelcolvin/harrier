@@ -5,10 +5,7 @@ from setuptools import setup
 description = 'Static site generator'
 THIS_DIR = Path(__file__).resolve().parent
 try:
-    long_description = '\n\n'.join([
-        THIS_DIR.joinpath('README.md').read_text(),
-        # THIS_DIR.joinpath('HISTORY.md').read_text()
-    ])
+    long_description = '\n\n'.join([THIS_DIR.joinpath('README.md').read_text()])
 except FileNotFoundError:
     long_description = description + '.\n\nSee https://harrier.helpmanual.io/ for documentation.'
 
@@ -30,9 +27,8 @@ setup(
         'Programming Language :: Python',
         'Programming Language :: Python :: 3',
         'Programming Language :: Python :: 3 :: Only',
-        'Programming Language :: Python :: 3.6',
-        'Programming Language :: Python :: 3.7',
-        'Programming Language :: Python :: 3.8',
+        'Programming Language :: Python :: 3.10',
+        'Programming Language :: Python :: 3.11',
     ],
     keywords='css,sass,scss,jinja,jinja2,build,static,static site generator',
     author='Samuel Colvin',
@@ -40,7 +36,7 @@ setup(
     url='https://github.com/samuelcolvin/harrier',
     license='MIT',
     packages=['harrier'],
-    python_requires='>=3.6',
+    python_requires='>=3.10',
     zip_safe=True,
     entry_points="""
         [console_scripts]
