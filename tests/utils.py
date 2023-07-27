@@ -1,9 +1,7 @@
 from copy import copy
 
-from py._path.local import LocalPath
 
-
-def mktree(lp: LocalPath, d):
+def mktree(lp, d):
     """
     Create a tree of files from a dictionary of name > content lookups.
     """
@@ -22,7 +20,7 @@ def mktree(lp: LocalPath, d):
             _lp.write(content)
 
 
-def gettree(lp: LocalPath, max_len=120):
+def gettree(lp, max_len=120):
     """
     Get a dict representing the file tree for a directory
     """
