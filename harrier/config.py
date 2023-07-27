@@ -5,7 +5,7 @@ from datetime import datetime
 from enum import Enum
 from itertools import product
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Union
 
 from pydantic import BaseModel, ConfigDict, Extra, field_validator
 from ruamel.yaml import YAMLError
@@ -38,7 +38,7 @@ class WebpackConfig(BaseModel):
 
 class Config(BaseModel, extra=Extra.allow):
     source_dir: Path = Path('/')
-    config_path: Path | None = None
+    config_path: Union[Path, None] = None
     mode: Mode = Mode.production
     pages_dir: Path = Path('pages')
     extensions: Extensions = 'extensions.py'
@@ -48,7 +48,7 @@ class Config(BaseModel, extra=Extra.allow):
     dist_dir: Path = Path('dist')
     dist_dir_sass: Path = Path('theme')
     dist_dir_assets: Path = Path('.')
-    tmp_dir: Path | None = None
+    tmp_dir: Union[Path, None] = None
 
     download: Dict[str, Any] = {}
     download_aliases: Dict[str, str] = {}
@@ -61,7 +61,7 @@ class Config(BaseModel, extra=Extra.allow):
     no_hash: List[PathMatch] = ['/favicon.???']
 
     webpack: WebpackConfig = WebpackConfig()
-    build_time: datetime | None = None
+    build_time: Union[datetime, None] = None
 
     @field_validator('source_dir')
     def resolve_source_dir(cls, v):
