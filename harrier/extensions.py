@@ -59,6 +59,7 @@ class Extensions:
     @classmethod
     def __get_pydantic_core_schema__(cls, *args):
         from pydantic_core import core_schema
+
         return core_schema.no_info_plain_validator_function(cls.validate)
 
     @classmethod

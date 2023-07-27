@@ -7,7 +7,7 @@ from itertools import product
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-from pydantic import BaseModel, Extra, ConfigDict, field_validator
+from pydantic import BaseModel, ConfigDict, Extra, field_validator
 from ruamel.yaml import YAMLError
 
 from .common import HarrierProblem, PathMatch, yaml

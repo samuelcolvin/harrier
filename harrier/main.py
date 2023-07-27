@@ -65,7 +65,11 @@ def build(path: StrPath, steps: Set[BuildSteps] = None, mode: Optional[Mode] = N
         # this will raise errors if any of the above went wrong
         [f.result() for f in futures if f]
 
-    som = dict(pages=pages, data=data_future and data_future.result(), config=config,)
+    som = dict(
+        pages=pages,
+        data=data_future and data_future.result(),
+        config=config,
+    )
 
     if BuildSteps.extensions in steps:
         apply_page_generator(som, config)

@@ -65,7 +65,12 @@ class Renderer:
         self.env.filters.update(self.config.extensions.template_filters)
 
         self.env.globals.update(
-            url=resolve_url, resolve_url=resolve_url, inline_css=inline_css, shape=shape, width=width, height=height,
+            url=resolve_url,
+            resolve_url=resolve_url,
+            inline_css=inline_css,
+            shape=shape,
+            width=width,
+            height=height,
         )
         self.env.globals.update(self.config.extensions.template_functions)
         self.env.tests.update(self.config.extensions.template_tests)

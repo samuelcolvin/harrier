@@ -224,7 +224,10 @@ def test_markdown_extensions(input, output, tmpdir):
                 '</pre>\n'
             ),
         ),
-        ('{{ [1,2,3]|batch(2)|debug(html=False) }}', '(\n    [1, 2],\n    [3],\n) (type=generator length=-)\n',),
+        (
+            '{{ [1,2,3]|batch(2)|debug(html=False) }}',
+            '(\n    [1, 2],\n    [3],\n) (type=generator length=-)\n',
+        ),
         ('{{ 3|debug(html=False) }}', '3 (type=int length=-)\n'),
         ('{{ "this is some **markdown**"|markdown }}', '<p>this is some <strong>markdown</strong></p>\n'),
         ('{% for p in [1,2,3,4,5]|paginate(2) %}{{ p }}|{% endfor %}', '4|5|\n'),

@@ -39,6 +39,7 @@ class PathMatch:
     @classmethod
     def __get_pydantic_core_schema__(cls, *args):
         from pydantic_core import core_schema
+
         return core_schema.no_info_after_validator_function(cls.validate, core_schema.str_schema())
 
     @classmethod

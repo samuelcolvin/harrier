@@ -55,7 +55,11 @@ def test_simple_render(tmpdir):
             'tmp/content/foobar.md': foo_page,
         },
     )
-    config = Config(source_dir=str(tmpdir), tmp_dir=str(tmpdir.join('tmp')), foo='bar',)
+    config = Config(
+        source_dir=str(tmpdir),
+        tmp_dir=str(tmpdir.join('tmp')),
+        foo='bar',
+    )
 
     som = {
         'pages': {
