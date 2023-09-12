@@ -57,7 +57,6 @@ def test_run_webpack_no_config(tmpdir):
         'source-map',
         '--mode',
         'production',
-        '--optimize-minimize',
         '--entry',
         './theme/js/index.js',
         '--output-path',
@@ -96,7 +95,6 @@ def test_run_webpack_with_config(tmpdir):
         'source-map',
         '--mode',
         'production',
-        '--optimize-minimize',
         '--config',
         './webpack_config.js',
         '--json',
@@ -290,7 +288,7 @@ def test_grablib_pygments(tmpdir):
 
     config = get_config(str(tmpdir))
     run_grablib(config)
-    assert gettree(tmpdir.join('dist')) == {'theme': {'main.f124ec7.css': IsStr(regex=r'div{colour:red}pre.*')}}
+    assert gettree(tmpdir.join('dist')) == {'theme': {'main.20de861.css': IsStr(regex=r'div{colour:red}pre.*')}}
 
 
 def test_resolve_sass_path(tmpdir):

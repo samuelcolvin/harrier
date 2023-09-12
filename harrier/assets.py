@@ -151,7 +151,6 @@ def webpack_configuration(config: Config, watch: bool):
         '--mode',
         config.mode.value,
         watch and '--watch',
-        prod and '--optimize-minimize',
     )
     if wp.config:
         args += '--config', f'./{wp.config.relative_to(config.source_dir)}'
